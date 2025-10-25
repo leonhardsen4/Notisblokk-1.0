@@ -337,12 +337,18 @@ public class DatabaseConfig {
             return "Pool não inicializado";
         }
 
-        return String.format(
-            "Pool: %d conexões (Ativas: %d, Ociosas: %d, Aguardando: %d)",
-            dataSource.getHikariPoolMXBean().getTotalConnections(),
-            dataSource.getHikariPoolMXBean().getActiveConnections(),
-            dataSource.getHikariPoolMXBean().getIdleConnections(),
-            dataSource.getHikariPoolMXBean().getThreadsAwaitingConnection()
-        );
+        try {
+            com.zaxxer.hikari.HikariPoolMXBean poolMXBean = dataSource.getHikariPoolMXBean();
+            return String.format(
+                "Pool: %d conexões (Ativas: %d, Ociosas: %d, Aguardando: %d)",
+                poolMXBean.getTotalConnections(),
+                poolMXBean.getActiveConnections(),
+                poolMXBean.getIdleConnections(),
+                poolMXBean.getThreadsAwaitingConnection()
+            );
+        } catch (Exception e) {
+            logger.warn("Não foi possível obter estatísticas do pool", e);
+            return "Pool inicializado (estatísticas indisponíveis)";
+        }
     }
 }
