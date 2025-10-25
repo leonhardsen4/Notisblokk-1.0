@@ -119,14 +119,13 @@ public class DatabaseConfig {
         logger.info("Executando schema SQL...");
 
         // Ler o arquivo schema.sql do classpath
+        InputStream is = DatabaseConfig.class.getResourceAsStream(SCHEMA_FILE);
+        if (is == null) {
+            throw new IOException("Arquivo schema.sql não encontrado em resources/database");
+        }
+
         String schema;
-        try (InputStream is = DatabaseConfig.class.getResourceAsStream(SCHEMA_FILE);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-
-            if (is == null) {
-                throw new IOException("Arquivo schema.sql não encontrado em resources/database");
-            }
-
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
             schema = reader.lines().collect(Collectors.joining("\n"));
         }
 
