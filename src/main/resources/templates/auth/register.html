@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:attr="data-theme=${theme ?: 'light'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Cadastro - Notisblokk</title>
+
+    <link rel="icon" type="image/png" href="/img/icon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/themes.css">
+    <link rel="stylesheet" href="/css/main.css">
+
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background-color: var(--color-background);
+        }
+        .login-box {
+            width: 100%;
+            max-width: 480px;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo-container img {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <!-- Logo -->
+            <div class="logo-container">
+                <img src="/img/icon.png" alt="Notisblokk">
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">
+                    Criar Nova Conta
+                </h1>
+            </div>
+
+            <!-- Register Card -->
+            <div class="card">
+                <div class="card-body">
+                    <!-- Alerts -->
+                    <div th:if="${error}" class="alert alert-error">
+                        <span th:text="${error}">Erro</span>
+                    </div>
+
+                    <!-- Register Form -->
+                    <form method="POST" action="/auth/register">
+                        <div class="form-group">
+                            <label class="form-label" for="fullName">Nome Completo</label>
+                            <input
+                                type="text"
+                                id="fullName"
+                                name="fullName"
+                                class="form-input"
+                                placeholder="Seu nome completo"
+                                required
+                                autofocus
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="username">Nome de Usuário</label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                class="form-input"
+                                placeholder="Escolha um nome de usuário"
+                                required
+                                minlength="3"
+                            >
+                            <small class="form-help">Mínimo 3 caracteres, apenas letras, números, _ e -</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="email">Email</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                class="form-input"
+                                placeholder="seu@email.com"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="password">Senha</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Crie uma senha forte"
+                                required
+                                minlength="8"
+                            >
+                            <small class="form-help">
+                                Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="confirmPassword">Confirmar Senha</label>
+                            <input
+                                type="password"
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                class="form-input"
+                                placeholder="Digite a senha novamente"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-checkbox">
+                                <input type="checkbox" name="terms" required>
+                                <span>Aceito os termos de uso e política de privacidade</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Criar Conta
+                        </button>
+                    </form>
+
+                    <!-- Link para login -->
+                    <div style="margin-top: 1.5rem; text-align: center; color: var(--color-text-secondary); font-size: 0.9375rem;">
+                        Já tem uma conta?
+                        <a href="/auth/login" style="color: var(--color-primary); font-weight: 600;">
+                            Faça login
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theme Toggle -->
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-secondary btn-sm" id="theme-toggle" title="Alternar tema">
+                    <span>🌙</span>
+                    <span>Alternar Tema</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/theme-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard - Notisblokk</title>
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content">
+            <h1 class="mb-4" style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);">Dashboard</h1>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-4 mb-4">
+                <!-- Total Usuários -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Total de Usuários</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);" th:text="${totalUsuarios}">0</p>
+                            </div>
+                            <svg style="width: 48px; height: 48px; color: var(--color-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                        </div>
+                        <p style="margin-top: 0.75rem; font-size: 0.875rem;">
+                            <span class="text-success" th:text="${percentualAtivos}">0%</span>
+                            <span style="color: var(--color-text-secondary);"> ativos</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Usuários Ativos -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Usuários Ativos</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-success-dark);" th:text="${usuariosAtivos}">0</p>
+                            </div>
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--color-success); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">✓</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Sessões -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Total de Sessões</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);" th:text="${totalSessoes}">0</p>
+                            </div>
+                            <svg style="width: 48px; height: 48px; color: var(--color-info-dark);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sessões Ativas -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Sessões Ativas</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-primary);" th:text="${sessoesAtivas}">0</p>
+                            </div>
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--color-primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">●</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Últimas Sessões -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Últimos Acessos</h3>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuário</th>
+                                    <th>IP</th>
+                                    <th>Navegador</th>
+                                    <th>Login</th>
+                                    <th>Logout</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="session : ${ultimasSessoes}">
+                                    <td th:text="${session.id}">1</td>
+                                    <td th:text="${session.userId}">User</td>
+                                    <td th:text="${session.ipAddress}">0.0.0.0</td>
+                                    <td th:text="${session.browser}">Browser</td>
+                                    <td th:text="${session.formattedLoginTime}">--</td>
+                                    <td th:text="${session.formattedLogoutTime}">--</td>
+                                    <td>
+                                        <span class="badge" th:classappend="${session.active} ? 'badge-success' : 'badge-secondary'" th:text="${session.statusDisplayName}">Status</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(ultimasSessoes)}">
+                                    <td colspan="7" style="text-align: center; color: var(--color-text-secondary);">Nenhuma sessão registrada</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

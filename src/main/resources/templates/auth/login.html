@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:attr="data-theme=${theme ?: 'light'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Login - Notisblokk</title>
+
+    <link rel="icon" type="image/png" href="/img/icon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/themes.css">
+    <link rel="stylesheet" href="/css/main.css">
+
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background-color: var(--color-background);
+        }
+        .login-box {
+            width: 100%;
+            max-width: 420px;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo-container img {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <!-- Logo -->
+            <div class="logo-container">
+                <img src="/img/icon.png" alt="Notisblokk">
+                <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 0.5rem;">
+                    Notisblokk 1.0
+                </h1>
+                <p style="color: var(--color-text-secondary);">
+                    Sistema de Gerenciamento
+                </p>
+            </div>
+
+            <!-- Login Card -->
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title mb-3">Entrar</h2>
+
+                    <!-- Alerts -->
+                    <div th:if="${error}" class="alert alert-error">
+                        <span th:text="${error}">Erro</span>
+                    </div>
+
+                    <div th:if="${success}" class="alert alert-success">
+                        <span th:text="${success}">Sucesso</span>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form method="POST" action="/auth/login">
+                        <div class="form-group">
+                            <label class="form-label" for="username">Usuário ou Email</label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                class="form-input"
+                                placeholder="Digite seu usuário ou email"
+                                required
+                                autofocus
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="password">Senha</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Digite sua senha"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-checkbox">
+                                <input type="checkbox" name="remember">
+                                <span>Lembrar-me</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Entrar
+                        </button>
+                    </form>
+
+                    <!-- Links -->
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <a href="/auth/recover-password" style="color: var(--color-primary); font-size: 0.9375rem;">
+                            Esqueceu a senha?
+                        </a>
+                    </div>
+
+                    <div style="margin-top: 1rem; text-align: center; color: var(--color-text-secondary); font-size: 0.9375rem;">
+                        Não tem uma conta?
+                        <a href="/auth/register" style="color: var(--color-primary); font-weight: 600;">
+                            Cadastre-se
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theme Toggle (bottom) -->
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-secondary btn-sm" id="theme-toggle" title="Alternar tema">
+                    <span>🌙</span>
+                    <span>Alternar Tema</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/theme-switcher.js"></script>
+</body>
+</html>

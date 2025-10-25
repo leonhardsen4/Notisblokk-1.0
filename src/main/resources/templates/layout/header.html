@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Header Fragment -->
+    <header th:fragment="header" class="app-header">
+        <div class="header-content">
+            <!-- Left: Hamburger + Logo -->
+            <div class="header-left">
+                <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+
+                <a href="/dashboard" class="app-logo">
+                    <img src="/img/icon.png" alt="Notisblokk">
+                    <span>Notisblokk 1.0</span>
+                </a>
+            </div>
+
+            <!-- Right: User info + Theme toggle -->
+            <div class="header-right">
+                <!-- Theme Toggle Button -->
+                <button class="btn btn-secondary btn-sm" id="theme-toggle" title="Alternar tema">
+                    <span>🌙</span>
+                </button>
+
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <span class="user-name" th:text="${userName}">Usuário</span>
+                    <div class="user-avatar" th:text="${userInitials}">U</div>
+                </div>
+
+                <!-- Logout -->
+                <a href="/auth/logout" class="btn btn-secondary btn-sm">
+                    Sair
+                </a>
+            </div>
+        </div>
+    </header>
+</body>
+</html>
