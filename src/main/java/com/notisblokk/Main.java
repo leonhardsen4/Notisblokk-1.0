@@ -152,24 +152,34 @@ public class Main {
 
         // ========== ROTAS PROTEGIDAS (AUTENTICAÇÃO NECESSÁRIA) ==========
 
+        // Middleware para rotas protegidas
+        app.before("/dashboard", AuthMiddleware.require());
+        app.before("/api/dashboard/*", AuthMiddleware.require());
+        app.before("/admin/*", AuthMiddleware.require());
+        app.before("/admin/*", AdminMiddleware.require());
+        app.before("/api/users", AuthMiddleware.require());
+        app.before("/api/users/*", AuthMiddleware.require());
+        app.before("/api/users", AdminMiddleware.require());
+        app.before("/api/users/*", AdminMiddleware.require());
+
         // Dashboard
-        app.get("/dashboard", AuthMiddleware.require(), dashboardController::index);
+        app.get("/dashboard", dashboardController::index);
 
         // API - Dashboard Stats (AJAX)
-        app.get("/api/dashboard/stats", AuthMiddleware.require(), dashboardController::getStats);
+        app.get("/api/dashboard/stats", dashboardController::getStats);
 
         // ========== ROTAS ADMINISTRATIVAS (APENAS ADMIN) ==========
 
         // Usuários
-        app.get("/admin/users", AuthMiddleware.require(), AdminMiddleware.require(), userController::list);
-        app.post("/admin/users", AuthMiddleware.require(), AdminMiddleware.require(), userController::create);
-        app.put("/admin/users/{id}", AuthMiddleware.require(), AdminMiddleware.require(), userController::update);
-        app.patch("/admin/users/{id}/toggle", AuthMiddleware.require(), AdminMiddleware.require(), userController::toggleStatus);
-        app.delete("/admin/users/{id}", AuthMiddleware.require(), AdminMiddleware.require(), userController::delete);
+        app.get("/admin/users", userController::list);
+        app.post("/admin/users", userController::create);
+        app.put("/admin/users/{id}", userController::update);
+        app.patch("/admin/users/{id}/toggle", userController::toggleStatus);
+        app.delete("/admin/users/{id}", userController::delete);
 
         // API - Usuários (JSON)
-        app.get("/api/users", AuthMiddleware.require(), AdminMiddleware.require(), userController::listJson);
-        app.get("/api/users/{id}", AuthMiddleware.require(), AdminMiddleware.require(), userController::getUser);
+        app.get("/api/users", userController::listJson);
+        app.get("/api/users/{id}", userController::getUser);
 
         // ========== TRATAMENTO DE ERROS ==========
 

@@ -1,11 +1,9 @@
 package com.notisblokk.config;
 
-import io.javalin.http.Context;
 import io.javalin.rendering.FileRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.WebContext;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.jetbrains.annotations.NotNull;
@@ -69,29 +67,24 @@ public class ThymeleafConfig {
      * @param model modelo de dados para o template
      * @return String HTML renderizado
      */
-    public static String render(Context ctx, String templatePath, Map<String, Object> model) {
+    public static String render(io.javalin.http.Context ctx, String templatePath, Map<String, Object> model) {
         TemplateEngine engine = getTemplateEngine();
 
-        // Criar contexto web do Thymeleaf
-        WebContext webContext = new WebContext(
-            ctx.req().getServletContext(),
-            ctx.req(),
-            ctx.res(),
-            ctx.req().getServletContext().getServerInfo()
-        );
+        // Criar contexto do Thymeleaf
+        org.thymeleaf.context.Context thymeleafContext = new org.thymeleaf.context.Context();
 
         // Adicionar variáveis do modelo ao contexto
         if (model != null) {
-            model.forEach(webContext::setVariable);
+            model.forEach(thymeleafContext::setVariable);
         }
 
         // Adicionar variáveis globais
-        webContext.setVariable("appName", AppConfig.getAppName());
-        webContext.setVariable("appVersion", AppConfig.getAppVersion());
-        webContext.setVariable("contextPath", ctx.contextPath());
+        thymeleafContext.setVariable("appName", AppConfig.getAppName());
+        thymeleafContext.setVariable("appVersion", AppConfig.getAppVersion());
+        thymeleafContext.setVariable("contextPath", ctx.contextPath());
 
         // Renderizar template
-        return engine.process(templatePath, webContext);
+        return engine.process(templatePath, thymeleafContext);
     }
 
     /**
@@ -103,7 +96,7 @@ public class ThymeleafConfig {
         return new FileRenderer() {
             @NotNull
             @Override
-            public String render(@NotNull String filePath, @NotNull Map<String, Object> model, @NotNull Context ctx) {
+            public String render(@NotNull String filePath, @NotNull Map<String, Object> model, @NotNull io.javalin.http.Context ctx) {
                 // Remover extensão .html se fornecida (Thymeleaf adiciona automaticamente)
                 String templatePath = filePath.replace(".html", "");
 
