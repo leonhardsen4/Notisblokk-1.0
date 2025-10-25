@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:attr="data-theme=${theme ?: 'light'}">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:fragment="base(content)" th:data-theme="${theme != null ? theme : 'light'}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title th:text="${title} ?: 'Notisblokk 1.0'">Notisblokk 1.0</title>
+    <title th:text="${title != null ? title : 'Notisblokk 1.0'}">Notisblokk 1.0</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/img/icon.png">
@@ -19,9 +19,6 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/themes.css">
     <link rel="stylesheet" href="/css/main.css">
-
-    <!-- Block para CSS adicional -->
-    <th:block th:replace="${customCss ?: _}"></th:block>
 </head>
 <body>
     <div class="app-container">
@@ -30,7 +27,7 @@
             <div th:replace="~{layout/header :: header}"></div>
         </th:block>
 
-        <div class="main-wrapper" th:classappend="${!isAuthenticated} ? 'no-sidebar' : ''">
+        <div th:class="'main-wrapper' + (${!isAuthenticated} ? ' no-sidebar' : '')">
             <!-- Sidebar (apenas se autenticado) -->
             <th:block th:if="${isAuthenticated}">
                 <div th:replace="~{layout/sidebar :: sidebar}"></div>
@@ -44,8 +41,7 @@
                         <th:block th:each="item : ${featureMenu}">
                             <a th:href="${item.href}"
                                th:text="${item.text}"
-                               th:classappend="${item.active} ? 'active' : ''"
-                               class="feature-menu-item">Item</a>
+                               th:class="'feature-menu-item' + (${item.active} ? ' active' : '')">Item</a>
                         </th:block>
                     </nav>
                 </th:block>
@@ -61,8 +57,5 @@
     <!-- JavaScripts -->
     <script src="/js/theme-switcher.js"></script>
     <script src="/js/main.js"></script>
-
-    <!-- Block para JS adicional -->
-    <th:block th:replace="${customJs ?: _}"></th:block>
 </body>
 </html>

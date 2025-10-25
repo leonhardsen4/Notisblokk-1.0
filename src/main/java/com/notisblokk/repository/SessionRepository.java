@@ -219,7 +219,7 @@ public class SessionRepository {
         """;
 
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             LocalDateTime now = LocalDateTime.now(BRAZIL_ZONE);
             String loginTime = now.format(FORMATTER);
@@ -237,12 +237,15 @@ public class SessionRepository {
                 throw new SQLException("Falha ao salvar sessão, nenhuma linha afetada");
             }
 
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    session.setId(generatedKeys.getLong(1));
+            // SQLite: Obter ID usando last_insert_rowid()
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
+
+                if (rs.next()) {
+                    session.setId(rs.getLong(1));
                     session.setLoginTime(now);
                 } else {
-                    throw new SQLException("Falha ao salvar sessão, ID não gerado");
+                    throw new SQLException("Falha ao obter ID da sessão criada");
                 }
             }
 
@@ -431,15 +434,27 @@ public class SessionRepository {
         session.setUserAgent(rs.getString("user_agent"));
         session.setStatus(SessionStatus.fromString(rs.getString("status")));
 
-        // Parse timestamps
+        // Parse timestamps - SQLite retorna no formato ISO
         String loginTimeStr = rs.getString("login_time");
         String logoutTimeStr = rs.getString("logout_time");
 
-        if (loginTimeStr != null) {
-            session.setLoginTime(LocalDateTime.parse(loginTimeStr, FORMATTER));
+        if (loginTimeStr != null && !loginTimeStr.isEmpty()) {
+            try {
+                // Tentar formato brasileiro primeiro
+                session.setLoginTime(LocalDateTime.parse(loginTimeStr, FORMATTER));
+            } catch (Exception e) {
+                // Se falhar, tentar formato ISO (padrão do SQLite)
+                session.setLoginTime(LocalDateTime.parse(loginTimeStr.replace(" ", "T")));
+            }
         }
         if (logoutTimeStr != null && !logoutTimeStr.isEmpty()) {
-            session.setLogoutTime(LocalDateTime.parse(logoutTimeStr, FORMATTER));
+            try {
+                // Tentar formato brasileiro primeiro
+                session.setLogoutTime(LocalDateTime.parse(logoutTimeStr, FORMATTER));
+            } catch (Exception e) {
+                // Se falhar, tentar formato ISO (padrão do SQLite)
+                session.setLogoutTime(LocalDateTime.parse(logoutTimeStr.replace(" ", "T")));
+            }
         }
 
         return session;

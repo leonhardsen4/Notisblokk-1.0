@@ -10,6 +10,7 @@ import com.notisblokk.middleware.AdminMiddleware;
 import com.notisblokk.middleware.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
+import io.javalin.plugin.bundled.CorsPluginConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,7 @@ public class Main {
 
             logger.info("========================================");
             logger.info("  Servidor iniciado com sucesso!");
-            logger.info("  URL: http://{}:{}", AppConfig.getServerHost(), port);
+            logger.info("  URL: http://{}:{}", (Object) AppConfig.getServerHost(), (Object) port);
             logger.info("========================================");
 
         } catch (Exception e) {
@@ -92,9 +93,7 @@ public class Main {
 
             // Configurar CORS (para desenvolvimento - restringir em produção)
             config.bundledPlugins.enableCors(cors -> {
-                cors.addRule(it -> {
-                    it.anyHost();
-                });
+                cors.addRule(CorsPluginConfig.CorsRule::anyHost);
             });
 
             // Habilitar logs de requisições

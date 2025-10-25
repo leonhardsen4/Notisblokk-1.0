@@ -198,7 +198,7 @@ public class UserRepository {
         """;
 
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             LocalDateTime now = LocalDateTime.now(BRAZIL_ZONE);
             String timestamp = now.format(FORMATTER);
@@ -218,13 +218,16 @@ public class UserRepository {
                 throw new SQLException("Falha ao salvar usuário, nenhuma linha afetada");
             }
 
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    user.setId(generatedKeys.getLong(1));
+            // SQLite: Obter ID usando last_insert_rowid()
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
+
+                if (rs.next()) {
+                    user.setId(rs.getLong(1));
                     user.setCreatedAt(now);
                     user.setUpdatedAt(now);
                 } else {
-                    throw new SQLException("Falha ao salvar usuário, ID não gerado");
+                    throw new SQLException("Falha ao obter ID do usuário criado");
                 }
             }
 
@@ -379,15 +382,27 @@ public class UserRepository {
         user.setRole(UserRole.fromString(rs.getString("role")));
         user.setActive(rs.getBoolean("active"));
 
-        // Parse timestamps
+        // Parse timestamps - SQLite retorna no formato ISO
         String createdAtStr = rs.getString("created_at");
         String updatedAtStr = rs.getString("updated_at");
 
-        if (createdAtStr != null) {
-            user.setCreatedAt(LocalDateTime.parse(createdAtStr, FORMATTER));
+        if (createdAtStr != null && !createdAtStr.isEmpty()) {
+            try {
+                // Tentar formato brasileiro primeiro
+                user.setCreatedAt(LocalDateTime.parse(createdAtStr, FORMATTER));
+            } catch (Exception e) {
+                // Se falhar, tentar formato ISO (padrão do SQLite)
+                user.setCreatedAt(LocalDateTime.parse(createdAtStr.replace(" ", "T")));
+            }
         }
-        if (updatedAtStr != null) {
-            user.setUpdatedAt(LocalDateTime.parse(updatedAtStr, FORMATTER));
+        if (updatedAtStr != null && !updatedAtStr.isEmpty()) {
+            try {
+                // Tentar formato brasileiro primeiro
+                user.setUpdatedAt(LocalDateTime.parse(updatedAtStr, FORMATTER));
+            } catch (Exception e) {
+                // Se falhar, tentar formato ISO (padrão do SQLite)
+                user.setUpdatedAt(LocalDateTime.parse(updatedAtStr.replace(" ", "T")));
+            }
         }
 
         return user;

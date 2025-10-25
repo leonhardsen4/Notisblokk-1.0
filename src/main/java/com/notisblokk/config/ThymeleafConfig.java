@@ -96,7 +96,7 @@ public class ThymeleafConfig {
         return (filePath, model, ctx) -> {
             // Remover extensão .html se fornecida (Thymeleaf adiciona automaticamente)
             String templatePath = filePath.replace(".html", "");
-            return ThymeleafConfig.render(ctx, templatePath, model);
+            return ThymeleafConfig.render(ctx, templatePath, (Map<String, Object>) model);
         };
     }
 

@@ -79,9 +79,10 @@ public class AuthController {
      * Processa o login do usuário.
      */
     public void processLogin(Context ctx) {
+        String usernameOrEmail = null;
         try {
             // Obter dados do formulário
-            String usernameOrEmail = ctx.formParam("username");
+            usernameOrEmail = ctx.formParam("username");
             String password = ctx.formParam("password");
             String remember = ctx.formParam("remember");
 
@@ -98,10 +99,10 @@ public class AuthController {
 
             // Tentar autenticar
             AuthService.LoginResult result = authService.autenticar(
-                usernameOrEmail.trim(),
-                password,
-                ipAddress,
-                userAgent
+                    usernameOrEmail.trim(),
+                    password,
+                    ipAddress,
+                    userAgent
             );
 
             // Armazenar usuário e session ID na sessão HTTP
@@ -126,8 +127,9 @@ public class AuthController {
             ctx.redirect("/auth/login");
 
         } catch (Exception e) {
-            logger.error("Erro ao processar login", e);
-            ctx.sessionAttribute("loginError", "Erro ao processar login. Tente novamente.");
+            logger.error("Erro ao processar login - Username: {}", usernameOrEmail, e);
+            logger.error("Stack trace completo:", e);
+            ctx.sessionAttribute("loginError", "Erro ao processar login: " + e.getMessage());
             ctx.redirect("/auth/login");
         }
     }

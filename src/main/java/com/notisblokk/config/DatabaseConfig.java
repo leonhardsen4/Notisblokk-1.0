@@ -18,6 +18,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -188,7 +189,7 @@ public class DatabaseConfig {
         }
 
         // Adicionar último statement se houver
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             statements.add(current.toString());
         }
 
@@ -320,7 +321,7 @@ public class DatabaseConfig {
             int updated = pstmt.executeUpdate();
 
             if (updated > 0) {
-                logger.info("Limpeza de sessões: {} sessões expiradas", updated);
+                logger.info("Limpeza de sessões: {} sessões expiradas", Optional.of(updated));
             }
 
             return updated;

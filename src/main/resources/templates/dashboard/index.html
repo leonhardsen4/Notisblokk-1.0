@@ -99,7 +99,7 @@
                                     <td th:text="${session.formattedLoginTime}">--</td>
                                     <td th:text="${session.formattedLogoutTime}">--</td>
                                     <td>
-                                        <span class="badge" th:classappend="${session.active} ? 'badge-success' : 'badge-secondary'" th:text="${session.statusDisplayName}">Status</span>
+                                        <span th:class="'badge ' + (${session.active} ? 'badge-success' : 'badge-secondary')" th:text="${session.statusDisplayName}">Status</span>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(ultimasSessoes)}">

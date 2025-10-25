@@ -61,10 +61,10 @@
                                     <td th:text="${user.username}">username</td>
                                     <td th:text="${user.email}">email@example.com</td>
                                     <td>
-                                        <span class="badge" th:classappend="${user.admin} ? 'badge-info' : 'badge-secondary'" th:text="${user.roleDisplayName}">Role</span>
+                                        <span th:class="'badge ' + (${user.admin} ? 'badge-info' : 'badge-secondary')" th:text="${user.roleDisplayName}">Role</span>
                                     </td>
                                     <td>
-                                        <span class="badge" th:classappend="${user.active} ? 'badge-success' : 'badge-error'" th:text="${user.active} ? 'Ativo' : 'Inativo'">Status</span>
+                                        <span th:class="'badge ' + (${user.active} ? 'badge-success' : 'badge-error')" th:text="${user.active} ? 'Ativo' : 'Inativo'">Status</span>
                                     </td>
                                     <td th:text="${user.formattedCreatedAt}">--</td>
                                     <td>
