@@ -93,15 +93,10 @@ public class ThymeleafConfig {
      * @return FileRenderer renderer customizado
      */
     public static FileRenderer createJavalinRenderer() {
-        return new FileRenderer() {
-            @NotNull
-            @Override
-            public String render(@NotNull String filePath, @NotNull Map<String, Object> model, @NotNull io.javalin.http.Context ctx) {
-                // Remover extensão .html se fornecida (Thymeleaf adiciona automaticamente)
-                String templatePath = filePath.replace(".html", "");
-
-                return ThymeleafConfig.render(ctx, templatePath, model);
-            }
+        return (filePath, model, ctx) -> {
+            // Remover extensão .html se fornecida (Thymeleaf adiciona automaticamente)
+            String templatePath = filePath.replace(".html", "");
+            return ThymeleafConfig.render(ctx, templatePath, model);
         };
     }
 
