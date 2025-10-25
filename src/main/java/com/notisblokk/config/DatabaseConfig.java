@@ -126,24 +126,73 @@ public class DatabaseConfig {
 
         String schema;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-            schema = reader.lines().collect(Collectors.joining("\n"));
+            schema = reader.lines()
+                    .filter(line -> !line.trim().startsWith("--"))  // Remove comentários
+                    .filter(line -> !line.trim().isEmpty())         // Remove linhas vazias
+                    .collect(Collectors.joining("\n"));
         }
 
         // Executar o schema
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
 
-            // Executar cada statement separadamente
-            String[] statements = schema.split(";");
+            // Dividir statements considerando blocos BEGIN/END
+            String[] statements = splitSqlStatements(schema);
             for (String sql : statements) {
                 String trimmed = sql.trim();
-                if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
+                if (!trimmed.isEmpty()) {
+                    logger.debug("Executando SQL: {}", trimmed.substring(0, Math.min(50, trimmed.length())) + "...");
                     stmt.execute(trimmed);
                 }
             }
 
             logger.info("Schema SQL executado com sucesso");
         }
+    }
+
+    /**
+     * Divide o schema SQL em statements individuais, respeitando blocos BEGIN/END.
+     *
+     * @param schema conteúdo completo do schema SQL
+     * @return array de statements SQL
+     */
+    private static String[] splitSqlStatements(String schema) {
+        java.util.List<String> statements = new java.util.ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inBlock = false;
+
+        String[] lines = schema.split("\n");
+        for (String line : lines) {
+            String trimmed = line.trim();
+
+            // Detectar início de bloco (TRIGGER com BEGIN)
+            if (trimmed.matches("(?i).*\\bBEGIN\\b.*")) {
+                inBlock = true;
+            }
+
+            current.append(line).append("\n");
+
+            // Detectar fim de statement
+            if (trimmed.endsWith(";")) {
+                if (inBlock && trimmed.matches("(?i).*\\bEND\\s*;.*")) {
+                    // Fim de bloco TRIGGER
+                    inBlock = false;
+                    statements.add(current.toString());
+                    current = new StringBuilder();
+                } else if (!inBlock) {
+                    // Statement normal
+                    statements.add(current.toString());
+                    current = new StringBuilder();
+                }
+            }
+        }
+
+        // Adicionar último statement se houver
+        if (current.length() > 0) {
+            statements.add(current.toString());
+        }
+
+        return statements.toArray(new String[0]);
     }
 
     /**
