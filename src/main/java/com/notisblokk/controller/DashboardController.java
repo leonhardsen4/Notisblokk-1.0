@@ -94,6 +94,8 @@ public class DashboardController {
 
             logger.debug("Dashboard acessado por: {}", SessionUtil.getCurrentUserDisplayName(ctx));
 
+            // Configurar charset UTF-8
+            ctx.contentType("text/html; charset=utf-8");
             ctx.render("dashboard/index", model);
 
         } catch (Exception e) {

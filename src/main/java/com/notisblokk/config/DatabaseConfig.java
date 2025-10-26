@@ -69,6 +69,7 @@ public class DatabaseConfig {
             configurarHikariCP();
             executarSchema();
             criarUsuariosPadrao();
+            criarStatusPadrao();
 
             logger.info("Banco de dados inicializado com sucesso!");
         } catch (Exception e) {
@@ -267,6 +268,77 @@ public class DatabaseConfig {
             logger.info("Usuários padrão criados com sucesso!");
             logger.info("  → Admin: admin@notisblokk.com / Admin@123");
             logger.info("  → Operador: operador@notisblokk.com / Operador@123");
+        }
+    }
+
+    /**
+     * Cria os status padrão do sistema de notas se ainda não existirem.
+     *
+     * <p><b>Status criados:</b></p>
+     * <ul>
+     *   <li><b>Pendente:</b> cor laranja (#FFA500)</li>
+     *   <li><b>Em Andamento:</b> cor azul (#4A90E2)</li>
+     *   <li><b>Resolvido:</b> cor verde (#10B981)</li>
+     *   <li><b>Suspenso:</b> cor cinza (#9CA3AF)</li>
+     *   <li><b>Cancelado:</b> cor vermelho (#EF4444)</li>
+     * </ul>
+     *
+     * @throws SQLException se houver erro ao criar os status
+     */
+    private static void criarStatusPadrao() throws SQLException {
+        logger.info("Verificando status padrão...");
+
+        try (Connection conn = getConnection()) {
+
+            // Array com os status padrão [nome, cor]
+            String[][] statusPadrao = {
+                {"Pendente", "#FFA500"},
+                {"Em Andamento", "#4A90E2"},
+                {"Resolvido", "#10B981"},
+                {"Suspenso", "#9CA3AF"},
+                {"Cancelado", "#EF4444"}
+            };
+
+            LocalDateTime now = LocalDateTime.now(BRAZIL_ZONE);
+            String timestamp = now.format(FORMATTER);
+
+            // Verificar e criar cada status se não existir
+            String checkSql = "SELECT COUNT(*) FROM status_nota WHERE nome = ?";
+            String insertSql = """
+                INSERT INTO status_nota (nome, cor_hex, data_criacao, sessao_id, usuario_id)
+                VALUES (?, ?, ?, NULL, NULL)
+            """;
+
+            int statusCriados = 0;
+            for (String[] status : statusPadrao) {
+                // Verificar se status já existe
+                try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                    checkStmt.setString(1, status[0]);
+                    try (ResultSet rs = checkStmt.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            logger.debug("Status '{}' já existe", status[0]);
+                            continue;
+                        }
+                    }
+                }
+
+                // Criar status se não existe
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                    pstmt.setString(1, status[0]);
+                    pstmt.setString(2, status[1]);
+                    pstmt.setString(3, timestamp);
+                    pstmt.executeUpdate();
+                    statusCriados++;
+
+                    logger.info("✓ Status '{}' criado com cor {}", status[0], status[1]);
+                }
+            }
+
+            if (statusCriados > 0) {
+                logger.info("{} status padrão criados com sucesso!", statusCriados);
+            } else {
+                logger.info("Todos os status padrão já existem no banco de dados");
+            }
         }
     }
 

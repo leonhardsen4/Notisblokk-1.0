@@ -42,3 +42,66 @@ AFTER UPDATE ON users
 BEGIN
     UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
+
+-- ============================================================
+-- TABELAS DE ANOTAÇÕES
+-- ============================================================
+
+-- Habilitar foreign keys no SQLite
+PRAGMA foreign_keys = ON;
+
+-- Tabela de Etiquetas (Tags para categorização)
+CREATE TABLE IF NOT EXISTS etiquetas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sessao_id INTEGER,
+    usuario_id INTEGER,
+    FOREIGN KEY (sessao_id) REFERENCES sessions(id) ON DELETE SET NULL,
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Tabela de Status de Notas
+CREATE TABLE IF NOT EXISTS status_nota (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    cor_hex TEXT NOT NULL,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sessao_id INTEGER,
+    usuario_id INTEGER,
+    FOREIGN KEY (sessao_id) REFERENCES sessions(id) ON DELETE SET NULL,
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Tabela de Notas
+CREATE TABLE IF NOT EXISTS notas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    etiqueta_id INTEGER NOT NULL,
+    status_id INTEGER NOT NULL,
+    titulo TEXT NOT NULL,
+    conteudo TEXT,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    prazo_final DATE NOT NULL,
+    sessao_id INTEGER,
+    usuario_id INTEGER,
+    FOREIGN KEY (etiqueta_id) REFERENCES etiquetas(id) ON DELETE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES status_nota(id) ON DELETE RESTRICT,
+    FOREIGN KEY (sessao_id) REFERENCES sessions(id) ON DELETE SET NULL,
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Índices para performance nas tabelas de anotações
+CREATE INDEX IF NOT EXISTS idx_etiquetas_nome ON etiquetas(nome);
+CREATE INDEX IF NOT EXISTS idx_status_nota_nome ON status_nota(nome);
+CREATE INDEX IF NOT EXISTS idx_notas_etiqueta_id ON notas(etiqueta_id);
+CREATE INDEX IF NOT EXISTS idx_notas_status_id ON notas(status_id);
+CREATE INDEX IF NOT EXISTS idx_notas_prazo_final ON notas(prazo_final);
+CREATE INDEX IF NOT EXISTS idx_notas_usuario_id ON notas(usuario_id);
+
+-- Trigger para atualizar data_atualizacao automaticamente nas notas
+CREATE TRIGGER IF NOT EXISTS update_notas_timestamp
+AFTER UPDATE ON notas
+BEGIN
+    UPDATE notas SET data_atualizacao = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;

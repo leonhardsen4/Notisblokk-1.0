@@ -1,0 +1,480 @@
+/**
+ * NOTISBLOKK 1.0 - NOTAS.CSS
+ * Estilos específicos para o módulo de anotações
+ */
+
+/* ============================================================
+   BADGES DE URGÊNCIA
+   ============================================================ */
+
+.badge-urgente {
+    background-color: #DC2626 !important;
+    color: white !important;
+}
+
+.badge-critico {
+    background-color: #991B1B !important;
+    color: white !important;
+}
+
+.badge-atencao {
+    background-color: #F97316 !important;
+    color: white !important;
+}
+
+.badge-aviso {
+    background-color: #F59E0B !important;
+    color: white !important;
+}
+
+/* ============================================================
+   CARDS DE NOTA
+   ============================================================ */
+
+.nota-card {
+    border-left-width: 4px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nota-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.nota-card-titulo {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary);
+}
+
+.nota-card-conteudo {
+    color: var(--color-text-secondary);
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+    max-height: 100px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Renderizar HTML rico no conteúdo */
+.nota-card-conteudo p {
+    margin-bottom: 0.5rem;
+}
+
+.nota-card-conteudo strong {
+    font-weight: 600;
+}
+
+.nota-card-conteudo em {
+    font-style: italic;
+}
+
+.nota-card-conteudo u {
+    text-decoration: underline;
+}
+
+.nota-card-conteudo ul,
+.nota-card-conteudo ol {
+    margin-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.nota-card-conteudo ul {
+    list-style-type: disc;
+}
+
+.nota-card-conteudo ol {
+    list-style-type: decimal;
+}
+
+.nota-card-conteudo a {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
+
+/* ============================================================
+   MODAIS PERSONALIZADOS
+   ============================================================ */
+
+/* Por padrão, modais ficam ocultos */
+.modal-overlay {
+    display: none !important;
+}
+
+/* Quando ativo, mostra o modal */
+.modal-overlay.active {
+    display: flex !important;
+}
+
+.modal-large {
+    max-width: 600px;
+}
+
+/* ============================================================
+   FILTROS E AÇÕES
+   ============================================================ */
+
+.filtros-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.acoes-container {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   LISTA DE ITEMS (ETIQUETAS/STATUS)
+   ============================================================ */
+
+.item-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.item-list-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    gap: 0.5rem;
+}
+
+.item-list-row:last-child {
+    border-bottom: none;
+}
+
+.item-list-row:hover {
+    background-color: var(--color-background);
+}
+
+.item-list-row .btn-group {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.item-list-row .form-input {
+    margin: 0;
+}
+
+/* ============================================================
+   INDICADORES DE STATUS/COR
+   ============================================================ */
+
+.color-indicator {
+    min-width: 20px;
+    min-height: 20px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   FORM CONTROLS ESPECÍFICOS
+   ============================================================ */
+
+.form-control {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+/* ============================================================
+   GRID DE NOTAS
+   ============================================================ */
+
+.notas-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--color-text-secondary);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* ============================================================
+   TABELA DE NOTAS
+   ============================================================ */
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.notas-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--color-surface);
+}
+
+.notas-table thead {
+    background-color: var(--color-background);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.notas-table th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+.notas-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.notas-table th.sortable:hover {
+    background-color: var(--color-surface);
+}
+
+.notas-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.notas-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.notas-table tbody tr:hover {
+    background-color: var(--color-background);
+}
+
+.notas-table tbody tr.nota-atrasada {
+    background-color: rgba(220, 38, 38, 0.1);
+}
+
+.notas-table tbody tr.nota-urgente {
+    background-color: rgba(249, 115, 22, 0.1);
+}
+
+.notas-table .acoes-col {
+    width: 120px;
+    text-align: center;
+}
+
+/* ============================================================
+   SEARCH CONTROLS
+   ============================================================ */
+
+.search-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 300px;
+}
+
+/* ============================================================
+   COLUMN CONTROLS
+   ============================================================ */
+
+.column-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--color-background);
+    border-radius: 0.375rem;
+    border: 1px solid var(--color-border);
+}
+
+.column-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    color: var(--color-text-primary);
+    user-select: none;
+}
+
+.column-toggle input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+/* ============================================================
+   ALERTAS SECTION
+   ============================================================ */
+
+.alertas-section {
+    border-left: 4px solid #DC2626;
+}
+
+.alerta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 0.2s ease;
+}
+
+.alerta-item:last-child {
+    border-bottom: none;
+}
+
+.alerta-item:hover {
+    background-color: var(--color-background);
+}
+
+.alerta-item.alerta-crítico {
+    background-color: rgba(220, 38, 38, 0.1);
+    border-left: 4px solid #DC2626;
+}
+
+.alerta-item.alerta-urgente {
+    background-color: rgba(249, 115, 22, 0.1);
+    border-left: 4px solid #F97316;
+}
+
+.alerta-item.alerta-atenção {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-left: 4px solid #F59E0B;
+}
+
+.alerta-item.alerta-aviso {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3B82F6;
+}
+
+.alerta-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.alerta-link {
+    flex: 1;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    text-decoration: none;
+}
+
+.alerta-link:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
+
+.alerta-prazo {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+/* ============================================================
+   UTILITÁRIOS
+   ============================================================ */
+
+.d-flex {
+    display: flex;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.btn-group {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* ============================================================
+   RESPONSIVIDADE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .acoes-container {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .acoes-container .btn {
+        width: 100%;
+    }
+
+    .filtros-container {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .filtros-container .form-control {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .search-controls {
+        flex-direction: column;
+    }
+
+    .search-input {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .notas-table th,
+    .notas-table td {
+        padding: 0.625rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .column-controls {
+        gap: 0.5rem;
+    }
+
+    .alerta-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .alerta-prazo {
+        font-size: 0.8125rem;
+    }
+}

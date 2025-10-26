@@ -229,6 +229,16 @@ public class SessionUtil {
     }
 
     /**
+     * Obtém o ID da sessão atual (alias para getSessionId).
+     *
+     * @param ctx contexto do Javalin
+     * @return Long ID da sessão ou null se não houver
+     */
+    public static Long getCurrentSessionId(Context ctx) {
+        return getSessionId(ctx);
+    }
+
+    /**
      * Obtém o nome de exibição do usuário da sessão atual.
      *
      * @param ctx contexto do Javalin

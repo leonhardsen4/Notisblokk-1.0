@@ -80,6 +80,8 @@ public class UserController {
 
             logger.debug("Lista de usuários acessada por: {}", SessionUtil.getCurrentUserDisplayName(ctx));
 
+            // Configurar charset UTF-8
+            ctx.contentType("text/html; charset=utf-8");
             ctx.render("admin/users", model);
 
         } catch (Exception e) {

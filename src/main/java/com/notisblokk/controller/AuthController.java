@@ -71,6 +71,8 @@ public class AuthController {
             ctx.sessionAttribute("loginSuccess", null); // Limpar após exibir
         }
 
+        // Configurar charset UTF-8
+        ctx.contentType("text/html; charset=utf-8");
         ctx.render("auth/login", model);
     }
 
@@ -156,6 +158,8 @@ public class AuthController {
             ctx.sessionAttribute("registerError", null);
         }
 
+        // Configurar charset UTF-8
+        ctx.contentType("text/html; charset=utf-8");
         ctx.render("auth/register", model);
     }
 
@@ -249,6 +253,8 @@ public class AuthController {
             ctx.sessionAttribute("recoverSuccess", null);
         }
 
+        // Configurar charset UTF-8
+        ctx.contentType("text/html; charset=utf-8");
         ctx.render("auth/recover-password", model);
     }
 

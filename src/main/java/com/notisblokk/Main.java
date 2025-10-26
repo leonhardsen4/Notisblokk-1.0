@@ -6,10 +6,19 @@ import com.notisblokk.config.ThymeleafConfig;
 import com.notisblokk.controller.AuthController;
 import com.notisblokk.controller.DashboardController;
 import com.notisblokk.controller.UserController;
+import com.notisblokk.controller.EtiquetaController;
+import com.notisblokk.controller.StatusNotaController;
+import com.notisblokk.controller.NotaController;
+import com.notisblokk.controller.NotificacaoController;
+import com.notisblokk.controller.NotasViewController;
 import com.notisblokk.middleware.AdminMiddleware;
 import com.notisblokk.middleware.AuthMiddleware;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
+import io.javalin.json.JavalinJackson;
 import io.javalin.plugin.bundled.CorsPluginConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,12 +73,15 @@ public class Main {
             }));
 
             // Iniciar servidor
+            String host = AppConfig.getServerHost();
             int port = AppConfig.getServerPort();
-            app.start(port);
+            app.start(host, port);
 
             logger.info("========================================");
             logger.info("  Servidor iniciado com sucesso!");
-            logger.info("  URL: http://{}:{}", (Object) AppConfig.getServerHost(), (Object) port);
+            logger.info("  Escutando em: {}:{}", host, port);
+            logger.info("  Acesso local: http://localhost:{}", port);
+            logger.info("  Acesso em rede: http://<seu-ip>:{}", port);
             logger.info("========================================");
 
         } catch (Exception e) {
@@ -95,6 +107,12 @@ public class Main {
             config.bundledPlugins.enableCors(cors -> {
                 cors.addRule(CorsPluginConfig.CorsRule::anyHost);
             });
+
+            // Configurar Jackson para serializar LocalDateTime corretamente
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            config.jsonMapper(new JavalinJackson());
 
             // Habilitar logs de requisições
             config.bundledPlugins.enableDevLogging();
@@ -124,6 +142,11 @@ public class Main {
         AuthController authController = new AuthController();
         DashboardController dashboardController = new DashboardController();
         UserController userController = new UserController();
+        EtiquetaController etiquetaController = new EtiquetaController();
+        StatusNotaController statusController = new StatusNotaController();
+        NotaController notaController = new NotaController();
+        NotificacaoController notificacaoController = new NotificacaoController();
+        NotasViewController notasViewController = new NotasViewController();
 
         // ========== ROTAS PÚBLICAS ==========
 
@@ -149,6 +172,100 @@ public class Main {
 
         app.get("/auth/logout", authController::logout);
 
+        // ========== ROTAS DE DEBUG (SEM AUTENTICAÇÃO) ==========
+        app.get("/api/status/debug", ctx -> {
+            try {
+                java.sql.Connection conn = com.notisblokk.config.DatabaseConfig.getConnection();
+                java.sql.Statement stmt = conn.createStatement();
+                java.sql.ResultSet rs = stmt.executeQuery("SELECT id, nome, cor_hex FROM status_nota ORDER BY nome ASC");
+
+                java.util.List<java.util.Map<String, Object>> statusList = new java.util.ArrayList<>();
+                while (rs.next()) {
+                    java.util.Map<String, Object> status = new java.util.HashMap<>();
+                    status.put("id", rs.getLong("id"));
+                    status.put("nome", rs.getString("nome"));
+                    status.put("corHex", rs.getString("cor_hex"));
+                    statusList.add(status);
+                }
+
+                rs.close();
+                stmt.close();
+                conn.close();
+
+                logger.info("DEBUG: {} status encontrados no banco", statusList.size());
+
+                ctx.json(java.util.Map.of(
+                    "success", true,
+                    "total", statusList.size(),
+                    "dados", statusList
+                ));
+            } catch (Exception e) {
+                logger.error("DEBUG: Erro ao buscar status", e);
+                ctx.json(java.util.Map.of(
+                    "success", false,
+                    "error", e.getMessage()
+                ));
+            }
+        });
+
+        app.get("/api/notas/debug", ctx -> {
+            try {
+                java.sql.Connection conn = com.notisblokk.config.DatabaseConfig.getConnection();
+                java.sql.Statement stmt = conn.createStatement();
+                java.sql.ResultSet rs = stmt.executeQuery(
+                    "SELECT n.id, n.titulo, n.conteudo, n.prazo_final, n.data_criacao, " +
+                    "e.id as etiqueta_id, e.nome as etiqueta_nome, " +
+                    "s.id as status_id, s.nome as status_nome, s.cor_hex as status_cor " +
+                    "FROM notas n " +
+                    "LEFT JOIN etiquetas e ON n.etiqueta_id = e.id " +
+                    "LEFT JOIN status_nota s ON n.status_id = s.id " +
+                    "ORDER BY n.prazo_final ASC"
+                );
+
+                java.util.List<java.util.Map<String, Object>> notas = new java.util.ArrayList<>();
+                while (rs.next()) {
+                    java.util.Map<String, Object> nota = new java.util.HashMap<>();
+                    nota.put("id", rs.getLong("id"));
+                    nota.put("titulo", rs.getString("titulo"));
+                    nota.put("conteudo", rs.getString("conteudo"));
+                    nota.put("prazoFinal", rs.getString("prazo_final"));
+                    nota.put("dataCriacao", rs.getString("data_criacao"));
+
+                    java.util.Map<String, Object> etiqueta = new java.util.HashMap<>();
+                    etiqueta.put("id", rs.getLong("etiqueta_id"));
+                    etiqueta.put("nome", rs.getString("etiqueta_nome"));
+                    nota.put("etiqueta", etiqueta);
+
+                    java.util.Map<String, Object> status = new java.util.HashMap<>();
+                    status.put("id", rs.getLong("status_id"));
+                    status.put("nome", rs.getString("status_nome"));
+                    status.put("corHex", rs.getString("status_cor"));
+                    nota.put("status", status);
+
+                    notas.add(nota);
+                }
+
+                rs.close();
+                stmt.close();
+                conn.close();
+
+                logger.info("DEBUG: {} notas encontradas no banco", notas.size());
+
+                ctx.json(java.util.Map.of(
+                    "success", true,
+                    "total", notas.size(),
+                    "dados", notas
+                ));
+            } catch (Exception e) {
+                logger.error("DEBUG: Erro ao buscar notas", e);
+                ctx.json(java.util.Map.of(
+                    "success", false,
+                    "error", e.getMessage(),
+                    "stackTrace", e.getStackTrace()[0].toString()
+                ));
+            }
+        });
+
         // ========== ROTAS PROTEGIDAS (AUTENTICAÇÃO NECESSÁRIA) ==========
 
         // Middleware para rotas protegidas
@@ -161,11 +278,27 @@ public class Main {
         app.before("/api/users", AdminMiddleware.require());
         app.before("/api/users/*", AdminMiddleware.require());
 
+        // Middleware para rotas de anotações (requer autenticação)
+        app.before("/notas", AuthMiddleware.require());
+        app.before("/notas/*", AuthMiddleware.require());
+        app.before("/api/etiquetas", AuthMiddleware.require());
+        app.before("/api/etiquetas/*", AuthMiddleware.require());
+        app.before("/api/status", AuthMiddleware.require());
+        app.before("/api/status/*", AuthMiddleware.require());
+        app.before("/api/notas", AuthMiddleware.require());
+        app.before("/api/notas/*", AuthMiddleware.require());
+        app.before("/api/notificacoes/*", AuthMiddleware.require());
+
         // Dashboard
         app.get("/dashboard", dashboardController::index);
 
         // API - Dashboard Stats (AJAX)
         app.get("/api/dashboard/stats", dashboardController::getStats);
+
+        // Anotações (Views)
+        app.get("/notas", notasViewController::index);
+        app.get("/notas/nova", notasViewController::novaNota);
+        app.get("/notas/editar/{id}", notasViewController::editarNota);
 
         // ========== ROTAS ADMINISTRATIVAS (APENAS ADMIN) ==========
 
@@ -179,6 +312,34 @@ public class Main {
         // API - Usuários (JSON)
         app.get("/api/users", userController::listJson);
         app.get("/api/users/{id}", userController::getUser);
+
+        // ========== API DE ANOTAÇÕES (AUTENTICAÇÃO NECESSÁRIA) ==========
+
+        // Etiquetas
+        app.get("/api/etiquetas", etiquetaController::listar);
+        app.get("/api/etiquetas/{id}", etiquetaController::buscarPorId);
+        app.post("/api/etiquetas", etiquetaController::criar);
+        app.put("/api/etiquetas/{id}", etiquetaController::atualizar);
+        app.delete("/api/etiquetas/{id}", etiquetaController::deletar);
+
+        // Status
+        app.get("/api/status", statusController::listar);
+        app.get("/api/status/{id}", statusController::buscarPorId);
+        app.post("/api/status", statusController::criar);
+        app.put("/api/status/{id}", statusController::atualizar);
+        app.delete("/api/status/{id}", statusController::deletar);
+
+        // Notas
+        app.get("/api/notas", notaController::listar);
+        app.get("/api/notas/{id}", notaController::buscarPorId);
+        app.get("/api/notas/etiqueta/{etiquetaId}", notaController::buscarPorEtiqueta);
+        app.post("/api/notas", notaController::criar);
+        app.put("/api/notas/{id}", notaController::atualizar);
+        app.delete("/api/notas/{id}", notaController::deletar);
+
+        // Notificações
+        app.get("/api/notificacoes/alertas", notificacaoController::gerarAlertas);
+        app.get("/api/notificacoes/estatisticas", notificacaoController::obterEstatisticas);
 
         // ========== TRATAMENTO DE ERROS ==========
 

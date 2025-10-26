@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${nota != null ? 'Editar Nota' : 'Nova Nota'} + ' - Notisblokk'">Nova Nota - Notisblokk</title>
+
+    <!-- Quill Editor CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+
+    <style>
+        .editor-container {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0.375rem;
+        }
+
+        #editor {
+            min-height: 400px;
+            background-color: var(--color-surface);
+            color: var(--color-text-primary);
+        }
+
+        .ql-toolbar {
+            background-color: var(--color-background);
+            border-top-left-radius: 0.375rem;
+            border-top-right-radius: 0.375rem;
+        }
+
+        .ql-container {
+            border-bottom-left-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
+        }
+
+        /* Tema escuro para o Quill */
+        [data-theme="dark"] .ql-toolbar button svg,
+        [data-theme="dark"] .ql-toolbar .ql-stroke {
+            stroke: var(--color-text-primary);
+        }
+
+        [data-theme="dark"] .ql-toolbar .ql-fill {
+            fill: var(--color-text-primary);
+        }
+
+        [data-theme="dark"] .ql-toolbar .ql-picker-label {
+            color: var(--color-text-primary);
+        }
+    </style>
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content">
+            <div class="mb-3">
+                <a href="/notas" class="btn btn-secondary">← Voltar para Anotações</a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" th:text="${nota != null ? 'Editar Nota' : 'Nova Nota'}">Nova Nota</h2>
+                </div>
+                <div class="card-body">
+                    <form id="notaForm">
+                        <input type="hidden" id="notaId" th:value="${nota != null ? nota.id : ''}">
+
+                        <div class="form-group">
+                            <label class="form-label">Título*</label>
+                            <input type="text" id="titulo" class="form-input" th:value="${nota != null ? nota.titulo : ''}" required>
+                        </div>
+
+                        <div class="grid grid-cols-2 mb-3">
+                            <div class="form-group">
+                                <label class="form-label">Etiqueta*</label>
+                                <select id="etiquetaId" class="form-select" required>
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Status*</label>
+                                <select id="statusId" class="form-select" required>
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Prazo Final*</label>
+                            <input type="date" id="prazoFinal" class="form-input" th:value="${nota != null ? nota.prazoFinal : ''}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Conteúdo</label>
+                            <div class="editor-container">
+                                <div id="editor"></div>
+                            </div>
+                            <input type="hidden" id="conteudo">
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">Salvar Nota</button>
+                            <a href="/notas" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <!-- Quill Editor JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <script th:inline="javascript">
+        // Dados da nota (se estiver editando)
+        const notaData = /*[[${nota}]]*/ null;
+
+        // Inicializar editor Quill
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    [{ 'font': [] }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'align': [] }],
+                    ['blockquote', 'code-block'],
+                    ['link', 'image', 'video'],
+                    ['clean']
+                ]
+            },
+            placeholder: 'Digite o conteúdo da nota aqui...'
+        });
+
+        // Converte data brasileira (dd/MM/yyyy ou dd-MM-yyyy) para ISO (yyyy-MM-dd)
+        function converterDataBrasileiraParaISO(dataBrasileira) {
+            if (!dataBrasileira) return '';
+
+            // Verifica se já está no formato ISO (yyyy-MM-dd)
+            if (dataBrasileira.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dataBrasileira;
+            }
+
+            // Converte de dd/MM/yyyy para yyyy-MM-dd
+            if (dataBrasileira.includes('/')) {
+                const partes = dataBrasileira.split('/');
+                if (partes.length === 3) {
+                    return `${partes[2]}-${partes[1]}-${partes[0]}`;
+                }
+            }
+
+            // Converte de dd-MM-yyyy para yyyy-MM-dd
+            if (dataBrasileira.match(/^\d{2}-\d{2}-\d{4}$/)) {
+                const partes = dataBrasileira.split('-');
+                return `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+
+            return dataBrasileira;
+        }
+
+        // Carregar etiquetas e status
+        async function carregarDados() {
+            try {
+                // Carregar etiquetas
+                const resEtiquetas = await fetch('/api/etiquetas');
+                const dataEtiquetas = await resEtiquetas.json();
+                console.log('Etiquetas carregadas:', dataEtiquetas);
+
+                if (!dataEtiquetas.success) {
+                    throw new Error(dataEtiquetas.message || 'Erro ao carregar etiquetas');
+                }
+
+                const etiquetas = dataEtiquetas.dados || [];
+
+                const selectEtiqueta = document.getElementById('etiquetaId');
+                etiquetas.forEach(etiqueta => {
+                    const option = document.createElement('option');
+                    option.value = etiqueta.id;
+                    option.textContent = etiqueta.nome;
+                    selectEtiqueta.appendChild(option);
+                });
+
+                // Carregar status (usar rota de debug que não requer autenticação)
+                const resStatus = await fetch('/api/status/debug');
+                const dataStatus = await resStatus.json();
+                console.log('Status carregados:', dataStatus);
+
+                if (!dataStatus.success) {
+                    throw new Error(dataStatus.error || 'Erro ao carregar status');
+                }
+
+                const statusList = dataStatus.dados || [];
+
+                const selectStatus = document.getElementById('statusId');
+                statusList.forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status.id;
+                    option.textContent = status.nome;
+                    selectStatus.appendChild(option);
+                });
+
+                // Se estiver editando, preencher dados
+                if (notaData) {
+                    console.log('📝 Dados da nota recebidos:', notaData);
+
+                    document.getElementById('titulo').value = notaData.titulo || '';
+                    document.getElementById('etiquetaId').value = notaData.etiqueta?.id || '';
+                    document.getElementById('statusId').value = notaData.status?.id || '';
+
+                    // Converter data brasileira para formato ISO (yyyy-MM-dd) para o input type="date"
+                    console.log('📅 prazoFinal recebido:', notaData.prazoFinal);
+                    console.log('📅 prazoFinalFormatado recebido:', notaData.prazoFinalFormatado);
+
+                    // Tentar usar prazoFinal primeiro, depois prazoFinalFormatado como fallback
+                    const dataParaConverter = notaData.prazoFinal || notaData.prazoFinalFormatado;
+                    console.log('📅 Data para converter:', dataParaConverter);
+
+                    const dataISO = converterDataBrasileiraParaISO(dataParaConverter);
+                    console.log('📅 Data convertida para ISO:', dataISO);
+
+                    document.getElementById('prazoFinal').value = dataISO;
+                    console.log('📅 Campo prazoFinal preenchido com:', document.getElementById('prazoFinal').value);
+
+                    // Carregar conteúdo no editor
+                    if (notaData.conteudo) {
+                        quill.root.innerHTML = notaData.conteudo;
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao carregar dados:', err);
+                alert('Erro ao carregar etiquetas e status');
+            }
+        }
+
+        // Converte data ISO (yyyy-MM-dd) para brasileira (dd/MM/yyyy)
+        function converterDataISOParaBrasileira(dataISO) {
+            if (!dataISO) return '';
+
+            // Verifica se já está no formato brasileiro (dd/MM/yyyy)
+            if (dataISO.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                return dataISO;
+            }
+
+            // Converte de yyyy-MM-dd para dd/MM/yyyy
+            const partes = dataISO.split('-');
+            if (partes.length === 3) {
+                return `${partes[2]}/${partes[1]}/${partes[0]}`;
+            }
+
+            return dataISO;
+        }
+
+        // Salvar nota
+        document.getElementById('notaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Pegar conteúdo HTML do editor
+            const conteudoHtml = quill.root.innerHTML;
+
+            const notaId = document.getElementById('notaId').value;
+            const titulo = document.getElementById('titulo').value;
+            const etiquetaId = document.getElementById('etiquetaId').value;
+            const statusId = document.getElementById('statusId').value;
+            const prazoFinalISO = document.getElementById('prazoFinal').value;
+
+            // Converter data de ISO para formato brasileiro antes de enviar
+            const prazoFinal = converterDataISOParaBrasileira(prazoFinalISO);
+
+            const dados = {
+                titulo,
+                etiquetaId: parseInt(etiquetaId),
+                statusId: parseInt(statusId),
+                prazoFinal,
+                conteudo: conteudoHtml
+            };
+
+            try {
+                const url = notaId ? `/api/notas/${notaId}` : '/api/notas';
+                const method = notaId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = '/notas';
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (err) {
+                console.error('Erro ao salvar nota:', err);
+                alert('Erro ao salvar nota: ' + err.message);
+            }
+        });
+
+        // Carregar dados ao iniciar
+        carregarDados();
+    </script>
+</body>
+</html>

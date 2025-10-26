@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Anotações - Notisblokk</title>
+    <link rel="stylesheet" href="/css/notas.css">
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content" x-data="notasApp()">
+            <h1 class="mb-3">Anotações</h1>
+
+            <!-- Barra de Ações -->
+            <div class="acoes-container">
+                <a href="/notas/nova" class="btn btn-primary">
+                    ➕ Nova Nota
+                </a>
+                <button @click="abrirModalEtiquetas()" class="btn btn-secondary">
+                    🏷️ Gerenciar Etiquetas
+                </button>
+                <button @click="abrirModalStatus()" class="btn btn-secondary">
+                    📊 Gerenciar Status
+                </button>
+                <button @click="mostrarControlesColunas = false" class="btn btn-warning" :class="{'btn-danger': alertasUrgentes.length > 0}">
+                    🔔 Alertas (<span x-text="alertasUrgentes.length"></span>)
+                </button>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="filtros-container">
+                        <select id="filtroEtiqueta" class="form-control">
+                            <option value="">Todas as etiquetas</option>
+                        </select>
+                        <select id="filtroStatus" class="form-control">
+                            <option value="">Todos os status</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Alertas -->
+            <div x-show="alertasUrgentes.length > 0" class="card mb-3 alertas-section">
+                <div class="card-header">
+                    <h2 class="card-title">🚨 Alertas Urgentes</h2>
+                </div>
+                <div class="card-body">
+                    <template x-for="alerta in alertasUrgentes" :key="alerta.id">
+                        <div class="alerta-item" :class="'alerta-' + alerta.nivel.toLowerCase()">
+                            <span class="alerta-icon" x-text="getAlertaIcon(alerta.nivel)"></span>
+                            <a :href="'/notas/editar/' + alerta.id" class="alerta-link" x-text="alerta.titulo"></a>
+                            <span class="alerta-prazo" x-text="alerta.prazoTexto"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Barra de Pesquisa e Controles -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="search-controls">
+                        <input
+                            type="text"
+                            x-model="termoPesquisa"
+                            @input="pesquisarNotas()"
+                            placeholder="🔍 Pesquisar notas (título, conteúdo, etiqueta, status...)"
+                            class="form-input search-input"
+                        >
+                        <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-sm">
+                            ⚙️ Colunas
+                        </button>
+                    </div>
+
+                    <!-- Controles de Colunas -->
+                    <div x-show="mostrarControlesColunas" class="column-controls mt-2">
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.titulo"> Título
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.etiqueta"> Etiqueta
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.status"> Status
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.prazo"> Prazo
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.diasRestantes"> Dias Restantes
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Notas -->
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="notas-table">
+                        <thead>
+                            <tr>
+                                <th x-show="colunasVisiveis.titulo" @click="ordenarPor('titulo')" class="sortable">
+                                    Título <span x-text="getSortIcon('titulo')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.etiqueta" @click="ordenarPor('etiqueta')" class="sortable">
+                                    Etiqueta <span x-text="getSortIcon('etiqueta')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.status" @click="ordenarPor('status')" class="sortable">
+                                    Status <span x-text="getSortIcon('status')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.prazo" @click="ordenarPor('prazo')" class="sortable">
+                                    Prazo <span x-text="getSortIcon('prazo')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.diasRestantes" @click="ordenarPor('diasRestantes')" class="sortable">
+                                    Dias Restantes <span x-text="getSortIcon('diasRestantes')"></span>
+                                </th>
+                                <th class="acoes-col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="nota in notasProcessadas" :key="nota.id">
+                                <tr :class="{'nota-atrasada': nota.diasRestantes < 0, 'nota-urgente': nota.diasRestantes >= 0 && nota.diasRestantes <= 3}">
+                                    <td x-show="colunasVisiveis.titulo">
+                                        <strong x-text="nota.titulo"></strong>
+                                    </td>
+                                    <td x-show="colunasVisiveis.etiqueta">
+                                        <span class="badge" :style="'background-color: ' + (nota.etiqueta.corHex || '#6B7280') + '; color: ' + getContrastColor(nota.etiqueta.corHex || '#6B7280')" x-text="nota.etiqueta.nome"></span>
+                                    </td>
+                                    <td x-show="colunasVisiveis.status">
+                                        <span class="badge" :style="'background-color: ' + nota.status.corHex + '; color: ' + getContrastColor(nota.status.corHex)" x-text="nota.status.nome"></span>
+                                    </td>
+                                    <td x-show="colunasVisiveis.prazo" x-text="nota.prazoFinal"></td>
+                                    <td x-show="colunasVisiveis.diasRestantes">
+                                        <span class="badge" :class="getBadgeClass(nota.diasRestantes)" x-text="getDiasPrazoText(nota)"></span>
+                                    </td>
+                                    <td class="acoes-col">
+                                        <div class="btn-group">
+                                            <a :href="'/notas/editar/' + nota.id" class="btn btn-sm btn-primary" title="Editar">✏️</a>
+                                            <button @click="deletarNota(nota.id)" class="btn btn-sm btn-danger" title="Deletar">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
+                    <div x-show="notasProcessadas.length === 0" class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>Nenhuma nota encontrada</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Etiquetas -->
+            <div class="modal-overlay" :class="{ active: modalEtiquetas }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Gerenciar Etiquetas</h2>
+                        <button @click="fecharModalEtiquetas()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="salvarEtiqueta()" class="mb-3">
+                            <div class="d-flex gap-2">
+                                <input type="text" x-model="novaEtiqueta" placeholder="Nome da etiqueta" class="form-input" required>
+                                <button type="submit" class="btn btn-primary" x-text="etiquetaEditandoId ? 'Salvar' : 'Adicionar'"></button>
+                                <button type="button" x-show="etiquetaEditandoId" @click="cancelarEdicaoEtiqueta()" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                        <div class="item-list">
+                            <template x-for="etiqueta in etiquetas" :key="etiqueta.id">
+                                <div class="item-list-row">
+                                    <span x-text="etiqueta.nome + ' (' + etiqueta.totalNotas + ' notas)'"></span>
+                                    <div class="btn-group">
+                                        <button @click="iniciarEdicaoEtiqueta(etiqueta)" class="btn btn-sm btn-secondary" title="Editar">✏️</button>
+                                        <button @click="deletarEtiqueta(etiqueta.id)" class="btn btn-sm btn-danger" title="Deletar">🗑️</button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="fecharModalEtiquetas()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Status -->
+            <div class="modal-overlay" :class="{ active: modalStatus }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Gerenciar Status</h2>
+                        <button @click="fecharModalStatus()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="salvarStatus()" class="mb-3">
+                            <div class="d-flex gap-2" style="align-items: center;">
+                                <input type="text" x-model="novoStatus.nome" placeholder="Nome do status" class="form-input" required>
+                                <input type="color" x-model="novoStatus.cor" class="form-control" style="width: 80px; height: 40px; padding: 2px;" required>
+                                <div class="color-indicator" :style="'background-color: ' + novoStatus.cor" style="width: 40px; height: 40px;"></div>
+                                <button type="submit" class="btn btn-primary" x-text="statusEditandoId ? 'Salvar' : 'Adicionar'"></button>
+                                <button type="button" x-show="statusEditandoId" @click="cancelarEdicaoStatus()" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                        <div class="item-list">
+                            <template x-for="status in statusList" :key="status.id">
+                                <div class="item-list-row">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <div class="color-indicator" :style="'background-color: ' + status.corHex"></div>
+                                        <span x-text="status.nome"></span>
+                                    </div>
+                                    <div class="btn-group">
+                                        <button @click="iniciarEdicaoStatus(status)" class="btn btn-sm btn-secondary" title="Editar">✏️</button>
+                                        <button @click="deletarStatus(status.id)" class="btn btn-sm btn-danger" title="Deletar">🗑️</button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="fecharModalStatus()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                function notasApp() {
+                    return {
+                        notas: [],
+                        notasFiltradas: [],
+                        notasProcessadas: [],
+                        alertasUrgentes: [],
+                        etiquetas: [],
+                        statusList: [],
+                        modalEtiquetas: false,
+                        modalStatus: false,
+                        novaEtiqueta: '',
+                        novoStatus: { nome: '', cor: '#6B7280' },
+                        etiquetaEditandoId: null,
+                        statusEditandoId: null,
+                        filtroEtiqueta: '',
+                        filtroStatus: '',
+                        termoPesquisa: '',
+                        mostrarControlesColunas: false,
+                        colunaOrdenacao: 'diasRestantes',
+                        direcaoOrdenacao: 'asc',
+                        colunasVisiveis: {
+                            titulo: true,
+                            etiqueta: true,
+                            status: true,
+                            prazo: true,
+                            diasRestantes: true
+                        },
+                        pesquisaTimeout: null,
+
+                        async init() {
+                            // Carregar preferências de colunas do localStorage
+                            const colunasSalvas = localStorage.getItem('notasColunasVisiveis');
+                            if (colunasSalvas) {
+                                this.colunasVisiveis = JSON.parse(colunasSalvas);
+                            }
+
+                            await this.carregarEtiquetas();
+                            await this.carregarStatus();
+                            await this.carregarNotas();
+                            // Alertas são gerados automaticamente em processarNotas()
+
+                            // Adicionar event listeners para os filtros
+                            document.getElementById('filtroEtiqueta').addEventListener('change', (e) => {
+                                this.filtroEtiqueta = e.target.value;
+                                this.processarNotas();
+                            });
+
+                            document.getElementById('filtroStatus').addEventListener('change', (e) => {
+                                this.filtroStatus = e.target.value;
+                                this.processarNotas();
+                            });
+
+                            // Watch para salvar preferências de colunas
+                            this.$watch('colunasVisiveis', (value) => {
+                                localStorage.setItem('notasColunasVisiveis', JSON.stringify(value));
+                            });
+                        },
+
+                        async carregarNotas() {
+                            try {
+                                // Usar rota de debug temporariamente
+                                const url = '/api/notas/debug';
+                                console.log('Carregando notas de:', url);
+                                const res = await fetch(url);
+                                console.log('Status da resposta:', res.status);
+                                const data = await res.json();
+                                console.log('Dados recebidos:', data);
+
+                                if (!data.success) {
+                                    console.error('Erro da API:', data.message || data.error);
+                                    alert('Erro ao carregar notas: ' + (data.message || data.error));
+                                    return;
+                                }
+
+                                this.notas = data.dados || [];
+                                console.log(`✓ ${this.notas.length} nota(s) carregada(s):`, this.notas);
+                                this.processarNotas();
+                            } catch (err) {
+                                console.error('Erro ao carregar notas:', err);
+                                alert('Erro ao carregar notas. Verifique o console.');
+                            }
+                        },
+
+                        // Processa e filtra notas
+                        processarNotas() {
+                            console.log('🔄 Processando notas...');
+
+                            // 1. Calcular dias restantes para cada nota
+                            const notasComDias = this.notas.map(nota => {
+                                const prazo = this.parseDataBrasileira(nota.prazoFinal);
+                                const hoje = new Date();
+                                hoje.setHours(0, 0, 0, 0);
+                                const diasRestantes = Math.floor((prazo - hoje) / (1000 * 60 * 60 * 24));
+
+                                console.log(`📅 Nota "${nota.titulo}": prazoFinal="${nota.prazoFinal}", prazoDate=${prazo}, diasRestantes=${diasRestantes}`);
+
+                                return {
+                                    ...nota,
+                                    diasRestantes,
+                                    prazoDate: prazo
+                                };
+                            });
+
+                            // 2. Filtrar por pesquisa
+                            let notasFiltradas = notasComDias;
+                            if (this.termoPesquisa.trim()) {
+                                const termo = this.termoPesquisa.toLowerCase();
+                                notasFiltradas = notasFiltradas.filter(nota =>
+                                    nota.titulo.toLowerCase().includes(termo) ||
+                                    (nota.conteudo && nota.conteudo.toLowerCase().includes(termo)) ||
+                                    nota.etiqueta.nome.toLowerCase().includes(termo) ||
+                                    nota.status.nome.toLowerCase().includes(termo)
+                                );
+                            }
+
+                            // 3. Filtrar por etiqueta
+                            if (this.filtroEtiqueta) {
+                                notasFiltradas = notasFiltradas.filter(n => n.etiqueta.id == this.filtroEtiqueta);
+                            }
+
+                            // 4. Filtrar por status
+                            if (this.filtroStatus) {
+                                notasFiltradas = notasFiltradas.filter(n => n.status.id == this.filtroStatus);
+                            }
+
+                            // 5. Ordenar
+                            notasFiltradas.sort((a, b) => {
+                                let valorA, valorB;
+
+                                switch(this.colunaOrdenacao) {
+                                    case 'titulo':
+                                        valorA = a.titulo.toLowerCase();
+                                        valorB = b.titulo.toLowerCase();
+                                        break;
+                                    case 'etiqueta':
+                                        valorA = a.etiqueta.nome.toLowerCase();
+                                        valorB = b.etiqueta.nome.toLowerCase();
+                                        break;
+                                    case 'status':
+                                        valorA = a.status.nome.toLowerCase();
+                                        valorB = b.status.nome.toLowerCase();
+                                        break;
+                                    case 'prazo':
+                                        valorA = a.prazoDate.getTime();
+                                        valorB = b.prazoDate.getTime();
+                                        break;
+                                    case 'diasRestantes':
+                                    default:
+                                        valorA = a.diasRestantes;
+                                        valorB = b.diasRestantes;
+                                        break;
+                                }
+
+                                if (valorA < valorB) return this.direcaoOrdenacao === 'asc' ? -1 : 1;
+                                if (valorA > valorB) return this.direcaoOrdenacao === 'asc' ? 1 : -1;
+                                return 0;
+                            });
+
+                            this.notasProcessadas = notasFiltradas;
+
+                            // 6. Gerar alertas urgentes
+                            this.gerarAlertasUrgentes(notasComDias);
+                        },
+
+                        // Gera lista de alertas por prioridade
+                        gerarAlertasUrgentes(notas) {
+                            const alertas = [];
+
+                            notas.forEach(nota => {
+                                // Ignorar notas com status "Resolvido" ou "Cancelado"
+                                const statusNome = nota.status?.nome?.toLowerCase() || '';
+                                if (statusNome === 'resolvido' || statusNome === 'cancelado') {
+                                    return; // Não gera alerta para essas notas
+                                }
+
+                                let nivel, prazoTexto;
+                                const dias = nota.diasRestantes;
+
+                                if (dias < 0) {
+                                    nivel = 'CRÍTICO';
+                                    prazoTexto = `Atrasada ${Math.abs(dias)} dia(s)`;
+                                } else if (dias === 0) {
+                                    nivel = 'CRÍTICO';
+                                    prazoTexto = 'Vence HOJE';
+                                } else if (dias === 1) {
+                                    nivel = 'URGENTE';
+                                    prazoTexto = 'Vence AMANHÃ';
+                                } else if (dias <= 3) {
+                                    nivel = 'URGENTE';
+                                    prazoTexto = `${dias} dias restantes`;
+                                } else if (dias <= 5) {
+                                    nivel = 'ATENÇÃO';
+                                    prazoTexto = `${dias} dias restantes`;
+                                } else if (dias <= 7) {
+                                    nivel = 'AVISO';
+                                    prazoTexto = `${dias} dias restantes`;
+                                } else {
+                                    return; // Não inclui em alertas
+                                }
+
+                                alertas.push({
+                                    id: nota.id,
+                                    titulo: nota.titulo,
+                                    nivel,
+                                    prazoTexto,
+                                    diasRestantes: dias
+                                });
+                            });
+
+                            // Ordenar por urgência (dias restantes crescente)
+                            alertas.sort((a, b) => a.diasRestantes - b.diasRestantes);
+
+                            this.alertasUrgentes = alertas;
+                            console.log(`🚨 ${alertas.length} alerta(s) gerado(s):`, alertas);
+                        },
+
+                        // Parse data brasileira (dd/MM/yyyy, dd-MM-yyyy) ou ISO (yyyy-MM-dd)
+                        parseDataBrasileira(dataStr) {
+                            if (!dataStr) return new Date();
+
+                            // Verifica se é formato ISO (yyyy-MM-dd)
+                            if (dataStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                const partes = dataStr.split('-');
+                                return new Date(partes[0], partes[1] - 1, partes[2]);
+                            }
+
+                            // Formato brasileiro com barras (dd/MM/yyyy)
+                            if (dataStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                                const partes = dataStr.split('/');
+                                return new Date(partes[2], partes[1] - 1, partes[0]);
+                            }
+
+                            // Formato brasileiro com hífens (dd-MM-yyyy)
+                            if (dataStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+                                const partes = dataStr.split('-');
+                                return new Date(partes[2], partes[1] - 1, partes[0]);
+                            }
+
+                            // Fallback: tenta criar Date diretamente
+                            console.warn('Formato de data não reconhecido:', dataStr);
+                            return new Date(dataStr);
+                        },
+
+                        // Pesquisa com debounce
+                        pesquisarNotas() {
+                            clearTimeout(this.pesquisaTimeout);
+                            this.pesquisaTimeout = setTimeout(() => {
+                                this.processarNotas();
+                            }, 300);
+                        },
+
+                        // Ordenar por coluna
+                        ordenarPor(coluna) {
+                            if (this.colunaOrdenacao === coluna) {
+                                // Inverte direção se já está ordenando por essa coluna
+                                this.direcaoOrdenacao = this.direcaoOrdenacao === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                // Nova coluna, começa com ascendente
+                                this.colunaOrdenacao = coluna;
+                                this.direcaoOrdenacao = 'asc';
+                            }
+                            this.processarNotas();
+                        },
+
+                        // Ícone de ordenação
+                        getSortIcon(coluna) {
+                            if (this.colunaOrdenacao !== coluna) return '⇅';
+                            return this.direcaoOrdenacao === 'asc' ? '↑' : '↓';
+                        },
+
+                        // Ícone de alerta
+                        getAlertaIcon(nivel) {
+                            switch(nivel) {
+                                case 'CRÍTICO': return '🔴';
+                                case 'URGENTE': return '🟠';
+                                case 'ATENÇÃO': return '🟡';
+                                case 'AVISO': return '🔵';
+                                default: return '⚪';
+                            }
+                        },
+
+                        async carregarEtiquetas() {
+                            try {
+                                const res = await fetch('/api/etiquetas');
+                                const data = await res.json();
+                                this.etiquetas = data.dados || [];
+
+                                // Popular select de filtro
+                                const selectFiltro = document.getElementById('filtroEtiqueta');
+                                selectFiltro.innerHTML = '<option value="">Todas as etiquetas</option>';
+                                this.etiquetas.forEach(etiqueta => {
+                                    const option = document.createElement('option');
+                                    option.value = etiqueta.id;
+                                    option.textContent = etiqueta.nome;
+                                    selectFiltro.appendChild(option);
+                                });
+                            } catch (err) {
+                                console.error('Erro ao carregar etiquetas:', err);
+                            }
+                        },
+
+                        async carregarStatus() {
+                            try {
+                                // Usar rota de debug que não requer autenticação
+                                const res = await fetch('/api/status/debug');
+                                const data = await res.json();
+
+                                console.log('Status carregados:', data);
+
+                                if (!data.success) {
+                                    console.error('Erro ao carregar status:', data.error);
+                                    alert('Erro ao carregar status: ' + (data.error || 'Erro desconhecido'));
+                                    return;
+                                }
+
+                                this.statusList = data.dados || [];
+
+                                if (this.statusList.length === 0) {
+                                    console.warn('Nenhum status encontrado no banco de dados');
+                                    return;
+                                }
+
+                                // Popular select de filtro
+                                const selectFiltro = document.getElementById('filtroStatus');
+                                selectFiltro.innerHTML = '<option value="">Todos os status</option>';
+                                this.statusList.forEach(status => {
+                                    const option = document.createElement('option');
+                                    option.value = status.id;
+                                    option.textContent = status.nome;
+                                    selectFiltro.appendChild(option);
+                                });
+
+                                console.log(`✓ ${this.statusList.length} status carregados com sucesso`);
+                            } catch (err) {
+                                console.error('Erro ao carregar status:', err);
+                                alert('Erro ao carregar status. Verifique o console.');
+                            }
+                        },
+
+                        // Alertas agora são gerados localmente pela função gerarAlertasUrgentes()
+                        // que é chamada automaticamente ao processar as notas
+
+                        async deletarNota(id) {
+                            if (!confirm('Deseja realmente deletar esta nota?')) return;
+                            try {
+                                const res = await fetch(`/api/notas/${id}`, { method: 'DELETE' });
+                                const data = await res.json();
+                                alert(data.message);
+                                if (data.success) await this.carregarNotas();
+                            } catch (err) {
+                                alert('Erro ao deletar nota: ' + err.message);
+                            }
+                        },
+
+                        abrirModalEtiquetas() {
+                            this.modalEtiquetas = true;
+                        },
+
+                        async salvarEtiqueta() {
+                            try {
+                                // Se estiver editando, fazer PUT; senão, fazer POST
+                                const url = this.etiquetaEditandoId
+                                    ? `/api/etiquetas/${this.etiquetaEditandoId}`
+                                    : '/api/etiquetas';
+                                const method = this.etiquetaEditandoId ? 'PUT' : 'POST';
+
+                                const res = await fetch(url, {
+                                    method: method,
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ nome: this.novaEtiqueta })
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                    this.novaEtiqueta = '';
+                                    this.etiquetaEditandoId = null;
+                                    await this.carregarEtiquetas();
+                                    await this.carregarNotas(); // Recarregar notas para atualizar badges
+                                } else {
+                                    alert('Erro: ' + data.message);
+                                }
+                            } catch (err) {
+                                alert('Erro ao salvar etiqueta: ' + err.message);
+                            }
+                        },
+
+                        async deletarEtiqueta(id) {
+                            if (!confirm('Deletar esta etiqueta? Todas as notas associadas também serão deletadas!')) return;
+                            try {
+                                const res = await fetch(`/api/etiquetas/${id}`, { method: 'DELETE' });
+                                const data = await res.json();
+                                alert(data.message);
+                                if (data.success) {
+                                    await this.carregarEtiquetas();
+                                    await this.carregarNotas();
+                                }
+                            } catch (err) {
+                                alert('Erro ao deletar etiqueta: ' + err.message);
+                            }
+                        },
+
+                        fecharModalEtiquetas() {
+                            this.modalEtiquetas = false;
+                            this.cancelarEdicaoEtiqueta();
+                        },
+
+                        iniciarEdicaoEtiqueta(etiqueta) {
+                            this.etiquetaEditandoId = etiqueta.id;
+                            this.novaEtiqueta = etiqueta.nome;
+                        },
+
+                        cancelarEdicaoEtiqueta() {
+                            this.etiquetaEditandoId = null;
+                            this.novaEtiqueta = '';
+                        },
+
+                        abrirModalStatus() {
+                            this.modalStatus = true;
+                        },
+
+                        async salvarStatus() {
+                            try {
+                                // Se estiver editando, fazer PUT; senão, fazer POST
+                                const url = this.statusEditandoId
+                                    ? `/api/status/${this.statusEditandoId}`
+                                    : '/api/status';
+                                const method = this.statusEditandoId ? 'PUT' : 'POST';
+
+                                console.log('Salvando status:', { nome: this.novoStatus.nome, corHex: this.novoStatus.cor, method });
+                                const res = await fetch(url, {
+                                    method: method,
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ nome: this.novoStatus.nome, corHex: this.novoStatus.cor })
+                                });
+                                const data = await res.json();
+                                console.log('Resposta do servidor:', data);
+                                if (data.success) {
+                                    alert(data.message);
+                                    this.novoStatus = { nome: '', cor: '#6B7280' };
+                                    this.statusEditandoId = null;
+                                    await this.carregarStatus();
+                                    await this.carregarNotas(); // Recarregar notas para atualizar badges
+                                } else {
+                                    alert('Erro: ' + data.message);
+                                }
+                            } catch (err) {
+                                console.error('Erro ao salvar:', err);
+                                alert('Erro ao salvar status: ' + err.message);
+                            }
+                        },
+
+                        async deletarStatus(id) {
+                            if (!confirm('Deseja realmente deletar este status?')) return;
+                            try {
+                                const res = await fetch(`/api/status/${id}`, { method: 'DELETE' });
+                                const data = await res.json();
+                                alert(data.message);
+                                if (data.success) await this.carregarStatus();
+                            } catch (err) {
+                                alert('Erro ao deletar status: ' + err.message);
+                            }
+                        },
+
+                        fecharModalStatus() {
+                            this.modalStatus = false;
+                            this.cancelarEdicaoStatus();
+                        },
+
+                        iniciarEdicaoStatus(status) {
+                            this.statusEditandoId = status.id;
+                            this.novoStatus.nome = status.nome;
+                            this.novoStatus.cor = status.corHex;
+                        },
+
+                        cancelarEdicaoStatus() {
+                            this.statusEditandoId = null;
+                            this.novoStatus = { nome: '', cor: '#6B7280' };
+                        },
+
+                        getBadgeClass(dias) {
+                            if (dias < 0) return 'badge-critico';
+                            if (dias <= 1) return 'badge-urgente';
+                            if (dias <= 3) return 'badge-atencao';
+                            if (dias <= 5) return 'badge-aviso';
+                            return '';
+                        },
+
+                        getDiasPrazoText(nota) {
+                            const dias = nota.diasRestantes;
+                            if (dias < 0) return `Atrasada ${Math.abs(dias)} dia(s)`;
+                            if (dias === 0) return 'Vence HOJE';
+                            if (dias === 1) return 'Vence AMANHÃ';
+                            return `${dias} dias restantes`;
+                        },
+
+                        /**
+                         * Calcula a cor do texto (branco ou preto) baseado na luminância da cor de fundo
+                         * para garantir contraste adequado.
+                         *
+                         * @param {string} hexColor - Cor em formato hexadecimal (#RRGGBB)
+                         * @returns {string} 'white' ou 'black'
+                         */
+                        getContrastColor(hexColor) {
+                            if (!hexColor) return 'white';
+
+                            // Remove o # se existir
+                            const hex = hexColor.replace('#', '');
+
+                            // Converte para RGB
+                            const r = parseInt(hex.substr(0, 2), 16);
+                            const g = parseInt(hex.substr(2, 2), 16);
+                            const b = parseInt(hex.substr(4, 2), 16);
+
+                            // Calcula a luminância relativa usando a fórmula WCAG
+                            // https://www.w3.org/TR/WCAG20/#relativeluminancedef
+                            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+                            // Se a luminância for maior que 0.5, usar texto escuro; senão, usar texto claro
+                            return luminance > 0.5 ? 'black' : 'white';
+                        }
+                    }
+                }
+            </script>
+        </div>
+    </th:block>
+</body>
+</html>

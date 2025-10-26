@@ -8,6 +8,7 @@ Este guia explica como criar o instalador Windows do Notisblokk usando **jpackag
 
 ✅ **Java JDK 14 ou superior** instalado
 ✅ **Maven** instalado
+✅ **WiX Toolset 3.14+** instalado (para gerar .exe/.msi)
 ✅ Projeto já compilado (`mvn clean package`)
 
 ### Verificar versão do Java:
@@ -16,9 +17,28 @@ java -version
 ```
 Deve mostrar algo como: `java version "21.0.x"` ou superior a 14
 
+### Instalar WiX Toolset (obrigatório para .exe):
+
+1. **Download:** https://github.com/wixtoolset/wix3/releases/tag/wix3141rtm
+   - Baixe `wix314.exe`
+
+2. **Instalar:** Execute o instalador
+
+3. **Adicionar ao PATH:**
+   - Variáveis de Ambiente → Path → Adicionar: `C:\Program Files (x86)\WiX Toolset v3.14\bin`
+
+4. **Verificar:**
+   ```cmd
+   candle.exe -?
+   ```
+
+**Alternativa sem WiX:** Use o script `build-portable.bat` para gerar versão portátil (sem instalador)
+
 ---
 
-## Método 1: Script Automático (Recomendado) 🚀
+## Opção A: Instalador .exe (Requer WiX) 📦
+
+### Método 1: Script Automático (Recomendado) 🚀
 
 Execute o script fornecido:
 
@@ -32,9 +52,7 @@ build-exe.bat
 3. Executa o jpackage
 4. Gera o instalador em `dist/Notisblokk-1.0.exe`
 
----
-
-## Método 2: Comando Manual
+### Método 2: Comando Manual
 
 Se preferir executar manualmente:
 
@@ -43,7 +61,7 @@ Se preferir executar manualmente:
 mvn clean package
 
 # 2. Executar jpackage
-jpackage --input target --name "Notisblokk" --main-jar notisblokk-1.0.0.jar --main-class com.notisblokk.Main --type exe --dest dist --app-version 1.0 --description "Notisblokk - Sistema de Gerenciamento" --vendor "Notisblokk Team" --win-console --win-shortcut --win-menu --win-dir-chooser
+jpackage --input target --name "Notisblokk" --main-jar notisblokk.jar --main-class com.notisblokk.Main --type exe --dest dist --app-version 1.0 --description "Notisblokk - Sistema de Gerenciamento" --vendor "Notisblokk Team" --win-console --win-shortcut --win-menu --win-dir-chooser
 ```
 
 ---
@@ -82,6 +100,51 @@ Basta enviar o arquivo `dist/Notisblokk-1.0.exe` para os usuários.
 - Iniciar automaticamente na porta 8080
 - Estar acessível em `http://localhost:8080` ou `http://0.0.0.0:8080`
 - Criar o banco de dados `notisblokk.db` no diretório de instalação
+
+---
+
+## Opção B: Versão Portátil (SEM WiX) 📁
+
+**Use esta opção se não quiser instalar o WiX Toolset.**
+
+### Gerar Versão Portátil:
+
+Execute o script:
+```bash
+build-portable.bat
+```
+
+### O que é gerado:
+
+📁 **Pasta:** `dist-portable/Notisblokk/`
+⚡ **Executável:** `dist-portable/Notisblokk/Notisblokk.exe`
+📏 **Tamanho:** ~60-80 MB
+
+### Vantagens:
+
+✅ **Não precisa WiX** - funciona sem instalação adicional
+✅ **Totalmente portátil** - copie a pasta para qualquer lugar
+✅ **JRE embutida** - não precisa Java instalado
+✅ **Executável direto** - clique duplo e funciona
+✅ **Zero instalação** - não modifica registro do Windows
+
+### Como usar:
+
+1. Copie a pasta `dist-portable/Notisblokk` para onde quiser
+2. Execute `Notisblokk.exe`
+3. Pronto! Sistema funcionando
+
+### Como distribuir:
+
+1. Comprima a pasta `dist-portable/Notisblokk` em ZIP
+2. Envie o ZIP para os usuários
+3. Eles descompactam e executam o .exe
+
+**Ideal para:**
+- Pen drive (rodar de qualquer computador)
+- Testes
+- Ambientes sem permissão de instalação
+- Deploy em servidores Windows
 
 ---
 
@@ -124,12 +187,12 @@ O jpackage também funciona em Linux e macOS:
 
 **Linux (.deb ou .rpm):**
 ```bash
-jpackage --input target --name "Notisblokk" --main-jar notisblokk-1.0.0.jar --main-class com.notisblokk.Main --type deb --dest dist
+jpackage --input target --name "Notisblokk" --main-jar notisblokk.jar --main-class com.notisblokk.Main --type deb --dest dist
 ```
 
 **macOS (.dmg):**
 ```bash
-jpackage --input target --name "Notisblokk" --main-jar notisblokk-1.0.0.jar --main-class com.notisblokk.Main --type dmg --dest dist
+jpackage --input target --name "Notisblokk" --main-jar notisblokk.jar --main-class com.notisblokk.Main --type dmg --dest dist
 ```
 
 ---

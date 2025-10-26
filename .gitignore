@@ -85,6 +85,7 @@ logs/
 
 # JPackage output
 dist/
+dist-portable/
 
 # GraalVM Native Image
 *.so
