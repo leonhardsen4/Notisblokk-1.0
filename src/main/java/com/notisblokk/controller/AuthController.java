@@ -4,9 +4,11 @@ import com.notisblokk.model.User;
 import com.notisblokk.model.UserRole;
 import com.notisblokk.service.AuthService;
 import com.notisblokk.service.UserService;
+import com.notisblokk.service.SecurityService;
 import com.notisblokk.util.SessionUtil;
 import com.notisblokk.util.ValidationUtil;
 import io.javalin.http.Context;
+import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +35,7 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
     private final UserService userService;
+    private final SecurityService securityService;
 
     /**
      * Construtor padrão.
@@ -40,6 +43,7 @@ public class AuthController {
     public AuthController() {
         this.authService = new AuthService();
         this.userService = new UserService();
+        this.securityService = new SecurityService();
     }
 
     /**
@@ -203,7 +207,7 @@ public class AuthController {
             }
 
             // Criar usuário (sempre como OPERATOR)
-            userService.criarUsuario(
+            User newUser = userService.criarUsuario(
                 username.trim(),
                 email.trim(),
                 password,
@@ -213,8 +217,18 @@ public class AuthController {
 
             logger.info("Novo usuário registrado: {} ({})", username, email);
 
+            // Enviar email de confirmação
+            try {
+                securityService.enviarEmailConfirmacao(newUser);
+                logger.info("Email de confirmação enviado para: {}", email);
+            } catch (Exception emailError) {
+                logger.error("Erro ao enviar email de confirmação", emailError);
+                // Não bloquear o cadastro se email falhar
+            }
+
             // Redirecionar para login com mensagem de sucesso
-            ctx.sessionAttribute("loginSuccess", "Cadastro realizado com sucesso! Faça login para continuar.");
+            ctx.sessionAttribute("loginSuccess",
+                "Cadastro realizado com sucesso! Verifique seu email para confirmar sua conta.");
             ctx.redirect("/auth/login");
 
         } catch (Exception e) {
@@ -285,13 +299,13 @@ public class AuthController {
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
 
-                // TODO: Implementar envio de email real
-                // Por enquanto, apenas log no console
-                logger.info("========================================");
-                logger.info("RECUPERAÇÃO DE SENHA SOLICITADA");
-                logger.info("Usuário: {} ({})", user.getUsername(), user.getEmail());
-                logger.info("Link de recuperação seria enviado para: {}", user.getEmail());
-                logger.info("========================================");
+                // Enviar email de recuperação
+                try {
+                    securityService.enviarEmailRecuperacaoSenha(user);
+                    logger.info("Email de recuperação enviado para: {}", user.getEmail());
+                } catch (Exception emailError) {
+                    logger.error("Erro ao enviar email de recuperação", emailError);
+                }
             }
 
             // Sempre mostrar mensagem de sucesso por segurança
@@ -336,6 +350,131 @@ public class AuthController {
             // Mesmo com erro, limpar sessão e redirecionar
             SessionUtil.clearSession(ctx);
             ctx.redirect("/auth/login");
+        }
+    }
+
+    /**
+     * GET /auth/verificar-email
+     * Verifica o email do usuário através do token.
+     */
+    public void verificarEmail(Context ctx) {
+        try {
+            String token = ctx.queryParam("token");
+
+            if (ValidationUtil.isNullOrEmpty(token)) {
+                ctx.sessionAttribute("loginError", "Token de verificação inválido");
+                ctx.redirect("/auth/login");
+                return;
+            }
+
+            // Verificar token
+            boolean verificado = securityService.verificarEmail(token);
+
+            if (verificado) {
+                ctx.sessionAttribute("loginSuccess",
+                    "Email verificado com sucesso! Agora você pode fazer login.");
+                logger.info("Email verificado com sucesso via token");
+            } else {
+                ctx.sessionAttribute("loginError",
+                    "Token de verificação inválido ou expirado. Solicite um novo email de confirmação.");
+            }
+
+            ctx.redirect("/auth/login");
+
+        } catch (Exception e) {
+            logger.error("Erro ao verificar email", e);
+            ctx.sessionAttribute("loginError", "Erro ao verificar email");
+            ctx.redirect("/auth/login");
+        }
+    }
+
+    /**
+     * GET /auth/nova-senha
+     * Exibe o formulário para definir nova senha.
+     */
+    public void showNovaSenha(Context ctx) {
+        String token = ctx.queryParam("token");
+
+        if (ValidationUtil.isNullOrEmpty(token)) {
+            ctx.sessionAttribute("loginError", "Token inválido");
+            ctx.redirect("/auth/login");
+            return;
+        }
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("title", "Nova Senha - Notisblokk");
+        model.put("theme", SessionUtil.getTheme(ctx));
+        model.put("token", token);
+
+        // Recuperar mensagens se houver
+        String error = ctx.sessionAttribute("novaSenhaError");
+        if (error != null) {
+            model.put("error", error);
+            ctx.sessionAttribute("novaSenhaError", null);
+        }
+
+        ctx.contentType("text/html; charset=utf-8");
+        ctx.render("auth/nova-senha", model);
+    }
+
+    /**
+     * POST /auth/nova-senha
+     * Processa a definição de nova senha.
+     */
+    public void processNovaSenha(Context ctx) {
+        try {
+            String token = ctx.formParam("token");
+            String password = ctx.formParam("password");
+            String confirmPassword = ctx.formParam("confirmPassword");
+
+            // Validar campos
+            if (ValidationUtil.isNullOrEmpty(token) ||
+                ValidationUtil.isNullOrEmpty(password) ||
+                ValidationUtil.isNullOrEmpty(confirmPassword)) {
+
+                ctx.sessionAttribute("novaSenhaError", "Por favor, preencha todos os campos");
+                ctx.redirect("/auth/nova-senha?token=" + token);
+                return;
+            }
+
+            // Validar confirmação de senha
+            if (!ValidationUtil.areEqual(password, confirmPassword)) {
+                ctx.sessionAttribute("novaSenhaError", "As senhas não coincidem");
+                ctx.redirect("/auth/nova-senha?token=" + token);
+                return;
+            }
+
+            // Validar token e obter userId
+            Long userId = securityService.validarTokenRecuperacao(token);
+
+            if (userId == null) {
+                ctx.sessionAttribute("loginError", "Token inválido ou expirado");
+                ctx.redirect("/auth/login");
+                return;
+            }
+
+            // Atualizar senha
+            String passwordHash = BCrypt.hashpw(password, BCrypt.gensalt(12));
+            userService.atualizarSenha(userId, passwordHash);
+
+            // Limpar token
+            securityService.limparToken(userId);
+
+            logger.info("Senha redefinida com sucesso para usuário ID: {}", userId);
+
+            ctx.sessionAttribute("loginSuccess", "Senha redefinida com sucesso! Faça login com sua nova senha.");
+            ctx.redirect("/auth/login");
+
+        } catch (Exception e) {
+            logger.error("Erro ao processar nova senha", e);
+            ctx.sessionAttribute("novaSenhaError", "Erro ao redefinir senha. Tente novamente.");
+
+            String token = ctx.formParam("token");
+            if (token != null) {
+                ctx.redirect("/auth/nova-senha?token=" + token);
+            } else {
+                ctx.redirect("/auth/login");
+            }
         }
     }
 }

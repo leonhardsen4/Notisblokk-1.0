@@ -209,6 +209,26 @@ public class UserService {
     }
 
     /**
+     * Atualiza a senha de um usuário e define nova expiração.
+     *
+     * @param userId ID do usuário
+     * @param passwordHash hash BCrypt da nova senha
+     * @throws Exception se houver erro ao atualizar
+     */
+    public void atualizarSenha(Long userId, String passwordHash) throws Exception {
+        logger.info("Atualizando senha do usuário ID {}", userId);
+
+        try {
+            userRepository.atualizarSenha(userId, passwordHash);
+            logger.info("Senha atualizada com sucesso para usuário ID {}", userId);
+
+        } catch (SQLException e) {
+            logger.error("Erro ao atualizar senha do usuário ID {}", userId, e);
+            throw new Exception("Erro ao atualizar senha: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Ativa ou desativa um usuário (soft delete).
      *
      * @param id ID do usuário

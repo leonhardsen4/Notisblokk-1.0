@@ -3,25 +3,22 @@ package com.notisblokk;
 import com.notisblokk.config.AppConfig;
 import com.notisblokk.config.DatabaseConfig;
 import com.notisblokk.config.ThymeleafConfig;
-import com.notisblokk.controller.AuthController;
-import com.notisblokk.controller.DashboardController;
-import com.notisblokk.controller.UserController;
-import com.notisblokk.controller.EtiquetaController;
-import com.notisblokk.controller.StatusNotaController;
-import com.notisblokk.controller.NotaController;
-import com.notisblokk.controller.NotificacaoController;
-import com.notisblokk.controller.NotasViewController;
+import com.notisblokk.controller.*;
+import com.notisblokk.scheduler.QuartzSchedulerManager;
 import com.notisblokk.middleware.AdminMiddleware;
 import com.notisblokk.middleware.AuthMiddleware;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.notisblokk.util.SessionUtil;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 import io.javalin.plugin.bundled.CorsPluginConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * Classe principal da aplicação Notisblokk 1.0.
@@ -58,6 +55,11 @@ public class Main {
             logger.info("Inicializando banco de dados...");
             DatabaseConfig.initialize();
 
+            // Inicializar Quartz Scheduler para alertas por email
+            logger.info("Inicializando Quartz Scheduler...");
+            QuartzSchedulerManager schedulerManager = new QuartzSchedulerManager();
+            schedulerManager.iniciar();
+
             // Criar aplicação Javalin
             Javalin app = createApp();
 
@@ -67,6 +69,7 @@ public class Main {
             // Registrar shutdown hook
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 logger.info("Encerrando aplicação...");
+                schedulerManager.parar();
                 DatabaseConfig.close();
                 app.stop();
                 logger.info("Aplicação encerrada");
@@ -96,9 +99,30 @@ public class Main {
      * @return Javalin aplicação configurada
      */
     private static Javalin createApp() {
+        // Criar pastas necessárias se não existirem
+        java.io.File uploadsDir = new java.io.File("uploads");
+        if (!uploadsDir.exists()) {
+            uploadsDir.mkdirs();
+            logger.info("Pasta de uploads criada: {}", uploadsDir.getAbsolutePath());
+        }
+
+        java.io.File backupsDir = new java.io.File("backups");
+        if (!backupsDir.exists()) {
+            backupsDir.mkdirs();
+            logger.info("Pasta de backups criada: {}", backupsDir.getAbsolutePath());
+        }
+
         return Javalin.create(config -> {
-            // Arquivos estáticos
+            // Arquivos estáticos do classpath (CSS, JS, etc)
             config.staticFiles.add("/public", Location.CLASSPATH);
+
+            // Arquivos de uploads (fotos de perfil, anexos, etc)
+            // Serve arquivos de "uploads/" com prefixo "/uploads/" na URL
+            config.staticFiles.add(staticFiles -> {
+                staticFiles.hostedPath = "/uploads";
+                staticFiles.directory = "uploads";
+                staticFiles.location = Location.EXTERNAL;
+            });
 
             // Configurar Thymeleaf como template engine
             config.fileRenderer(ThymeleafConfig.createJavalinRenderer());
@@ -147,6 +171,10 @@ public class Main {
         NotaController notaController = new NotaController();
         NotificacaoController notificacaoController = new NotificacaoController();
         NotasViewController notasViewController = new NotasViewController();
+        PerfilController perfilController = new PerfilController();
+        ConfiguracoesController configuracoesController = new ConfiguracoesController();
+        BackupController backupController = new BackupController();
+        AnexoController anexoController = new AnexoController();
 
         // ========== ROTAS PÚBLICAS ==========
 
@@ -169,6 +197,11 @@ public class Main {
 
         app.get("/auth/recover-password", authController::showRecoverPassword);
         app.post("/auth/recover-password", authController::processRecoverPassword);
+
+        app.get("/auth/verificar-email", authController::verificarEmail);
+
+        app.get("/auth/nova-senha", authController::showNovaSenha);
+        app.post("/auth/nova-senha", authController::processNovaSenha);
 
         app.get("/auth/logout", authController::logout);
 
@@ -288,6 +321,11 @@ public class Main {
         app.before("/api/notas", AuthMiddleware.require());
         app.before("/api/notas/*", AuthMiddleware.require());
         app.before("/api/notificacoes/*", AuthMiddleware.require());
+        app.before("/perfil", AuthMiddleware.require());
+        app.before("/perfil/*", AuthMiddleware.require());
+        app.before("/backup", AuthMiddleware.require());
+        app.before("/api/backup/*", AuthMiddleware.require());
+        app.before("/api/anexos/*", AuthMiddleware.require());
 
         // Dashboard
         app.get("/dashboard", dashboardController::index);
@@ -330,16 +368,117 @@ public class Main {
         app.delete("/api/status/{id}", statusController::deletar);
 
         // Notas
-        app.get("/api/notas", notaController::listar);
+        app.get("/api/notas", notaController::listar); // Suporta paginação via query params
+        app.get("/api/notas/paginado", notaController::listarPaginado); // Endpoint dedicado para paginação
         app.get("/api/notas/{id}", notaController::buscarPorId);
         app.get("/api/notas/etiqueta/{etiquetaId}", notaController::buscarPorEtiqueta);
         app.post("/api/notas", notaController::criar);
         app.put("/api/notas/{id}", notaController::atualizar);
         app.delete("/api/notas/{id}", notaController::deletar);
 
+        // PDF de Notas
+        app.get("/api/notas/{id}/pdf", notaController::gerarPDF);
+        app.post("/api/notas/pdf/relatorio", notaController::gerarPDFRelatorio);
+
         // Notificações
         app.get("/api/notificacoes/alertas", notificacaoController::gerarAlertas);
         app.get("/api/notificacoes/estatisticas", notificacaoController::obterEstatisticas);
+
+        // ========== PERFIL DO USUÁRIO ==========
+
+        app.get("/perfil", perfilController::index);
+        app.post("/perfil/senha", perfilController::alterarSenha);
+        app.post("/perfil/email", perfilController::alterarEmail);
+        app.post("/perfil/foto", perfilController::uploadFoto);
+        app.post("/perfil/foto/remover", perfilController::removerFoto);
+
+        // ========== CONFIGURAÇÕES ==========
+
+        app.get("/configuracoes", configuracoesController::index);
+        app.post("/configuracoes/salvar", configuracoesController::salvar);
+        app.post("/configuracoes/resetar", configuracoesController::resetar);
+
+        // Configurações - API
+        app.get("/api/configuracoes", configuracoesController::buscarConfiguracoesAPI);
+
+        // ========== BACKUP E ANEXOS ==========
+
+        // Backup - Página
+        app.get("/backup", backupController::index);
+
+        // Backup - API
+        app.post("/api/backup/manual", backupController::criarBackupManual);
+        app.post("/api/backup/csv", backupController::exportarCSV);
+        app.get("/api/backup/listar", backupController::listarBackups);
+        app.get("/api/backup/download/{id}", backupController::downloadBackup);
+
+        // Anexos
+        app.post("/api/notas/{notaId}/anexos", anexoController::upload);
+        app.get("/api/notas/{notaId}/anexos", anexoController::listar);
+        app.get("/api/anexos/{id}/download", anexoController::download);
+        app.get("/api/anexos/{id}/visualizar", anexoController::visualizar);
+        app.delete("/api/anexos/{id}", anexoController::remover);
+
+        // ========== SERVIR ARQUIVOS DE UPLOAD ==========
+
+        // Rota para servir arquivos de upload (fotos de perfil, anexos, etc)
+        app.get("/uploads/*", ctx -> {
+            String path = ctx.path().replace("/uploads/", "");
+            java.io.File file = new java.io.File("uploads", path);
+
+            if (!file.exists() || !file.isFile()) {
+                ctx.status(404);
+                ctx.result("Arquivo não encontrado");
+                logger.warn("Arquivo de upload não encontrado: {}", file.getAbsolutePath());
+                return;
+            }
+
+            // Determinar tipo de conteúdo
+            String contentType = "application/octet-stream";
+            String fileName = file.getName().toLowerCase();
+            if (fileName.endsWith(".png")) contentType = "image/png";
+            else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) contentType = "image/jpeg";
+            else if (fileName.endsWith(".gif")) contentType = "image/gif";
+            else if (fileName.endsWith(".webp")) contentType = "image/webp";
+            else if (fileName.endsWith(".pdf")) contentType = "application/pdf";
+
+            ctx.contentType(contentType);
+            ctx.result(new java.io.FileInputStream(file));
+            logger.debug("Servindo arquivo de upload: {}", file.getAbsolutePath());
+        });
+
+        // ========== PREFERÊNCIAS DO USUÁRIO ==========
+
+        // Salvar tema na sessão
+        app.post("/api/theme", ctx -> {
+            try {
+                String theme = ctx.formParam("theme");
+
+                if (theme == null || (!theme.equals("light") && !theme.equals("dark"))) {
+                    ctx.status(400);
+                    ctx.json(Map.of(
+                        "success", false,
+                        "message", "Tema inválido. Use 'light' ou 'dark'."
+                    ));
+                    return;
+                }
+
+                SessionUtil.setTheme(ctx, theme);
+                logger.info("Tema alterado para: {}", theme);
+
+                ctx.json(Map.of(
+                    "success", true,
+                    "theme", theme
+                ));
+            } catch (Exception e) {
+                logger.error("Erro ao salvar tema", e);
+                ctx.status(500);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Erro ao salvar tema: " + e.getMessage()
+                ));
+            }
+        });
 
         // ========== TRATAMENTO DE ERROS ==========
 

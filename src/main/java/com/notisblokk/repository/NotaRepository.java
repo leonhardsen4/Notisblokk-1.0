@@ -146,6 +146,100 @@ public class NotaRepository {
     }
 
     /**
+     * Busca notas por usuário (para sistema de alertas).
+     *
+     * @param usuarioId ID do usuário
+     * @return List<NotaDTO> lista de notas do usuário com informações completas
+     * @throws SQLException se houver erro ao acessar o banco
+     */
+    public List<com.notisblokk.model.NotaDTO> buscarPorUsuarioId(Long usuarioId) throws SQLException {
+        String sql = """
+            SELECT
+                n.*,
+                e.nome as etiqueta_nome,
+                s.nome as status_nome,
+                s.cor_hex as status_cor
+            FROM notas n
+            INNER JOIN etiquetas e ON n.etiqueta_id = e.id
+            INNER JOIN status_nota s ON n.status_id = s.id
+            WHERE n.usuario_id = ?
+            ORDER BY n.prazo_final ASC
+        """;
+        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setLong(1, usuarioId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    notasDTO.add(mapResultSetToNotaDTO(rs));
+                }
+            }
+
+            logger.debug("Encontradas {} notas para usuário ID {}", notasDTO.size(), usuarioId);
+        }
+
+        return notasDTO;
+    }
+
+    /**
+     * Mapeia ResultSet para NotaDTO com informações completas de etiqueta e status.
+     */
+    private com.notisblokk.model.NotaDTO mapResultSetToNotaDTO(ResultSet rs) throws SQLException {
+        com.notisblokk.model.NotaDTO dto = new com.notisblokk.model.NotaDTO();
+
+        // Dados da nota
+        dto.setId(rs.getLong("id"));
+        dto.setTitulo(rs.getString("titulo"));
+        dto.setConteudo(rs.getString("conteudo"));
+
+        // Parse prazo_final
+        String prazoFinalStr = rs.getString("prazo_final");
+        if (prazoFinalStr != null && !prazoFinalStr.isEmpty()) {
+            try {
+                dto.setPrazoFinal(LocalDate.parse(prazoFinalStr, DATE_FORMATTER));
+            } catch (Exception e) {
+                try {
+                    dto.setPrazoFinal(LocalDate.parse(prazoFinalStr));
+                } catch (Exception ex) {
+                    logger.error("Erro ao parsear prazo_final: {}", prazoFinalStr);
+                }
+            }
+        }
+
+        // Parse datas de criação e atualização
+        String dataCriacaoStr = rs.getString("data_criacao");
+        if (dataCriacaoStr != null && !dataCriacaoStr.isEmpty()) {
+            try {
+                dto.setDataCriacao(LocalDateTime.parse(dataCriacaoStr, FORMATTER));
+            } catch (Exception e) {
+                try {
+                    dto.setDataCriacao(LocalDateTime.parse(dataCriacaoStr.replace(" ", "T")));
+                } catch (Exception ex) {
+                    logger.error("Erro ao parsear data_criacao: {}", dataCriacaoStr);
+                }
+            }
+        }
+
+        // Etiqueta
+        com.notisblokk.model.Etiqueta etiqueta = new com.notisblokk.model.Etiqueta();
+        etiqueta.setId(rs.getLong("etiqueta_id"));
+        etiqueta.setNome(rs.getString("etiqueta_nome"));
+        dto.setEtiqueta(etiqueta);
+
+        // Status
+        com.notisblokk.model.StatusNota status = new com.notisblokk.model.StatusNota();
+        status.setId(rs.getLong("status_id"));
+        status.setNome(rs.getString("status_nome"));
+        status.setCorHex(rs.getString("status_cor"));
+        dto.setStatus(status);
+
+        return dto;
+    }
+
+    /**
      * Salva uma nova nota no banco de dados.
      *
      * @param nota nota a ser salva (sem ID)
@@ -284,6 +378,58 @@ public class NotaRepository {
             }
             return 0;
         }
+    }
+
+    /**
+     * Busca notas com paginação.
+     *
+     * @param pagina número da página (começa em 1)
+     * @param tamanhoPagina quantidade de registros por página
+     * @param ordenarPor campo para ordenação (prazo_final, data_criacao, titulo)
+     * @param direcao direção da ordenação (ASC ou DESC)
+     * @return List<Nota> lista de notas paginada
+     * @throws SQLException se houver erro ao acessar o banco
+     */
+    public List<Nota> buscarComPaginacao(int pagina, int tamanhoPagina, String ordenarPor, String direcao)
+            throws SQLException {
+
+        // Validar e sanitizar ordenação
+        String ordenacao = switch (ordenarPor) {
+            case "titulo" -> "titulo";
+            case "data_criacao" -> "data_criacao";
+            case "data_atualizacao" -> "data_atualizacao";
+            default -> "prazo_final";
+        };
+
+        String direcaoOrdem = "DESC".equalsIgnoreCase(direcao) ? "DESC" : "ASC";
+
+        // Calcular offset
+        int offset = (pagina - 1) * tamanhoPagina;
+
+        String sql = String.format(
+            "SELECT * FROM notas ORDER BY %s %s LIMIT ? OFFSET ?",
+            ordenacao, direcaoOrdem
+        );
+
+        List<Nota> notas = new ArrayList<>();
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, tamanhoPagina);
+            pstmt.setInt(2, offset);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    notas.add(mapResultSetToNota(rs));
+                }
+            }
+
+            logger.debug("Encontradas {} notas (página {}, tamanho {})",
+                notas.size(), pagina, tamanhoPagina);
+        }
+
+        return notas;
     }
 
     /**

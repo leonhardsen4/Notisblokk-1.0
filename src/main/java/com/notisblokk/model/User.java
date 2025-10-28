@@ -43,6 +43,15 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Novos campos de segurança e perfil
+    private String fotoPerfil;
+    private boolean emailVerificado;
+    private String tokenVerificacao;
+    private int tentativasLogin;
+    private LocalDateTime bloqueadoAte;
+    private LocalDateTime dataAlteracaoSenha;
+    private LocalDateTime senhaExpiraEm;
+
     /**
      * Construtor padrão.
      */
@@ -77,6 +86,8 @@ public class User {
         this.active = active;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.emailVerificado = false;
+        this.tentativasLogin = 0;
     }
 
     // ========== Getters e Setters ==========
@@ -153,6 +164,62 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
+    public String getFotoPerfil() {
+        return fotoPerfil;
+    }
+
+    public void setFotoPerfil(String fotoPerfil) {
+        this.fotoPerfil = fotoPerfil;
+    }
+
+    public boolean isEmailVerificado() {
+        return emailVerificado;
+    }
+
+    public void setEmailVerificado(boolean emailVerificado) {
+        this.emailVerificado = emailVerificado;
+    }
+
+    public String getTokenVerificacao() {
+        return tokenVerificacao;
+    }
+
+    public void setTokenVerificacao(String tokenVerificacao) {
+        this.tokenVerificacao = tokenVerificacao;
+    }
+
+    public int getTentativasLogin() {
+        return tentativasLogin;
+    }
+
+    public void setTentativasLogin(int tentativasLogin) {
+        this.tentativasLogin = tentativasLogin;
+    }
+
+    public LocalDateTime getBloqueadoAte() {
+        return bloqueadoAte;
+    }
+
+    public void setBloqueadoAte(LocalDateTime bloqueadoAte) {
+        this.bloqueadoAte = bloqueadoAte;
+    }
+
+    public LocalDateTime getDataAlteracaoSenha() {
+        return dataAlteracaoSenha;
+    }
+
+    public void setDataAlteracaoSenha(LocalDateTime dataAlteracaoSenha) {
+        this.dataAlteracaoSenha = dataAlteracaoSenha;
+    }
+
+    public LocalDateTime getSenhaExpiraEm() {
+        return senhaExpiraEm;
+    }
+
+    public void setSenhaExpiraEm(LocalDateTime senhaExpiraEm) {
+        this.senhaExpiraEm = senhaExpiraEm;
+    }
+
     // ========== Métodos Auxiliares ==========
 
     /**
@@ -219,6 +286,36 @@ public class User {
         } else {
             return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
         }
+    }
+
+    /**
+     * Verifica se o usuário está bloqueado.
+     *
+     * @return boolean true se estiver bloqueado
+     */
+    public boolean isBloqueado() {
+        if (bloqueadoAte == null) return false;
+        return LocalDateTime.now(BRAZIL_ZONE).isBefore(bloqueadoAte);
+    }
+
+    /**
+     * Verifica se a senha expirou.
+     *
+     * @return boolean true se a senha expirou
+     */
+    public boolean isSenhaExpirada() {
+        if (senhaExpiraEm == null) return false;
+        return LocalDateTime.now(BRAZIL_ZONE).isAfter(senhaExpiraEm);
+    }
+
+    /**
+     * Retorna quantos dias faltam para a senha expirar.
+     *
+     * @return int dias restantes (negativo se já expirou)
+     */
+    public long getDiasParaExpirarSenha() {
+        if (senhaExpiraEm == null) return Long.MAX_VALUE;
+        return java.time.Duration.between(LocalDateTime.now(BRAZIL_ZONE), senhaExpiraEm).toDays();
     }
 
     // ========== equals, hashCode e toString ==========

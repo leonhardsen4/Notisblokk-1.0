@@ -13,8 +13,12 @@ class ThemeSwitcher {
      * Inicializa o theme switcher
      */
     init() {
-        // Aplicar tema inicial
-        this.applyTheme(this.currentTheme);
+        // Tema já foi aplicado pelo script inline no head
+        // Apenas sincronizar com o que já está no DOM
+        this.currentTheme = document.documentElement.getAttribute('data-theme') || this.currentTheme;
+
+        // Atualizar apenas o botão de toggle
+        this.updateToggleButton();
 
         // Adicionar listener ao botão de toggle
         const toggleBtn = document.getElementById('theme-toggle');
@@ -43,11 +47,24 @@ class ThemeSwitcher {
     /**
      * Aplica o tema ao HTML
      */
-    applyTheme(theme) {
+    async applyTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         this.currentTheme = theme;
         this.storeTheme(theme);
         this.updateToggleButton();
+
+        // Salvar tema na sessão do servidor
+        try {
+            await fetch('/api/theme', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `theme=${theme}`
+            });
+        } catch (error) {
+            console.error('Erro ao salvar tema no servidor:', error);
+        }
 
         // Disparar evento customizado
         window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme } }));

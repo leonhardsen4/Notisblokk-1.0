@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${title}">Backup e Exportação - Notisblokk</title>
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+                <div>
+                    <h1 style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 0.5rem;">💾 Backup e Exportação</h1>
+                    <p style="color: var(--color-text-secondary);">Faça backup do banco de dados ou exporte suas notas</p>
+                </div>
+            </div>
+
+            <!-- Mensagens de Feedback -->
+            <div th:if="${success}" class="alert alert-success" style="margin-bottom: 1.5rem;">
+                <svg style="width: 20px; height: 20px; display: inline-block; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span th:text="${success}">Operação realizada com sucesso!</span>
+            </div>
+
+            <div th:if="${error}" class="alert alert-danger" style="margin-bottom: 1.5rem;">
+                <svg style="width: 20px; height: 20px; display: inline-block; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span th:text="${error}">Erro ao processar operação.</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+                <!-- 1. Backup Completo do Banco de Dados -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🗄️ Backup Completo do Banco de Dados</h3>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                            Cria uma cópia completa do banco de dados SQLite com todas as notas, etiquetas, status, usuários e configurações.
+                        </p>
+
+                        <div style="background-color: var(--color-bg-secondary); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                <svg style="width: 20px; height: 20px; color: var(--color-info);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <strong style="color: var(--color-text-primary);">O que será incluído:</strong>
+                            </div>
+                            <ul style="margin: 0; padding-left: 2rem; color: var(--color-text-secondary); font-size: 0.9375rem;">
+                                <li>Todas as anotações e conteúdos</li>
+                                <li>Etiquetas e status personalizados</li>
+                                <li>Usuários e permissões</li>
+                                <li>Configurações do sistema</li>
+                                <li>Histórico de alterações</li>
+                            </ul>
+                        </div>
+
+                        <button type="button"
+                                id="btnBackupSQLite"
+                                class="btn btn-primary"
+                                onclick="criarBackupSQLite()">
+                            <svg style="width: 16px; height: 16px; display: inline-block; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                            </svg>
+                            Criar Backup SQLite
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Exportar Notas para CSV -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Exportar Notas para CSV</h3>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                            Exporta todas as suas anotações para um arquivo CSV que pode ser aberto no Excel, LibreOffice ou Google Sheets.
+                        </p>
+
+                        <div style="background-color: var(--color-bg-secondary); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                <svg style="width: 20px; height: 20px; color: var(--color-info);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <strong style="color: var(--color-text-primary);">Colunas incluídas:</strong>
+                            </div>
+                            <ul style="margin: 0; padding-left: 2rem; color: var(--color-text-secondary); font-size: 0.9375rem;">
+                                <li>ID, Título, Conteúdo</li>
+                                <li>Etiqueta e Status</li>
+                                <li>Prazo Final</li>
+                                <li>Data de Criação e Atualização</li>
+                            </ul>
+                        </div>
+
+                        <button type="button"
+                                id="btnExportarCSV"
+                                class="btn btn-success"
+                                onclick="exportarCSV()">
+                            <svg style="width: 16px; height: 16px; display: inline-block; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Exportar para CSV
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Histórico de Backups -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📋 Histórico de Backups</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="listaBackups" style="min-height: 100px;">
+                            <div style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+                                Carregando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </th:block>
+
+    <style>
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-success {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: var(--color-success-dark);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .alert-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-danger-dark);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .backup-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: var(--color-bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .backup-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .backup-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .backup-tipo {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .backup-tipo-manual {
+            background-color: rgba(74, 144, 226, 0.2);
+            color: var(--color-primary);
+        }
+
+        .backup-tipo-auto {
+            background-color: rgba(139, 92, 246, 0.2);
+            color: #8B5CF6;
+        }
+
+        .backup-tipo-csv {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #22C55E;
+        }
+    </style>
+
+    <script>
+        // Carregar lista de backups ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarBackups();
+        });
+
+        // Criar backup SQLite
+        async function criarBackupSQLite() {
+            console.log('Iniciando criação de backup SQLite...');
+            const btn = document.getElementById('btnBackupSQLite');
+            btn.disabled = true;
+            btn.innerHTML = '<span>Criando backup...</span>';
+
+            try {
+                const response = await fetch('/api/backup/manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Resposta recebida:', response.status);
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.showSuccessToast(data.message);
+                    // Recarregar lista de backups
+                    carregarBackups();
+                } else {
+                    window.showErrorToast(data.message);
+                }
+            } catch (error) {
+                window.showErrorToast('Erro ao criar backup: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg style="width: 16px; height: 16px; display: inline-block; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Criar Backup SQLite
+                `;
+            }
+        }
+
+        // Exportar para CSV
+        async function exportarCSV() {
+            console.log('Iniciando exportação para CSV...');
+            const btn = document.getElementById('btnExportarCSV');
+            btn.disabled = true;
+            btn.innerHTML = '<span>Exportando...</span>';
+
+            try {
+                const response = await fetch('/api/backup/csv', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Resposta recebida:', response.status);
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.showSuccessToast(data.message);
+                    // Recarregar lista de backups
+                    carregarBackups();
+                } else {
+                    window.showErrorToast(data.message);
+                }
+            } catch (error) {
+                window.showErrorToast('Erro ao exportar CSV: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg style="width: 16px; height: 16px; display: inline-block; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Exportar para CSV
+                `;
+            }
+        }
+
+        // Carregar lista de backups
+        async function carregarBackups() {
+            const container = document.getElementById('listaBackups');
+
+            try {
+                const response = await fetch('/api/backup/listar');
+                const data = await response.json();
+
+                if (data.success && data.dados.length > 0) {
+                    let html = '';
+                    data.dados.forEach(backup => {
+                        const tipoClass = backup.tipo === 'MANUAL' ? 'backup-tipo-manual' :
+                                        backup.tipo === 'CSV' ? 'backup-tipo-csv' : 'backup-tipo-auto';
+                        const dataFormatada = new Date(backup.dataBackup).toLocaleString('pt-BR');
+                        const nomeArquivo = backup.caminhoArquivo.split(/[\\/]/).pop();
+
+                        html += `
+                            <div class="backup-item">
+                                <div class="backup-info">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <strong style="color: var(--color-text-primary);">${nomeArquivo}</strong>
+                                        <span class="backup-tipo ${tipoClass}">${backup.tipo}</span>
+                                    </div>
+                                    <small style="color: var(--color-text-secondary);">
+                                        ${dataFormatada} • ${formatarTamanho(backup.tamanhoBytes)}
+                                        ${backup.usuarioNome ? ` • ${backup.usuarioNome}` : ''}
+                                    </small>
+                                </div>
+                                <div>
+                                    ${backup.existe ?
+                                        `<a href="/api/backup/download/${backup.id}" class="btn btn-secondary" style="font-size: 0.875rem;">
+                                            <svg style="width: 14px; height: 14px; display: inline-block; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                            </svg>
+                                            Download
+                                        </a>` :
+                                        `<span style="color: var(--color-text-secondary); font-size: 0.875rem;">Arquivo não encontrado</span>`
+                                    }
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+                            <svg style="width: 48px; height: 48px; margin-bottom: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                            </svg>
+                            <p>Nenhum backup criado ainda</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--color-danger);">
+                        <p>Erro ao carregar backups: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Formatar tamanho de arquivo
+        function formatarTamanho(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        }
+    </script>
+</body>
+</html>

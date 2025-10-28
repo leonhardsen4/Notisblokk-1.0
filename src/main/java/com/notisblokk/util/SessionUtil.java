@@ -283,6 +283,7 @@ public class SessionUtil {
             attributes.put("isOperator", user.isOperator());
             attributes.put("userName", user.getFullName());
             attributes.put("userInitials", user.getInitials());
+            attributes.put("userPhoto", user.getFotoPerfil());
         } else {
             attributes.put("isAuthenticated", false);
             attributes.put("isAdmin", false);

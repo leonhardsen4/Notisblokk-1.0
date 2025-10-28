@@ -1,5 +1,6 @@
 package com.notisblokk.repository;
 
+import com.notisblokk.config.AppConfig;
 import com.notisblokk.config.DatabaseConfig;
 import com.notisblokk.model.User;
 import com.notisblokk.model.UserRole;
@@ -382,29 +383,162 @@ public class UserRepository {
         user.setRole(UserRole.fromString(rs.getString("role")));
         user.setActive(rs.getBoolean("active"));
 
+        // Novos campos de segurança e perfil
+        user.setFotoPerfil(rs.getString("foto_perfil"));
+        user.setEmailVerificado(rs.getBoolean("email_verificado"));
+        user.setTokenVerificacao(rs.getString("token_verificacao"));
+        user.setTentativasLogin(rs.getInt("tentativas_login"));
+
         // Parse timestamps - SQLite retorna no formato ISO
         String createdAtStr = rs.getString("created_at");
         String updatedAtStr = rs.getString("updated_at");
+        String bloqueadoAteStr = rs.getString("bloqueado_ate");
+        String dataAlteracaoSenhaStr = rs.getString("data_alteracao_senha");
+        String senhaExpiraEmStr = rs.getString("senha_expira_em");
 
         if (createdAtStr != null && !createdAtStr.isEmpty()) {
             try {
-                // Tentar formato brasileiro primeiro
                 user.setCreatedAt(LocalDateTime.parse(createdAtStr, FORMATTER));
             } catch (Exception e) {
-                // Se falhar, tentar formato ISO (padrão do SQLite)
                 user.setCreatedAt(LocalDateTime.parse(createdAtStr.replace(" ", "T")));
             }
         }
         if (updatedAtStr != null && !updatedAtStr.isEmpty()) {
             try {
-                // Tentar formato brasileiro primeiro
                 user.setUpdatedAt(LocalDateTime.parse(updatedAtStr, FORMATTER));
             } catch (Exception e) {
-                // Se falhar, tentar formato ISO (padrão do SQLite)
                 user.setUpdatedAt(LocalDateTime.parse(updatedAtStr.replace(" ", "T")));
+            }
+        }
+        if (bloqueadoAteStr != null && !bloqueadoAteStr.isEmpty()) {
+            try {
+                user.setBloqueadoAte(LocalDateTime.parse(bloqueadoAteStr, FORMATTER));
+            } catch (Exception e) {
+                user.setBloqueadoAte(LocalDateTime.parse(bloqueadoAteStr.replace(" ", "T")));
+            }
+        }
+        if (dataAlteracaoSenhaStr != null && !dataAlteracaoSenhaStr.isEmpty()) {
+            try {
+                user.setDataAlteracaoSenha(LocalDateTime.parse(dataAlteracaoSenhaStr, FORMATTER));
+            } catch (Exception e) {
+                user.setDataAlteracaoSenha(LocalDateTime.parse(dataAlteracaoSenhaStr.replace(" ", "T")));
+            }
+        }
+        if (senhaExpiraEmStr != null && !senhaExpiraEmStr.isEmpty()) {
+            try {
+                user.setSenhaExpiraEm(LocalDateTime.parse(senhaExpiraEmStr, FORMATTER));
+            } catch (Exception e) {
+                user.setSenhaExpiraEm(LocalDateTime.parse(senhaExpiraEmStr.replace(" ", "T")));
             }
         }
 
         return user;
+    }
+
+    /**
+     * Atualiza a foto de perfil de um usuário.
+     *
+     * @param userId ID do usuário
+     * @param caminhoFoto caminho da foto
+     * @throws SQLException se houver erro ao atualizar
+     */
+    public void atualizarFotoPerfil(Long userId, String caminhoFoto) throws SQLException {
+        String sql = "UPDATE users SET foto_perfil = ?, updated_at = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            String timestamp = LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER);
+
+            pstmt.setString(1, caminhoFoto);
+            pstmt.setString(2, timestamp);
+            pstmt.setLong(3, userId);
+
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                throw new SQLException("Usuário com ID " + userId + " não encontrado");
+            }
+
+            logger.info("Foto de perfil atualizada para usuário ID {}", userId);
+        }
+    }
+
+    /**
+     * Atualiza a senha e define nova data de expiração.
+     *
+     * @param userId ID do usuário
+     * @param passwordHash hash da nova senha
+     * @throws SQLException se houver erro ao atualizar
+     */
+    public void atualizarSenha(Long userId, String passwordHash) throws SQLException {
+        LocalDateTime dataAlteracao = LocalDateTime.now(BRAZIL_ZONE);
+        LocalDateTime expiraEm = dataAlteracao.plusMonths(AppConfig.getSecurityPasswordExpirationMonths());
+
+        String sql = """
+            UPDATE users
+            SET password_hash = ?,
+                data_alteracao_senha = ?,
+                senha_expira_em = ?,
+                tentativas_login = 0,
+                bloqueado_ate = NULL,
+                updated_at = ?
+            WHERE id = ?
+        """;
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            String timestamp = LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER);
+
+            pstmt.setString(1, passwordHash);
+            pstmt.setString(2, dataAlteracao.format(FORMATTER));
+            pstmt.setString(3, expiraEm.format(FORMATTER));
+            pstmt.setString(4, timestamp);
+            pstmt.setLong(5, userId);
+
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                throw new SQLException("Usuário com ID " + userId + " não encontrado");
+            }
+
+            logger.info("Senha atualizada para usuário ID {} - expira em {}", userId, expiraEm.format(FORMATTER));
+        }
+    }
+
+    /**
+     * Atualiza o email do usuário e marca como não verificado.
+     *
+     * @param userId ID do usuário
+     * @param novoEmail novo email
+     * @throws SQLException se houver erro ao atualizar
+     */
+    public void atualizarEmail(Long userId, String novoEmail) throws SQLException {
+        String sql = """
+            UPDATE users
+            SET email = ?,
+                email_verificado = 0,
+                updated_at = ?
+            WHERE id = ?
+        """;
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            String timestamp = LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER);
+
+            pstmt.setString(1, novoEmail);
+            pstmt.setString(2, timestamp);
+            pstmt.setLong(3, userId);
+
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                throw new SQLException("Usuário com ID " + userId + " não encontrado");
+            }
+
+            logger.info("Email atualizado para usuário ID {} - novo email: {}", userId, novoEmail);
+        }
     }
 }

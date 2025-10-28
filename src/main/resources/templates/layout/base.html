@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:fragment="base(content)" th:data-theme="${theme != null ? theme : 'light'}">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:fragment="base(content)" th:attr="data-theme=${theme != null ? theme : 'light'}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,17 +10,36 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/img/icon.png">
 
+    <!-- Sincronizar tema do servidor com localStorage IMEDIATAMENTE -->
+    <script th:inline="javascript">
+        // Executar ANTES de qualquer CSS ser processado
+        (function() {
+            // Tema vem do servidor (sessão)
+            const serverTheme = /*[[${theme}]]*/ 'light';
+            // Sincronizar com localStorage
+            localStorage.setItem('theme', serverTheme);
+            // Aplicar no HTML (já está aplicado via th:attr, mas garantir)
+            document.documentElement.setAttribute('data-theme', serverTheme);
+            // Adicionar classe preload ao body para desabilitar transições durante carregamento
+            document.documentElement.classList.add('preload');
+        })();
+    </script>
+
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Alpine.js (CDN) -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <!-- Toastify.js (CDN) -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/themes.css">
     <link rel="stylesheet" href="/css/main.css">
 </head>
-<body>
+<body class="preload">
     <div class="app-container">
         <!-- Header -->
         <th:block th:if="${isAuthenticated}">
@@ -57,5 +76,21 @@
     <!-- JavaScripts -->
     <script src="/js/theme-switcher.js"></script>
     <script src="/js/main.js"></script>
+
+    <!-- Toast Notifications (apenas para usuários autenticados) -->
+    <th:block th:if="${isAuthenticated}">
+        <script src="/js/toast-notifications.js"></script>
+    </th:block>
+
+    <!-- Remover classe preload após página carregar (ativa transições CSS) -->
+    <script>
+        window.addEventListener('load', function() {
+            // Pequeno delay para garantir que tudo foi renderizado
+            setTimeout(function() {
+                document.documentElement.classList.remove('preload');
+                document.body.classList.remove('preload');
+            }, 50);
+        });
+    </script>
 </body>
 </html>

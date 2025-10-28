@@ -1,10 +1,14 @@
 package com.notisblokk.controller;
 
+import com.notisblokk.model.User;
+import com.notisblokk.service.ConfiguracaoService;
 import com.notisblokk.service.NotificacaoService;
+import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -24,12 +28,14 @@ public class NotificacaoController {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificacaoController.class);
     private final NotificacaoService notificacaoService;
+    private final ConfiguracaoService configuracaoService;
 
     /**
      * Construtor padrão.
      */
     public NotificacaoController() {
         this.notificacaoService = new NotificacaoService();
+        this.configuracaoService = new ConfiguracaoService();
     }
 
     /**
@@ -46,6 +52,31 @@ public class NotificacaoController {
      */
     public void gerarAlertas(Context ctx) {
         try {
+            User currentUser = SessionUtil.getCurrentUser(ctx);
+            if (currentUser == null) {
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Usuário não autenticado"
+                ));
+                return;
+            }
+
+            // Verificar se notificações toast estão habilitadas
+            Map<String, String> config = configuracaoService.buscarConfiguracoes(currentUser.getId());
+            String notifToast = config.get("notif_toast");
+
+            // Se notificações estão desabilitadas, retornar lista vazia
+            if ("false".equals(notifToast)) {
+                ctx.json(Map.of(
+                    "success", true,
+                    "dados", Collections.emptyList(),
+                    "total", 0,
+                    "desabilitado", true
+                ));
+                logger.debug("Notificações toast desabilitadas para usuário {}", currentUser.getUsername());
+                return;
+            }
+
             List<Map<String, Object>> alertas = notificacaoService.gerarAlertas();
 
             ctx.json(Map.of(
@@ -54,7 +85,7 @@ public class NotificacaoController {
                 "total", alertas.size()
             ));
 
-            logger.debug("Gerados {} alertas", alertas.size());
+            logger.debug("Gerados {} alertas para usuário {}", alertas.size(), currentUser.getUsername());
 
         } catch (Exception e) {
             logger.error("Erro ao gerar alertas", e);

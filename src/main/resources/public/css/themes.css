@@ -94,6 +94,12 @@
    TRANSIÇÕES SUAVES ENTRE TEMAS
    ============================================================ */
 
+/* Desabilitar transições durante carregamento inicial para evitar flash */
+.preload * {
+    transition: none !important;
+}
+
+/* Transições normais após carregamento */
 * {
     transition: background-color 0.3s ease,
                 color 0.3s ease,

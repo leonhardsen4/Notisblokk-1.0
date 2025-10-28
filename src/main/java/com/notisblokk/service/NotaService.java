@@ -3,6 +3,7 @@ package com.notisblokk.service;
 import com.notisblokk.model.Etiqueta;
 import com.notisblokk.model.Nota;
 import com.notisblokk.model.NotaDTO;
+import com.notisblokk.model.PaginatedResponse;
 import com.notisblokk.model.StatusNota;
 import com.notisblokk.repository.EtiquetaRepository;
 import com.notisblokk.repository.NotaRepository;
@@ -77,6 +78,41 @@ public class NotaService {
 
         } catch (SQLException e) {
             logger.error("Erro ao listar notas", e);
+            throw new Exception("Erro ao listar notas: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Lista notas com paginação.
+     *
+     * @param pagina número da página (começa em 1)
+     * @param tamanhoPagina quantidade de registros por página
+     * @param ordenarPor campo para ordenação (prazo_final, data_criacao, titulo)
+     * @param direcao direção da ordenação (ASC ou DESC)
+     * @return PaginatedResponse<NotaDTO> resposta paginada com DTOs completos
+     * @throws Exception se houver erro ao listar
+     */
+    public PaginatedResponse<NotaDTO> listarComPaginacao(int pagina, int tamanhoPagina,
+                                                          String ordenarPor, String direcao)
+            throws Exception {
+        try {
+            // Validar parâmetros
+            if (pagina < 1) pagina = 1;
+            if (tamanhoPagina < 1) tamanhoPagina = 10;
+            if (tamanhoPagina > 100) tamanhoPagina = 100; // Limite máximo
+
+            // Buscar total de registros
+            long totalRegistros = notaRepository.contarTotal();
+
+            // Buscar notas paginadas
+            List<Nota> notas = notaRepository.buscarComPaginacao(pagina, tamanhoPagina, ordenarPor, direcao);
+            List<NotaDTO> dtos = converterParaDTOs(notas);
+
+            // Criar resposta paginada
+            return new PaginatedResponse<>(dtos, pagina, tamanhoPagina, totalRegistros);
+
+        } catch (SQLException e) {
+            logger.error("Erro ao listar notas paginadas", e);
             throw new Exception("Erro ao listar notas: " + e.getMessage(), e);
         }
     }

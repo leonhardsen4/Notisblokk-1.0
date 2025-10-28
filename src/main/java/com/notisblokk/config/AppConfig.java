@@ -187,6 +187,124 @@ public class AppConfig {
         return getProperty("app.timezone", "America/Sao_Paulo");
     }
 
+    // ========== Email ==========
+
+    public static String getEmailSmtpHost() {
+        return getProperty("email.smtp.host", "smtp.gmail.com");
+    }
+
+    public static int getEmailSmtpPort() {
+        return getIntProperty("email.smtp.port", 587);
+    }
+
+    public static String getEmailUsername() {
+        return getProperty("email.smtp.username", "");
+    }
+
+    public static String getEmailPassword() {
+        return getProperty("email.smtp.password", "");
+    }
+
+    public static boolean getEmailSmtpAuth() {
+        return Boolean.parseBoolean(getProperty("email.smtp.auth", "true"));
+    }
+
+    public static boolean getEmailSmtpStartTls() {
+        return Boolean.parseBoolean(getProperty("email.smtp.starttls.enable", "true"));
+    }
+
+    public static String getEmailFrom() {
+        return getProperty("email.from", getEmailUsername());
+    }
+
+    public static String getEmailFromName() {
+        return getProperty("email.from.name", "Notisblokk Sistema");
+    }
+
+    // ========== Backup ==========
+
+    public static String getBackupFolder() {
+        return getProperty("backup.folder", "./backups");
+    }
+
+    public static boolean getBackupScheduleEnabled() {
+        return Boolean.parseBoolean(getProperty("backup.schedule.enabled", "true"));
+    }
+
+    public static String getBackupScheduleCron() {
+        return getProperty("backup.schedule.cron", "0 0 2 * * ?");
+    }
+
+    public static boolean getBackupAutoEnabled() {
+        return Boolean.parseBoolean(getProperty("backup.auto.enabled", "false"));
+    }
+
+    public static int getBackupPeriodicidadeDias() {
+        return getIntProperty("backup.periodicidade.dias", 7);
+    }
+
+    // ========== Uploads ==========
+
+    public static String getUploadsFolder() {
+        return getProperty("uploads.folder", "./uploads");
+    }
+
+    public static int getUploadsMaxSizeMb() {
+        return getIntProperty("uploads.max.size.mb", 10);
+    }
+
+    public static String getUploadsAllowedExtensions() {
+        return getProperty("uploads.allowed.extensions", "txt,pdf,doc,docx,xls,xlsx,csv,jpg,png");
+    }
+
+    // ========== Security ==========
+
+    public static int getSecurityLoginMaxAttempts() {
+        return getIntProperty("security.login.max.attempts", 3);
+    }
+
+    public static int getSecurityLoginLockoutMinutes() {
+        return getIntProperty("security.login.lockout.minutes", 30);
+    }
+
+    public static int getSecurityPasswordExpirationMonths() {
+        return getIntProperty("security.password.expiration.months", 3);
+    }
+
+    public static int getSecurityPasswordWarningDays() {
+        return getIntProperty("security.password.warning.days", 10);
+    }
+
+    // ========== Alerts ==========
+
+    public static boolean getAlertsEmailEnabled() {
+        return Boolean.parseBoolean(getProperty("alerts.email.enabled", "true"));
+    }
+
+    public static boolean getAlertsToastifyEnabled() {
+        return Boolean.parseBoolean(getProperty("alerts.toastify.enabled", "true"));
+    }
+
+    public static int getAlertsCheckIntervalMinutes() {
+        return getIntProperty("alerts.check.interval.minutes", 60);
+    }
+
+    public static int getAlertsCriticoDias() {
+        return getIntProperty("alerts.critico.dias", 0);
+    }
+
+    public static int getAlertsUrgenteDias() {
+        return getIntProperty("alerts.urgente.dias", 3);
+    }
+
+    public static int getAlertsAtencaoDias() {
+        return getIntProperty("alerts.atencao.dias", 5);
+    }
+
+    public static int getAlertsAvisoDias() {
+        return getIntProperty("alerts.aviso.dias", 7);
+    }
+
     /**
      * Imprime todas as configurações carregadas (para debug).
      */
@@ -198,6 +316,9 @@ public class AppConfig {
         logger.info("Pool de conexões: {}", getDatabasePoolSize());
         logger.info("Timeout de sessão: {} min", getSessionTimeoutMinutes());
         logger.info("Timezone: {}", getAppTimezone());
+        logger.info("Email: {} ({})", getEmailFrom(), getEmailFromName());
+        logger.info("Backup: {} (Auto: {})", getBackupFolder(), getBackupAutoEnabled());
+        logger.info("Uploads: {} (Max: {} MB)", getUploadsFolder(), getUploadsMaxSizeMb());
         logger.info("===================================");
     }
 }

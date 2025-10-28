@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:data-theme="${theme != null ? theme : 'light'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Redefinir Senha - Notisblokk</title>
+
+    <link rel="icon" type="image/png" href="/img/icon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/themes.css">
+    <link rel="stylesheet" href="/css/main.css">
+
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background-color: var(--color-background);
+        }
+        .login-box {
+            width: 100%;
+            max-width: 480px;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo-container img {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+        }
+        .password-strength {
+            margin-top: 0.5rem;
+            height: 4px;
+            background-color: var(--color-border);
+            border-radius: 2px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .password-strength-bar {
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        .password-requirements {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--color-bg-secondary);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+        .requirement {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--color-text-secondary);
+        }
+        .requirement.met {
+            color: var(--color-success-dark);
+        }
+        .requirement svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <!-- Logo -->
+            <div class="logo-container">
+                <img src="/img/icon.png" alt="Notisblokk">
+                <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 0.5rem;">
+                    Notisblokk 1.0
+                </h1>
+                <p style="color: var(--color-text-secondary);">
+                    Redefinir Senha
+                </p>
+            </div>
+
+            <!-- Nova Senha Card -->
+            <div class="card">
+                <div class="card-body">
+                    <div style="margin-bottom: 1.5rem;">
+                        <h2 class="card-title" style="margin-bottom: 0.5rem;">🔐 Criar Nova Senha</h2>
+                        <p style="color: var(--color-text-secondary); font-size: 0.9375rem;">
+                            Escolha uma senha forte e segura para proteger sua conta.
+                        </p>
+                    </div>
+
+                    <!-- Alerts -->
+                    <div th:if="${error}" class="alert alert-error" style="margin-bottom: 1.5rem;">
+                        <svg style="width: 20px; height: 20px; display: inline-block; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span th:text="${error}">Erro</span>
+                    </div>
+
+                    <!-- Nova Senha Form -->
+                    <form method="POST" action="/auth/nova-senha" id="novaSenhaForm">
+                        <!-- Token Hidden -->
+                        <input type="hidden" name="token" th:value="${token}">
+
+                        <!-- Nova Senha -->
+                        <div class="form-group">
+                            <label class="form-label" for="password">Nova Senha</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Digite sua nova senha"
+                                required
+                                minlength="6"
+                                autofocus
+                            >
+
+                            <!-- Barra de força da senha -->
+                            <div class="password-strength" id="passwordStrength">
+                                <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                            </div>
+                            <small style="color: var(--color-text-secondary); font-size: 0.875rem; margin-top: 0.25rem; display: block;">
+                                Mínimo de 6 caracteres
+                            </small>
+                        </div>
+
+                        <!-- Confirmar Senha -->
+                        <div class="form-group">
+                            <label class="form-label" for="confirmPassword">Confirmar Nova Senha</label>
+                            <input
+                                type="password"
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                class="form-input"
+                                placeholder="Digite novamente sua nova senha"
+                                required
+                                minlength="6"
+                            >
+                        </div>
+
+                        <!-- Requisitos da Senha -->
+                        <div class="password-requirements">
+                            <p style="font-weight: 600; margin-bottom: 0.75rem; color: var(--color-text-primary);">Requisitos de Segurança:</p>
+
+                            <div class="requirement" id="req-length">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Pelo menos 6 caracteres</span>
+                            </div>
+
+                            <div class="requirement" id="req-match">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>As senhas coincidem</span>
+                            </div>
+                        </div>
+
+                        <!-- Botão -->
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;">
+                            <svg style="width: 20px; height: 20px; display: inline-block; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                            </svg>
+                            Redefinir Senha
+                        </button>
+                    </form>
+
+                    <!-- Link para Login -->
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <a href="/auth/login" style="color: var(--color-primary); font-size: 0.9375rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Voltar para o Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theme Toggle (bottom) -->
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-secondary btn-sm" id="theme-toggle" title="Alternar tema">
+                    <span>🌙</span>
+                    <span>Alternar Tema</span>
+                </button>
+            </div>
+
+            <!-- Informações de Segurança -->
+            <div style="margin-top: 1.5rem; padding: 1rem; background-color: var(--color-bg-secondary); border-radius: 8px; border-left: 4px solid var(--color-primary);">
+                <div style="display: flex; gap: 0.75rem;">
+                    <svg style="width: 20px; height: 20px; flex-shrink: 0; color: var(--color-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div style="flex: 1;">
+                        <p style="font-weight: 600; margin-bottom: 0.25rem; font-size: 0.875rem; color: var(--color-text-primary);">
+                            Dica de Segurança
+                        </p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.5;">
+                            Use uma combinação de letras maiúsculas e minúsculas, números e caracteres especiais para criar uma senha mais segura.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/theme-switcher.js"></script>
+
+    <!-- Script de Validação de Senha -->
+    <script>
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const passwordStrengthBar = document.getElementById('passwordStrengthBar');
+        const reqLength = document.getElementById('req-length');
+        const reqMatch = document.getElementById('req-match');
+
+        // Validação em tempo real
+        function validatePassword() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            // Requisito: Mínimo 6 caracteres
+            if (password.length >= 6) {
+                reqLength.classList.add('met');
+            } else {
+                reqLength.classList.remove('met');
+            }
+
+            // Requisito: Senhas coincidem
+            if (password.length > 0 && confirmPassword.length > 0 && password === confirmPassword) {
+                reqMatch.classList.add('met');
+            } else {
+                reqMatch.classList.remove('met');
+            }
+
+            // Barra de força da senha
+            updatePasswordStrength(password);
+        }
+
+        function updatePasswordStrength(password) {
+            let strength = 0;
+            let color = '';
+            let width = '0%';
+
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            switch (strength) {
+                case 0:
+                case 1:
+                    color = '#ef4444'; // Vermelho
+                    width = '20%';
+                    break;
+                case 2:
+                    color = '#f59e0b'; // Laranja
+                    width = '40%';
+                    break;
+                case 3:
+                    color = '#eab308'; // Amarelo
+                    width = '60%';
+                    break;
+                case 4:
+                    color = '#84cc16'; // Verde claro
+                    width = '80%';
+                    break;
+                case 5:
+                    color = '#22c55e'; // Verde
+                    width = '100%';
+                    break;
+            }
+
+            passwordStrengthBar.style.width = width;
+            passwordStrengthBar.style.backgroundColor = color;
+        }
+
+        // Event listeners
+        passwordInput.addEventListener('input', validatePassword);
+        confirmPasswordInput.addEventListener('input', validatePassword);
+
+        // Validação no submit
+        document.getElementById('novaSenhaForm').addEventListener('submit', function(e) {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('A senha deve ter pelo menos 6 caracteres.');
+                passwordInput.focus();
+                return false;
+            }
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('As senhas não coincidem.');
+                confirmPasswordInput.focus();
+                return false;
+            }
+        });
+    </script>
+
+    <style>
+        .alert-error {
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-danger-dark);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</body>
+</html>

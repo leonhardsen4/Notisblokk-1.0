@@ -13,7 +13,14 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(20) NOT NULL CHECK(role IN ('ADMIN', 'OPERATOR')),
     active BOOLEAN DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    foto_perfil TEXT,
+    email_verificado BOOLEAN DEFAULT 0,
+    token_verificacao TEXT,
+    tentativas_login INTEGER DEFAULT 0,
+    bloqueado_ate TIMESTAMP,
+    data_alteracao_senha TIMESTAMP,
+    senha_expira_em TIMESTAMP
 );
 
 -- Tabela de sessões (log de acessos)
@@ -104,4 +111,72 @@ CREATE TRIGGER IF NOT EXISTS update_notas_timestamp
 AFTER UPDATE ON notas
 BEGIN
     UPDATE notas SET data_atualizacao = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+-- ============================================================
+-- TABELAS DE CONFIGURAÇÃO E ANEXOS
+-- ============================================================
+
+-- Tabela de Configurações do Sistema
+CREATE TABLE IF NOT EXISTS configuracoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER,
+    chave TEXT NOT NULL,
+    valor TEXT,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabela de Anexos de Notas
+CREATE TABLE IF NOT EXISTS anexos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nota_id INTEGER NOT NULL,
+    nome_arquivo TEXT NOT NULL,
+    caminho_arquivo TEXT NOT NULL,
+    tipo_mime TEXT,
+    tamanho_bytes INTEGER,
+    data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_id INTEGER,
+    FOREIGN KEY (nota_id) REFERENCES notas(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Tabela de Histórico de Backups
+CREATE TABLE IF NOT EXISTS backups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    caminho_arquivo TEXT NOT NULL,
+    tipo TEXT NOT NULL CHECK(tipo IN ('AUTO', 'MANUAL', 'CSV')),
+    tamanho_bytes INTEGER,
+    data_backup TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_id INTEGER,
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Tabela de Alertas Enviados (controle de duplicatas)
+CREATE TABLE IF NOT EXISTS alertas_enviados (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER NOT NULL,
+    nota_id INTEGER NOT NULL,
+    nivel TEXT NOT NULL,
+    dias_restantes INTEGER,
+    data_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (nota_id) REFERENCES notas(id) ON DELETE CASCADE
+);
+
+-- Índices para performance
+CREATE UNIQUE INDEX IF NOT EXISTS idx_configuracoes_usuario_chave ON configuracoes(usuario_id, chave);
+CREATE INDEX IF NOT EXISTS idx_configuracoes_usuario_id ON configuracoes(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_configuracoes_chave ON configuracoes(chave);
+CREATE INDEX IF NOT EXISTS idx_anexos_nota_id ON anexos(nota_id);
+CREATE INDEX IF NOT EXISTS idx_backups_data ON backups(data_backup);
+CREATE INDEX IF NOT EXISTS idx_alertas_enviados_usuario_nota ON alertas_enviados(usuario_id, nota_id);
+CREATE INDEX IF NOT EXISTS idx_alertas_enviados_data ON alertas_enviados(data_envio);
+
+-- Trigger para atualizar data_atualizacao em configuracoes
+CREATE TRIGGER IF NOT EXISTS update_configuracoes_timestamp
+AFTER UPDATE ON configuracoes
+BEGIN
+    UPDATE configuracoes SET data_atualizacao = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
