@@ -420,6 +420,65 @@ public class SessionRepository {
     }
 
     /**
+     * Conta sessões ativas de um usuário específico.
+     *
+     * @param userId ID do usuário
+     * @return long total de sessões ativas do usuário
+     * @throws SQLException se houver erro ao contar
+     */
+    public long contarAtivasPorUsuario(Long userId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM sessions WHERE user_id = ? AND status = 'ACTIVE'";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setLong(1, userId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+                return 0;
+            }
+        }
+    }
+
+    /**
+     * Encerra a sessão mais antiga de um usuário.
+     * Útil quando o limite de sessões é atingido.
+     *
+     * @param userId ID do usuário
+     * @return boolean true se uma sessão foi encerrada, false caso contrário
+     * @throws SQLException se houver erro ao encerrar
+     */
+    public boolean encerrarSessaoMaisAntigaDoUsuario(Long userId) throws SQLException {
+        // Primeiro buscar a sessão mais antiga
+        String sqlSelect = """
+            SELECT id FROM sessions
+            WHERE user_id = ? AND status = 'ACTIVE'
+            ORDER BY login_time ASC
+            LIMIT 1
+        """;
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sqlSelect)) {
+
+            pstmt.setLong(1, userId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    Long sessionId = rs.getLong("id");
+                    encerrar(sessionId);
+                    logger.info("Sessão mais antiga (ID {}) do usuário {} encerrada por limite de sessões", sessionId, userId);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Mapeia um ResultSet para um objeto Session.
      *
      * @param rs ResultSet posicionado na linha a ser mapeada

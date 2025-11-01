@@ -181,13 +181,13 @@
                     selectEtiqueta.appendChild(option);
                 });
 
-                // Carregar status (usar rota de debug que não requer autenticação)
-                const resStatus = await fetch('/api/status/debug');
+                // Carregar status
+                const resStatus = await fetch('/api/status');
                 const dataStatus = await resStatus.json();
                 console.log('Status carregados:', dataStatus);
 
                 if (!dataStatus.success) {
-                    throw new Error(dataStatus.error || 'Erro ao carregar status');
+                    throw new Error(dataStatus.message || 'Erro ao carregar status');
                 }
 
                 const statusList = dataStatus.dados || [];

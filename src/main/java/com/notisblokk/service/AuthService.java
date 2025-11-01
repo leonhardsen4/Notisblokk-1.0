@@ -106,8 +106,9 @@ public class AuthService {
                 throw new AuthenticationException("Usuário inativo. Contate o administrador.");
             }
 
-            // Criar sessão
-            Session session = sessionService.criarSessao(user.getId(), ipAddress, userAgent);
+            // Criar sessão com validação de limite
+            // Se o usuário atingir o limite de sessões, a mais antiga será encerrada automaticamente
+            Session session = sessionService.criarSessaoComLimite(user.getId(), ipAddress, userAgent);
 
             logger.info("Login bem-sucedido: {} (ID: {}, Role: {})",
                        user.getUsername(), user.getId(), user.getRole());

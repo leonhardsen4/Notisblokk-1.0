@@ -283,8 +283,7 @@
 
                         async carregarNotas() {
                             try {
-                                // Usar rota de debug temporariamente
-                                const url = '/api/notas/debug';
+                                const url = '/api/notas';
                                 console.log('Carregando notas de:', url);
                                 const res = await fetch(url);
                                 console.log('Status da resposta:', res.status);
@@ -293,7 +292,7 @@
 
                                 if (!data.success) {
                                     console.error('Erro da API:', data.message || data.error);
-                                    alert('Erro ao carregar notas: ' + (data.message || data.error));
+                                    alert('Erro ao carregar notas: ' + (data.message || data.error || 'Erro desconhecido'));
                                     return;
                                 }
 
@@ -526,15 +525,14 @@
 
                         async carregarStatus() {
                             try {
-                                // Usar rota de debug que não requer autenticação
-                                const res = await fetch('/api/status/debug');
+                                const res = await fetch('/api/status');
                                 const data = await res.json();
 
                                 console.log('Status carregados:', data);
 
                                 if (!data.success) {
-                                    console.error('Erro ao carregar status:', data.error);
-                                    alert('Erro ao carregar status: ' + (data.error || 'Erro desconhecido'));
+                                    console.error('Erro ao carregar status:', data.message);
+                                    alert('Erro ao carregar status: ' + (data.message || 'Erro desconhecido'));
                                     return;
                                 }
 

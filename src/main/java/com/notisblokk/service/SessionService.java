@@ -39,6 +39,11 @@ public class SessionService {
     private static final int DEFAULT_SESSION_TIMEOUT = 30;
 
     /**
+     * Limite máximo de sessões simultâneas por usuário.
+     */
+    private static final int MAX_SESSIONS_PER_USER = 3;
+
+    /**
      * Construtor padrão.
      */
     public SessionService() {
@@ -275,5 +280,111 @@ public class SessionService {
             logger.error("Erro ao verificar sessões ativas do usuário ID {}", userId, e);
             throw new Exception("Erro ao verificar sessões: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Conta o número de sessões ativas de um usuário.
+     *
+     * @param userId ID do usuário
+     * @return long número de sessões ativas
+     * @throws Exception se houver erro ao contar
+     */
+    public long contarSessoesAtivasPorUsuario(Long userId) throws Exception {
+        try {
+            return sessionRepository.contarAtivasPorUsuario(userId);
+
+        } catch (SQLException e) {
+            logger.error("Erro ao contar sessões ativas do usuário ID {}", userId, e);
+            throw new Exception("Erro ao contar sessões: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Valida e gerencia o limite de sessões simultâneas antes de criar nova sessão.
+     * Se o limite for atingido, encerra a sessão mais antiga automaticamente.
+     *
+     * @param userId ID do usuário
+     * @return boolean true se pode criar nova sessão, false caso contrário
+     * @throws Exception se houver erro ao validar
+     */
+    public boolean validarLimiteDeSessoes(Long userId) throws Exception {
+        try {
+            long sessoesAtivas = sessionRepository.contarAtivasPorUsuario(userId);
+
+            if (sessoesAtivas >= MAX_SESSIONS_PER_USER) {
+                logger.warn("Usuário ID {} atingiu o limite de {} sessões simultâneas", userId, MAX_SESSIONS_PER_USER);
+
+                // Encerrar a sessão mais antiga automaticamente
+                boolean encerrada = sessionRepository.encerrarSessaoMaisAntigaDoUsuario(userId);
+
+                if (encerrada) {
+                    logger.info("Sessão mais antiga do usuário ID {} encerrada automaticamente", userId);
+                    return true;
+                } else {
+                    logger.error("Falha ao encerrar sessão antiga do usuário ID {}", userId);
+                    return false;
+                }
+            }
+
+            return true; // Pode criar nova sessão
+
+        } catch (SQLException e) {
+            logger.error("Erro ao validar limite de sessões para usuário ID {}", userId, e);
+            throw new Exception("Erro ao validar limite de sessões: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cria uma nova sessão verificando o limite de sessões simultâneas.
+     * Se o limite for atingido, encerra a sessão mais antiga antes de criar a nova.
+     *
+     * @param userId ID do usuário
+     * @param ipAddress endereço IP do cliente
+     * @param userAgent user agent do navegador
+     * @return Session sessão criada
+     * @throws Exception se houver erro ao criar sessão ou se limite não puder ser aplicado
+     */
+    public Session criarSessaoComLimite(Long userId, String ipAddress, String userAgent) throws Exception {
+        logger.info("Criando nova sessão para usuário ID {} com validação de limite", userId);
+
+        try {
+            // Validar limite de sessões
+            if (!validarLimiteDeSessoes(userId)) {
+                throw new Exception("Limite de sessões simultâneas atingido e não foi possível encerrar sessão antiga");
+            }
+
+            // Criar a nova sessão
+            Session session = new Session();
+            session.setUserId(userId);
+            session.setIpAddress(ipAddress);
+            session.setUserAgent(userAgent);
+
+            session = sessionRepository.salvar(session);
+
+            logger.info("Sessão criada com sucesso: ID {}", session.getId());
+            return session;
+
+        } catch (SQLException e) {
+            logger.error("Erro ao criar sessão para usuário ID {}", userId, e);
+            throw new Exception("Erro ao criar sessão: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Retorna o limite máximo de sessões simultâneas por usuário.
+     *
+     * @return int limite de sessões
+     */
+    public int getMaxSessionsPerUser() {
+        return MAX_SESSIONS_PER_USER;
+    }
+
+    /**
+     * Retorna o timeout padrão de sessões em minutos.
+     *
+     * @return int timeout em minutos
+     */
+    public int getDefaultSessionTimeout() {
+        return DEFAULT_SESSION_TIMEOUT;
     }
 }

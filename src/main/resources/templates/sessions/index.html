@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${title}">Gerenciamento de Sessões - Notisblokk</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content" x-data="sessionsApp()">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+                <div>
+                    <h1 style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 0.5rem;">Gerenciamento de Sessões</h1>
+                    <p style="color: var(--color-text-secondary);">Visualize e gerencie todas as sessões ativas e históricas do sistema</p>
+                </div>
+                <button @click="carregarSessoes()" class="btn btn-primary">
+                    <svg style="width: 16px; height: 16px; display: inline-block; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Atualizar
+                </button>
+            </div>
+
+            <!-- Mensagens de Feedback -->
+            <div th:if="${success}" class="alert alert-success" style="margin-bottom: 1.5rem;">
+                <svg style="width: 20px; height: 20px; display: inline-block; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span th:text="${success}">Operação realizada com sucesso!</span>
+            </div>
+
+            <div th:if="${error}" class="alert alert-danger" style="margin-bottom: 1.5rem;">
+                <svg style="width: 20px; height: 20px; display: inline-block; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span th:text="${error}">Erro ao processar operação.</span>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-4 mb-4">
+                <!-- Total Sessões -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Total de Sessões</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);" x-text="stats.totalSessoes">0</p>
+                            </div>
+                            <svg style="width: 48px; height: 48px; color: var(--color-info-dark);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sessões Ativas -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Sessões Ativas</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-success-dark);" x-text="stats.sessoesAtivas">0</p>
+                            </div>
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--color-success); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">●</div>
+                        </div>
+                        <p style="margin-top: 0.75rem; font-size: 0.875rem;">
+                            <span class="text-success" x-text="stats.percentualAtivas">0%</span>
+                            <span style="color: var(--color-text-secondary);"> do total</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Sessões Inativas -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Sessões Encerradas</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-text-secondary);" x-text="stats.sessoesInativas">0</p>
+                            </div>
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--color-border); display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 1.5rem;">○</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtradas -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Sessões Filtradas</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: var(--color-primary);" x-text="sessoesProcessadas.length">0</p>
+                            </div>
+                            <svg style="width: 48px; height: 48px; color: var(--color-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Pesquisa e Controles -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="search-controls">
+                        <input
+                            type="text"
+                            x-model="termoPesquisa"
+                            @input="pesquisarSessoes()"
+                            placeholder="🔍 Pesquisar sessões (nome, email, IP, navegador, status...)"
+                            class="form-input search-input"
+                        >
+                        <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-sm">
+                            ⚙️ Colunas
+                        </button>
+                    </div>
+
+                    <!-- Controles de Colunas -->
+                    <div x-show="mostrarControlesColunas" class="column-controls mt-2">
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.usuario"> Usuário
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.email"> Email
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.ip"> IP
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.navegador"> Navegador
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.login"> Login
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.logout"> Logout
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.duracao"> Duração
+                        </label>
+                        <label class="column-toggle">
+                            <input type="checkbox" x-model="colunasVisiveis.status"> Status
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Sessões -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Lista de Sessões</h3>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th x-show="colunasVisiveis.usuario" @click="ordenarPor('userName')" class="sortable">
+                                        Usuário <span x-text="getSortIcon('userName')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.email" @click="ordenarPor('userEmail')" class="sortable">
+                                        Email <span x-text="getSortIcon('userEmail')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.ip" @click="ordenarPor('ipAddress')" class="sortable">
+                                        IP <span x-text="getSortIcon('ipAddress')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.navegador" @click="ordenarPor('browser')" class="sortable">
+                                        Navegador <span x-text="getSortIcon('browser')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.login" @click="ordenarPor('loginTime')" class="sortable">
+                                        Login <span x-text="getSortIcon('loginTime')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.logout" @click="ordenarPor('logoutTime')" class="sortable">
+                                        Logout <span x-text="getSortIcon('logoutTime')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.duracao" @click="ordenarPor('duration')" class="sortable">
+                                        Duração <span x-text="getSortIcon('duration')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.status" @click="ordenarPor('status')" class="sortable">
+                                        Status <span x-text="getSortIcon('status')"></span>
+                                    </th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="session in sessoesProcessadas" :key="session.id">
+                                    <tr>
+                                        <td x-text="session.id"></td>
+                                        <td x-show="colunasVisiveis.usuario">
+                                            <strong x-text="session.userName"></strong>
+                                        </td>
+                                        <td x-show="colunasVisiveis.email" x-text="session.userEmail"></td>
+                                        <td x-show="colunasVisiveis.ip" x-text="session.ipAddress"></td>
+                                        <td x-show="colunasVisiveis.navegador" x-text="session.browser"></td>
+                                        <td x-show="colunasVisiveis.login" x-text="session.loginTime"></td>
+                                        <td x-show="colunasVisiveis.logout" x-text="session.logoutTime"></td>
+                                        <td x-show="colunasVisiveis.duracao" x-text="session.duration"></td>
+                                        <td x-show="colunasVisiveis.status">
+                                            <span
+                                                class="badge"
+                                                :class="session.active ? 'badge-success' : 'badge-secondary'"
+                                                x-text="session.statusDisplay">
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button
+                                                x-show="session.active"
+                                                @click="encerrarSessao(session.id)"
+                                                class="btn btn-sm btn-danger"
+                                                title="Encerrar Sessão">
+                                                ✖️ Encerrar
+                                            </button>
+                                            <span
+                                                x-show="!session.active"
+                                                style="color: var(--color-text-secondary); font-size: 0.875rem;">
+                                                -
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+
+                        <div x-show="sessoesProcessadas.length === 0" style="text-align: center; padding: 3rem; color: var(--color-text-secondary);">
+                            <svg style="width: 64px; height: 64px; margin-bottom: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p>Nenhuma sessão encontrada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <style>
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-success {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: var(--color-success-dark);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .alert-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-danger-dark);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-size: 0.9375rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        .column-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 0.75rem;
+            background-color: var(--color-bg-secondary);
+            border-radius: 8px;
+        }
+
+        .column-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--color-text-primary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .column-toggle input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sortable:hover {
+            background-color: var(--color-bg-secondary);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #16a34a;
+        }
+
+        .badge-secondary {
+            background-color: rgba(107, 114, 128, 0.2);
+            color: #6b7280;
+        }
+    </style>
+
+    <script>
+        function sessionsApp() {
+            return {
+                sessoes: [],
+                sessoesFiltradas: [],
+                sessoesProcessadas: [],
+                stats: {
+                    totalSessoes: 0,
+                    sessoesAtivas: 0,
+                    sessoesInativas: 0,
+                    percentualAtivas: '0%'
+                },
+                termoPesquisa: '',
+                mostrarControlesColunas: false,
+                colunaOrdenacao: 'id',
+                direcaoOrdenacao: 'desc',
+                colunasVisiveis: {
+                    usuario: true,
+                    email: true,
+                    ip: true,
+                    navegador: true,
+                    login: true,
+                    logout: true,
+                    duracao: true,
+                    status: true
+                },
+
+                async init() {
+                    await this.carregarSessoes();
+                    await this.carregarEstatisticas();
+                },
+
+                async carregarSessoes() {
+                    try {
+                        const response = await fetch('/api/sessions/listar');
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.sessoes = data.dados;
+                            this.aplicarFiltros();
+                        } else {
+                            window.showErrorToast(data.message || 'Erro ao carregar sessões');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar sessões:', error);
+                        window.showErrorToast('Erro ao carregar sessões: ' + error.message);
+                    }
+                },
+
+                async carregarEstatisticas() {
+                    try {
+                        const response = await fetch('/api/sessions/stats');
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.stats = data.dados;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar estatísticas:', error);
+                    }
+                },
+
+                pesquisarSessoes() {
+                    this.aplicarFiltros();
+                },
+
+                aplicarFiltros() {
+                    let resultado = [...this.sessoes];
+
+                    // Filtro de pesquisa
+                    if (this.termoPesquisa) {
+                        const termo = this.termoPesquisa.toLowerCase();
+                        resultado = resultado.filter(s =>
+                            s.userName.toLowerCase().includes(termo) ||
+                            s.userEmail.toLowerCase().includes(termo) ||
+                            s.ipAddress.toLowerCase().includes(termo) ||
+                            s.browser.toLowerCase().includes(termo) ||
+                            s.statusDisplay.toLowerCase().includes(termo)
+                        );
+                    }
+
+                    this.sessoesFiltradas = resultado;
+                    this.ordenar();
+                },
+
+                ordenarPor(coluna) {
+                    if (this.colunaOrdenacao === coluna) {
+                        this.direcaoOrdenacao = this.direcaoOrdenacao === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.colunaOrdenacao = coluna;
+                        this.direcaoOrdenacao = 'asc';
+                    }
+                    this.ordenar();
+                },
+
+                ordenar() {
+                    this.sessoesProcessadas = [...this.sessoesFiltradas].sort((a, b) => {
+                        let aVal = a[this.colunaOrdenacao];
+                        let bVal = b[this.colunaOrdenacao];
+
+                        if (typeof aVal === 'string') {
+                            aVal = aVal.toLowerCase();
+                            bVal = bVal.toLowerCase();
+                        }
+
+                        if (aVal < bVal) return this.direcaoOrdenacao === 'asc' ? -1 : 1;
+                        if (aVal > bVal) return this.direcaoOrdenacao === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                },
+
+                getSortIcon(coluna) {
+                    if (this.colunaOrdenacao !== coluna) return '⇅';
+                    return this.direcaoOrdenacao === 'asc' ? '↑' : '↓';
+                },
+
+                async encerrarSessao(sessionId) {
+                    if (!confirm('Tem certeza que deseja encerrar esta sessão?')) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/sessions/${sessionId}/encerrar`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            window.showSuccessToast(data.message || 'Sessão encerrada com sucesso');
+                            await this.carregarSessoes();
+                            await this.carregarEstatisticas();
+                        } else {
+                            window.showErrorToast(data.message || 'Erro ao encerrar sessão');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao encerrar sessão:', error);
+                        window.showErrorToast('Erro ao encerrar sessão: ' + error.message);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -45,6 +45,7 @@ public class QuartzSchedulerManager {
         // Configurar jobs
         configurarJobAlertaEmail();
         configurarJobLimpezaAlertas();
+        configurarJobLimpezaSessoes();
 
         // Iniciar scheduler
         scheduler.start();
@@ -105,6 +106,35 @@ public class QuartzSchedulerManager {
         scheduler.scheduleJob(job, trigger);
 
         logger.info("🧹 Job de limpeza de alertas agendado: executa diariamente às 3h");
+    }
+
+    /**
+     * Configura o job de limpeza de sessões expiradas.
+     * Executa a cada 1 hora.
+     */
+    private void configurarJobLimpezaSessoes() throws SchedulerException {
+        // Definir job
+        JobDetail job = JobBuilder.newJob(LimparSessoesJob.class)
+            .withIdentity("limparSessoesJob", "manutencao")
+            .withDescription("Expira sessões antigas que excederam o timeout")
+            .build();
+
+        // Definir trigger: executa a cada 1 hora
+        Trigger trigger = TriggerBuilder.newTrigger()
+            .withIdentity("limparSessoesTrigger", "manutencao")
+            .withDescription("Trigger para limpeza de sessões a cada 1 hora")
+            .startNow()
+            .withSchedule(
+                SimpleScheduleBuilder.simpleSchedule()
+                    .withIntervalInHours(1)
+                    .repeatForever()
+            )
+            .build();
+
+        // Agendar job
+        scheduler.scheduleJob(job, trigger);
+
+        logger.info("🔒 Job de limpeza de sessões agendado: executa a cada 1 hora");
     }
 
     /**

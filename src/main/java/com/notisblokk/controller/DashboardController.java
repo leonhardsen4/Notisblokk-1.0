@@ -1,16 +1,18 @@
 package com.notisblokk.controller;
 
-import com.notisblokk.model.Session;
-import com.notisblokk.service.SessionService;
-import com.notisblokk.service.UserService;
+import com.notisblokk.model.NotaDTO;
+import com.notisblokk.service.NotaService;
 import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Controller responsável pelo dashboard principal.
@@ -19,11 +21,10 @@ import java.util.Map;
  *
  * <p><b>Estatísticas exibidas:</b></p>
  * <ul>
- *   <li>Total de usuários</li>
- *   <li>Usuários ativos</li>
- *   <li>Total de sessões</li>
- *   <li>Sessões ativas</li>
- *   <li>Últimos acessos</li>
+ *   <li>Total de anotações</li>
+ *   <li>Anotações com prazo vencido</li>
+ *   <li>Anotações urgentes (próximas do vencimento)</li>
+ *   <li>Lista de anotações vencidas ou próximas do vencimento</li>
  * </ul>
  *
  * @author Notisblokk Team
@@ -33,15 +34,13 @@ import java.util.Map;
 public class DashboardController {
 
     private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
-    private final UserService userService;
-    private final SessionService sessionService;
+    private final NotaService notaService;
 
     /**
      * Construtor padrão.
      */
     public DashboardController() {
-        this.userService = new UserService();
-        this.sessionService = new SessionService();
+        this.notaService = new NotaService();
     }
 
     /**
@@ -58,39 +57,79 @@ public class DashboardController {
             // Título
             model.put("title", "Dashboard - Notisblokk");
 
-            // Estatísticas
-            long totalUsuarios = userService.contarTotal();
-            long usuariosAtivos = userService.contarAtivos();
-            long totalSessoes = sessionService.contarTotalSessoes();
-            long sessoesAtivas = sessionService.contarSessoesAtivas();
+            // Buscar todas as notas
+            List<NotaDTO> todasNotas = notaService.listarTodas();
+            LocalDate hoje = LocalDate.now();
 
-            model.put("totalUsuarios", totalUsuarios);
-            model.put("usuariosAtivos", usuariosAtivos);
-            model.put("usuariosInativos", totalUsuarios - usuariosAtivos);
-            model.put("totalSessoes", totalSessoes);
-            model.put("sessoesAtivas", sessoesAtivas);
+            // Calcular estatísticas de notas
+            long totalNotas = todasNotas.size();
 
-            // Calcular percentuais
-            double percentualAtivos = totalUsuarios > 0
-                ? (usuariosAtivos * 100.0 / totalUsuarios)
-                : 0;
-            model.put("percentualAtivos", String.format("%.1f%%", percentualAtivos));
+            // Notas vencidas (prazo já passou)
+            List<NotaDTO> notasVencidas = todasNotas.stream()
+                .filter(nota -> nota.getPrazoFinal() != null && nota.getPrazoFinal().isBefore(hoje))
+                .collect(Collectors.toList());
 
-            double percentualSessoesAtivas = totalSessoes > 0
-                ? (sessoesAtivas * 100.0 / totalSessoes)
-                : 0;
-            model.put("percentualSessoesAtivas", String.format("%.1f%%", percentualSessoesAtivas));
+            // Notas urgentes (vencendo nos próximos 7 dias)
+            List<NotaDTO> notasUrgentes = todasNotas.stream()
+                .filter(nota -> {
+                    if (nota.getPrazoFinal() == null) return false;
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+                    return diasRestantes >= 0 && diasRestantes <= 7;
+                })
+                .collect(Collectors.toList());
 
-            // Últimas sessões (últimas 10)
-            List<Session> ultimasSessoes = sessionService.listarUltimasSessoes(10);
-            model.put("ultimasSessoes", ultimasSessoes);
+            // Notas vencidas ou urgentes (para exibir na lista)
+            List<Map<String, Object>> notasAlerta = todasNotas.stream()
+                .filter(nota -> {
+                    if (nota.getPrazoFinal() == null) return false;
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+                    return diasRestantes <= 7; // Vencidas ou vencendo em até 7 dias
+                })
+                .sorted((a, b) -> a.getPrazoFinal().compareTo(b.getPrazoFinal()))
+                .limit(10) // Mostrar até 10 notas
+                .map(nota -> {
+                    Map<String, Object> alertaMap = new HashMap<>();
+                    alertaMap.put("id", nota.getId());
+                    alertaMap.put("titulo", nota.getTitulo());
+                    alertaMap.put("prazoFinal", nota.getPrazoFinal().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+                    alertaMap.put("diasRestantes", diasRestantes);
+
+                    String statusTexto;
+                    String nivel;
+                    if (diasRestantes < 0) {
+                        long diasAtrasados = Math.abs(diasRestantes);
+                        statusTexto = diasAtrasados == 1 ? "Atrasado 1 dia" : "Atrasado " + diasAtrasados + " dias";
+                        nivel = "CRITICO";
+                    } else if (diasRestantes == 0) {
+                        statusTexto = "Vence hoje!";
+                        nivel = "URGENTE";
+                    } else if (diasRestantes <= 3) {
+                        statusTexto = diasRestantes == 1 ? "Vence em 1 dia" : "Vence em " + diasRestantes + " dias";
+                        nivel = "URGENTE";
+                    } else {
+                        statusTexto = "Vence em " + diasRestantes + " dias";
+                        nivel = "ALERTA";
+                    }
+
+                    alertaMap.put("statusTexto", statusTexto);
+                    alertaMap.put("nivel", nivel);
+                    alertaMap.put("etiqueta", nota.getEtiqueta() != null ? nota.getEtiqueta().getNome() : "Sem etiqueta");
+                    alertaMap.put("status", nota.getStatus() != null ? nota.getStatus().getNome() : "Sem status");
+
+                    return alertaMap;
+                })
+                .collect(Collectors.toList());
+
+            model.put("totalNotas", totalNotas);
+            model.put("notasVencidas", notasVencidas.size());
+            model.put("notasUrgentes", notasUrgentes.size());
+            model.put("notasAlerta", notasAlerta);
 
             // Status do sistema
             model.put("sistemaStatus", "Operacional");
             model.put("sistemaStatusClass", "success");
-
-            // Informações adicionais
-            model.put("poolStatus", com.notisblokk.config.DatabaseConfig.getPoolStats());
 
             logger.debug("Dashboard acessado por: {}", SessionUtil.getCurrentUserDisplayName(ctx));
 
@@ -111,13 +150,25 @@ public class DashboardController {
      */
     public void getStats(Context ctx) {
         try {
-            Map<String, Object> stats = new HashMap<>();
+            List<NotaDTO> todasNotas = notaService.listarTodas();
+            LocalDate hoje = LocalDate.now();
 
-            stats.put("totalUsuarios", userService.contarTotal());
-            stats.put("usuariosAtivos", userService.contarAtivos());
-            stats.put("totalSessoes", sessionService.contarTotalSessoes());
-            stats.put("sessoesAtivas", sessionService.contarSessoesAtivas());
-            stats.put("poolStatus", com.notisblokk.config.DatabaseConfig.getPoolStats());
+            long totalNotas = todasNotas.size();
+            long notasVencidas = todasNotas.stream()
+                .filter(nota -> nota.getPrazoFinal() != null && nota.getPrazoFinal().isBefore(hoje))
+                .count();
+            long notasUrgentes = todasNotas.stream()
+                .filter(nota -> {
+                    if (nota.getPrazoFinal() == null) return false;
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+                    return diasRestantes >= 0 && diasRestantes <= 7;
+                })
+                .count();
+
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalNotas", totalNotas);
+            stats.put("notasVencidas", notasVencidas);
+            stats.put("notasUrgentes", notasUrgentes);
 
             ctx.json(stats);
 

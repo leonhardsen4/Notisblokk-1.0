@@ -166,6 +166,7 @@ public class Main {
         AuthController authController = new AuthController();
         DashboardController dashboardController = new DashboardController();
         UserController userController = new UserController();
+        SessionController sessionController = new SessionController();
         EtiquetaController etiquetaController = new EtiquetaController();
         StatusNotaController statusController = new StatusNotaController();
         NotaController notaController = new NotaController();
@@ -205,99 +206,16 @@ public class Main {
 
         app.get("/auth/logout", authController::logout);
 
-        // ========== ROTAS DE DEBUG (SEM AUTENTICAÇÃO) ==========
-        app.get("/api/status/debug", ctx -> {
-            try {
-                java.sql.Connection conn = com.notisblokk.config.DatabaseConfig.getConnection();
-                java.sql.Statement stmt = conn.createStatement();
-                java.sql.ResultSet rs = stmt.executeQuery("SELECT id, nome, cor_hex FROM status_nota ORDER BY nome ASC");
+        // ========== ROTAS DE DEBUG (REMOVIDAS POR SEGURANÇA) ==========
+        // As rotas de debug foram removidas pois expunham dados sensíveis do banco de dados
+        // sem autenticação. Se necessário para desenvolvimento, adicione AuthMiddleware e
+        // AdminMiddleware antes de habilitar novamente.
 
-                java.util.List<java.util.Map<String, Object>> statusList = new java.util.ArrayList<>();
-                while (rs.next()) {
-                    java.util.Map<String, Object> status = new java.util.HashMap<>();
-                    status.put("id", rs.getLong("id"));
-                    status.put("nome", rs.getString("nome"));
-                    status.put("corHex", rs.getString("cor_hex"));
-                    statusList.add(status);
-                }
-
-                rs.close();
-                stmt.close();
-                conn.close();
-
-                logger.info("DEBUG: {} status encontrados no banco", statusList.size());
-
-                ctx.json(java.util.Map.of(
-                    "success", true,
-                    "total", statusList.size(),
-                    "dados", statusList
-                ));
-            } catch (Exception e) {
-                logger.error("DEBUG: Erro ao buscar status", e);
-                ctx.json(java.util.Map.of(
-                    "success", false,
-                    "error", e.getMessage()
-                ));
-            }
-        });
-
-        app.get("/api/notas/debug", ctx -> {
-            try {
-                java.sql.Connection conn = com.notisblokk.config.DatabaseConfig.getConnection();
-                java.sql.Statement stmt = conn.createStatement();
-                java.sql.ResultSet rs = stmt.executeQuery(
-                    "SELECT n.id, n.titulo, n.conteudo, n.prazo_final, n.data_criacao, " +
-                    "e.id as etiqueta_id, e.nome as etiqueta_nome, " +
-                    "s.id as status_id, s.nome as status_nome, s.cor_hex as status_cor " +
-                    "FROM notas n " +
-                    "LEFT JOIN etiquetas e ON n.etiqueta_id = e.id " +
-                    "LEFT JOIN status_nota s ON n.status_id = s.id " +
-                    "ORDER BY n.prazo_final ASC"
-                );
-
-                java.util.List<java.util.Map<String, Object>> notas = new java.util.ArrayList<>();
-                while (rs.next()) {
-                    java.util.Map<String, Object> nota = new java.util.HashMap<>();
-                    nota.put("id", rs.getLong("id"));
-                    nota.put("titulo", rs.getString("titulo"));
-                    nota.put("conteudo", rs.getString("conteudo"));
-                    nota.put("prazoFinal", rs.getString("prazo_final"));
-                    nota.put("dataCriacao", rs.getString("data_criacao"));
-
-                    java.util.Map<String, Object> etiqueta = new java.util.HashMap<>();
-                    etiqueta.put("id", rs.getLong("etiqueta_id"));
-                    etiqueta.put("nome", rs.getString("etiqueta_nome"));
-                    nota.put("etiqueta", etiqueta);
-
-                    java.util.Map<String, Object> status = new java.util.HashMap<>();
-                    status.put("id", rs.getLong("status_id"));
-                    status.put("nome", rs.getString("status_nome"));
-                    status.put("corHex", rs.getString("status_cor"));
-                    nota.put("status", status);
-
-                    notas.add(nota);
-                }
-
-                rs.close();
-                stmt.close();
-                conn.close();
-
-                logger.info("DEBUG: {} notas encontradas no banco", notas.size());
-
-                ctx.json(java.util.Map.of(
-                    "success", true,
-                    "total", notas.size(),
-                    "dados", notas
-                ));
-            } catch (Exception e) {
-                logger.error("DEBUG: Erro ao buscar notas", e);
-                ctx.json(java.util.Map.of(
-                    "success", false,
-                    "error", e.getMessage(),
-                    "stackTrace", e.getStackTrace()[0].toString()
-                ));
-            }
-        });
+        /*
+        // DESABILITADO: Rota de debug expõe dados do banco sem autenticação
+        app.get("/api/status/debug", ctx -> { ... });
+        app.get("/api/notas/debug", ctx -> { ... });
+        */
 
         // ========== ROTAS PROTEGIDAS (AUTENTICAÇÃO NECESSÁRIA) ==========
 
@@ -310,6 +228,8 @@ public class Main {
         app.before("/api/users/*", AuthMiddleware.require());
         app.before("/api/users", AdminMiddleware.require());
         app.before("/api/users/*", AdminMiddleware.require());
+        app.before("/api/sessions/*", AuthMiddleware.require());
+        app.before("/api/sessions/*", AdminMiddleware.require());
 
         // Middleware para rotas de anotações (requer autenticação)
         app.before("/notas", AuthMiddleware.require());
@@ -323,9 +243,17 @@ public class Main {
         app.before("/api/notificacoes/*", AuthMiddleware.require());
         app.before("/perfil", AuthMiddleware.require());
         app.before("/perfil/*", AuthMiddleware.require());
+        app.before("/configuracoes", AuthMiddleware.require());
+        app.before("/configuracoes/*", AuthMiddleware.require());
+        app.before("/api/configuracoes", AuthMiddleware.require());
+        app.before("/api/configuracoes/*", AuthMiddleware.require());
         app.before("/backup", AuthMiddleware.require());
+        app.before("/backup", AdminMiddleware.require());
         app.before("/api/backup/*", AuthMiddleware.require());
+        app.before("/api/backup/*", AdminMiddleware.require());
         app.before("/api/anexos/*", AuthMiddleware.require());
+        app.before("/uploads/*", AuthMiddleware.require());
+        app.before("/api/theme", AuthMiddleware.require());
 
         // Dashboard
         app.get("/dashboard", dashboardController::index);
@@ -350,6 +278,14 @@ public class Main {
         // API - Usuários (JSON)
         app.get("/api/users", userController::listJson);
         app.get("/api/users/{id}", userController::getUser);
+
+        // Sessões
+        app.get("/admin/sessions", sessionController::index);
+
+        // API - Sessões (JSON)
+        app.get("/api/sessions/listar", sessionController::listar);
+        app.get("/api/sessions/stats", sessionController::obterEstatisticas);
+        app.post("/api/sessions/{id}/encerrar", sessionController::encerrar);
 
         // ========== API DE ANOTAÇÕES (AUTENTICAÇÃO NECESSÁRIA) ==========
 
