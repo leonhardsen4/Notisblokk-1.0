@@ -91,3 +91,7 @@ dist-portable/
 *.so
 *.dylib
 *.dll
+
+# Application specific files
+uploads/
+nul
