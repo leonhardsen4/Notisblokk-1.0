@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulário de Audiência - Notisblokk</title>
+    <link rel="stylesheet" href="/css/audiencias.css">
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content" x-data="audienciaFormApp()">
+            <!-- Cabeçalho com botão voltar -->
+            <div class="form-header">
+                <a href="/audiencias" class="btn btn-secondary">
+                    ← Voltar para Audiências
+                </a>
+                <h1 class="form-title" x-text="audienciaId ? 'Editar Audiência' : 'Nova Audiência'"></h1>
+            </div>
+
+            <!-- Formulário -->
+            <form @submit.prevent="salvarAudiencia" class="card mt-3">
+                <div class="card-body">
+                    <!-- Seção: Dados do Processo -->
+                    <h3 class="section-title">📋 Dados do Processo</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="numeroProcesso" class="form-label">Número do Processo *</label>
+                            <input
+                                type="text"
+                                id="numeroProcesso"
+                                x-model="form.numeroProcesso"
+                                class="form-control"
+                                placeholder="0000000-00.0000.0.00.0000"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="vara" class="form-label">Vara *</label>
+                            <select id="vara" x-model="form.varaId" class="form-control" required>
+                                <option value="">Selecione uma vara</option>
+                                <template x-for="vara in varas" :key="vara.id">
+                                    <option :value="vara.id" x-text="vara.nome"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Data e Horário -->
+                    <h3 class="section-title mt-4">📅 Data e Horário</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="dataAudiencia" class="form-label">Data da Audiência *</label>
+                            <input
+                                type="date"
+                                id="dataAudiencia"
+                                x-model="form.dataAudiencia"
+                                class="form-control"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="horarioInicio" class="form-label">Horário de Início *</label>
+                            <input
+                                type="time"
+                                id="horarioInicio"
+                                x-model="form.horarioInicio"
+                                class="form-control"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="horarioFim" class="form-label">Horário de Término *</label>
+                            <input
+                                type="time"
+                                id="horarioFim"
+                                x-model="form.horarioFim"
+                                class="form-control"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Conflito -->
+                    <div x-show="verificandoConflito" class="alert alert-info">
+                        ⏳ Verificando disponibilidade...
+                    </div>
+
+                    <div x-show="temConflito && !verificandoConflito" class="alert alert-danger">
+                        <strong>⚠️ Conflito de Horário Detectado!</strong>
+                        <p class="mb-2">Já existe(m) <strong x-text="conflitosEncontrados.length"></strong> audiência(s) neste horário:</p>
+                        <ul class="mb-0">
+                            <template x-for="conflito in conflitosEncontrados" :key="conflito.id">
+                                <li>
+                                    <strong x-text="conflito.numeroProcesso"></strong> -
+                                    <span x-text="conflito.horarioInicio"></span> às <span x-text="conflito.horarioFim"></span>
+                                    <span x-show="conflito.varaNome"> - <span x-text="conflito.varaNome"></span></span>
+                                </li>
+                            </template>
+                        </ul>
+                        <p class="mt-2 mb-0">
+                            <strong>Sugestão:</strong> Use o botão "🕐 Buscar Horários Livres" na tela principal para encontrar horários disponíveis.
+                        </p>
+                    </div>
+
+                    <div x-show="!temConflito && !verificandoConflito && form.dataAudiencia && form.horarioInicio && form.varaId" class="alert alert-success">
+                        ✅ Horário disponível! Nenhum conflito detectado.
+                    </div>
+
+                    <!-- Seção: Tipo e Formato -->
+                    <h3 class="section-title mt-4">⚖️ Tipo e Formato</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="tipoAudiencia" class="form-label">Tipo de Audiência *</label>
+                            <select id="tipoAudiencia" x-model="form.tipoAudiencia" class="form-control" required>
+                                <option value="">Selecione o tipo</option>
+                                <option value="INSTRUCAO_DEBATES_JULGAMENTO">Instrução, Debates e Julgamento</option>
+                                <option value="APRESENTACAO">Apresentação</option>
+                                <option value="JUSTIFICACAO">Justificação</option>
+                                <option value="SUSPENSAO_CONDICIONAL_PROCESSO">Suspensão Condicional do Processo</option>
+                                <option value="ACORDO_NAO_PERSECUCAO_PENAL">Acordo de Não Persecução Penal</option>
+                                <option value="JURI">Júri</option>
+                                <option value="OUTROS">Outros</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="formato" class="form-label">Formato *</label>
+                            <select id="formato" x-model="form.formato" class="form-control" required>
+                                <option value="">Selecione o formato</option>
+                                <option value="PRESENCIAL">Presencial</option>
+                                <option value="VIRTUAL">Virtual</option>
+                                <option value="HIBRIDA">Híbrida</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status" class="form-label">Status</label>
+                            <select id="status" x-model="form.status" class="form-control">
+                                <option value="DESIGNADA">Designada</option>
+                                <option value="REALIZADA">Realizada</option>
+                                <option value="CANCELADA">Cancelada</option>
+                                <option value="REDESIGNADA">Redesignada</option>
+                                <option value="PARCIALMENTE_REALIZADA">Parcialmente Realizada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Participantes -->
+                    <h3 class="section-title mt-4">👥 Participantes</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="juiz" class="form-label">Juiz</label>
+                            <select id="juiz" x-model="form.juizId" class="form-control">
+                                <option value="">Selecione um juiz</option>
+                                <template x-for="juiz in juizes" :key="juiz.id">
+                                    <option :value="juiz.id" x-text="juiz.nome"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="promotor" class="form-label">Promotor de Justiça</label>
+                            <select id="promotor" x-model="form.promotorId" class="form-control">
+                                <option value="">Selecione um promotor</option>
+                                <template x-for="promotor in promotores" :key="promotor.id">
+                                    <option :value="promotor.id" x-text="promotor.nome"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Participantes -->
+                    <h3 class="section-title mt-4">👥 Participantes do Processo</h3>
+                    <div class="participantes-container">
+                        <!-- Lista de Participantes Adicionados -->
+                        <div class="participantes-lista" x-show="form.participantes.length > 0">
+                            <template x-for="(participante, index) in form.participantes" :key="index">
+                                <div class="participante-item">
+                                    <div class="participante-info">
+                                        <div class="participante-nome">
+                                            <strong x-text="participante.pessoaNome"></strong>
+                                            <span class="badge badge-sm" x-text="participante.tipoParticipacao"></span>
+                                            <span
+                                                @click="alternarIntimacao(index)"
+                                                :class="participante.intimado ? 'badge-intimado' : 'badge-nao-intimado'"
+                                                :title="participante.intimado ? 'Clique para marcar como não intimado' : 'Clique para marcar como intimado'"
+                                            >
+                                                <span x-text="participante.intimado ? '✓ Intimado' : '○ Não Intimado'"></span>
+                                            </span>
+                                        </div>
+                                        <template x-if="buscarPessoaPorId(participante.pessoaId)">
+                                            <div class="participante-contato">
+                                                <small x-show="buscarPessoaPorId(participante.pessoaId)?.telefone">
+                                                    📞 <span x-text="buscarPessoaPorId(participante.pessoaId)?.telefone"></span>
+                                                </small>
+                                                <small x-show="buscarPessoaPorId(participante.pessoaId)?.email">
+                                                    ✉️ <span x-text="buscarPessoaPorId(participante.pessoaId)?.email"></span>
+                                                </small>
+                                            </div>
+                                        </template>
+                                        <!-- Mostrar advogado se houver -->
+                                        <div x-show="participante.advogadoId" class="participante-advogado">
+                                            <small>
+                                                👨‍⚖️ <strong>Advogado:</strong>
+                                                <span x-text="participante.advogadoNome"></span>
+                                                (<span x-text="participante.advogadoOab"></span>)
+                                                - <span x-text="participante.tipoRepresentacao"></span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="participante-acoes">
+                                        <button type="button" @click="removerParticipante(index)" class="btn btn-xs btn-danger">
+                                            ✖ Remover
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Formulário para Adicionar Participante -->
+                        <div class="adicionar-participante-form">
+                            <div class="form-grid">
+                                <div class="form-group autocomplete-container">
+                                    <label class="form-label">Pessoa</label>
+                                    <div class="autocomplete-wrapper">
+                                        <input
+                                            type="text"
+                                            x-model="buscaPessoa"
+                                            @focus="mostrarListaPessoas = true"
+                                            @input="mostrarListaPessoas = true"
+                                            class="form-control"
+                                            placeholder="Digite para buscar pessoa..."
+                                        >
+                                        <button type="button" @click="recarregarPessoas()" class="btn btn-xs btn-secondary btn-recarregar" title="Recarregar lista">
+                                            🔄
+                                        </button>
+                                    </div>
+                                    <!-- Lista de resultados -->
+                                    <div class="autocomplete-results" x-show="mostrarListaPessoas && buscaPessoa.length >= 0">
+                                        <div class="autocomplete-items">
+                                            <template x-for="pessoa in pessoasFiltradas.slice(0, 10)" :key="pessoa.id">
+                                                <div class="autocomplete-item" @click="selecionarPessoa(pessoa.id)">
+                                                    <div class="item-nome">
+                                                        <strong x-text="pessoa.nome"></strong>
+                                                        <span x-show="pessoa.cpf" x-text="'CPF: ' + pessoa.cpf"></span>
+                                                    </div>
+                                                    <div class="item-contato">
+                                                        <small x-show="pessoa.telefone" x-text="'📞 ' + pessoa.telefone"></small>
+                                                        <small x-show="pessoa.email" x-text="'✉️ ' + pessoa.email"></small>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <div x-show="pessoasFiltradas.length === 0 && buscaPessoa.length > 0" class="autocomplete-no-results">
+                                                Nenhuma pessoa encontrada
+                                            </div>
+                                        </div>
+                                        <!-- Botão adicionar novo -->
+                                        <div x-show="mostrarBotaoNovaPessoa" class="autocomplete-add-new">
+                                            <button type="button" @click="abrirAdicionarPessoa()" class="btn btn-sm btn-success">
+                                                ➕ Adicionar Nova Pessoa "<span x-text="buscaPessoa"></span>"
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Participação</label>
+                                    <select x-model="novoParticipante.tipoParticipacao" class="form-control">
+                                        <option value="">Selecione...</option>
+                                        <option value="AUTOR">Autor</option>
+                                        <option value="REU">Réu</option>
+                                        <option value="VITIMA">Vítima</option>
+                                        <option value="VITIMA_FATAL">Vítima Fatal</option>
+                                        <option value="REPRESENTANTE_LEGAL">Representante Legal</option>
+                                        <option value="TESTEMUNHA_COMUM">Testemunha Comum</option>
+                                        <option value="TESTEMUNHA_ACUSACAO">Testemunha de Acusação</option>
+                                        <option value="TESTEMUNHA_DEFESA">Testemunha de Defesa</option>
+                                        <option value="ASSISTENTE_ACUSACAO">Assistente de Acusação</option>
+                                        <option value="PERITO">Perito</option>
+                                        <option value="TERCEIRO">Terceiro</option>
+                                        <option value="OUTROS">Outros</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Campos de Advogado (opcional) -->
+                            <div class="form-grid mt-3">
+                                <div class="form-group autocomplete-container">
+                                    <label class="form-label">Advogado (Opcional)</label>
+                                    <div class="autocomplete-wrapper">
+                                        <input
+                                            type="text"
+                                            x-model="buscaAdvogado"
+                                            @focus="mostrarListaAdvogados = true"
+                                            @input="mostrarListaAdvogados = true"
+                                            class="form-control"
+                                            placeholder="Digite para buscar advogado..."
+                                        >
+                                        <button type="button" @click="recarregarAdvogados()" class="btn btn-xs btn-secondary btn-recarregar" title="Recarregar lista">
+                                            🔄
+                                        </button>
+                                    </div>
+                                    <!-- Lista de resultados -->
+                                    <div class="autocomplete-results" x-show="mostrarListaAdvogados && buscaAdvogado.length >= 0">
+                                        <div class="autocomplete-items">
+                                            <template x-for="advogado in advogadosFiltrados.slice(0, 10)" :key="advogado.id">
+                                                <div class="autocomplete-item" @click="selecionarAdvogado(advogado.id)">
+                                                    <div class="item-nome">
+                                                        <strong x-text="advogado.nome"></strong>
+                                                        <span x-show="advogado.oab" x-text="'OAB: ' + advogado.oab"></span>
+                                                    </div>
+                                                    <div class="item-contato">
+                                                        <small x-show="advogado.telefone" x-text="'📞 ' + advogado.telefone"></small>
+                                                        <small x-show="advogado.email" x-text="'✉️ ' + advogado.email"></small>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <div x-show="advogadosFiltrados.length === 0 && buscaAdvogado.length > 0" class="autocomplete-no-results">
+                                                Nenhum advogado encontrado
+                                            </div>
+                                        </div>
+                                        <!-- Botão adicionar novo -->
+                                        <div x-show="mostrarBotaoNovoAdvogado" class="autocomplete-add-new">
+                                            <button type="button" @click="abrirAdicionarAdvogado()" class="btn btn-sm btn-success">
+                                                ➕ Adicionar Novo Advogado "<span x-text="buscaAdvogado"></span>"
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Representação</label>
+                                    <select x-model="novoParticipante.tipoRepresentacao" class="form-control">
+                                        <option value="">Selecione...</option>
+                                        <option value="CONSTITUIDO">Constituído</option>
+                                        <option value="DATIVO">Dativo</option>
+                                        <option value="AD_HOC">Ad Hoc</option>
+                                        <option value="DEFESA">Defesa</option>
+                                        <option value="ASSISTENCIA_ACUSACAO">Assistência de Acusação</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group mt-3">
+                                <div class="form-group">
+                                    <label class="form-label">Observações</label>
+                                    <input
+                                        type="text"
+                                        x-model="novoParticipante.observacoes"
+                                        class="form-control"
+                                        placeholder="Observações sobre o participante..."
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <small class="text-muted">
+                                    💡 Dica: Você pode marcar a intimação após adicionar o participante
+                                </small>
+                            </div>
+
+                            <div>
+
+                            <button type="button" @click="adicionarParticipante()" class="btn btn-sm btn-primary">
+                                ➕ Adicionar Participante
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Representação de Advogados (OCULTA - agora integrada com participantes) -->
+                    <div style="display: none;">
+                    <h3 class="section-title mt-4">👨‍⚖️ Representação de Advogados</h3>
+                    <div class="representacao-container">
+                        <!-- Lista de Representações Adicionadas -->
+                        <div class="representacao-lista" x-show="form.representacoes.length > 0">
+                            <template x-for="(representacao, index) in form.representacoes" :key="index">
+                                <div class="representacao-item">
+                                    <div class="representacao-info">
+                                        <div class="representacao-principal">
+                                            <strong x-text="representacao.advogadoNome + ' (OAB: ' + representacao.advogadoOab + ')'"></strong>
+                                            representa
+                                            <strong x-text="representacao.clienteNome"></strong>
+                                            <span class="badge badge-sm" x-text="representacao.tipoRepresentacao"></span>
+                                        </div>
+                                        <template x-if="buscarAdvogadoPorId(representacao.advogadoId)">
+                                            <div class="representacao-contato">
+                                                <small x-show="buscarAdvogadoPorId(representacao.advogadoId)?.telefone">
+                                                    📞 <span x-text="buscarAdvogadoPorId(representacao.advogadoId)?.telefone"></span>
+                                                </small>
+                                                <small x-show="buscarAdvogadoPorId(representacao.advogadoId)?.email">
+                                                    ✉️ <span x-text="buscarAdvogadoPorId(representacao.advogadoId)?.email"></span>
+                                                </small>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <button type="button" @click="removerRepresentacao(index)" class="btn btn-xs btn-danger">
+                                        ✖ Remover
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Formulário para Adicionar Representação -->
+                        <div class="adicionar-representacao-form">
+                            <div class="form-grid">
+                                <div class="form-group autocomplete-container">
+                                    <label class="form-label">Advogado</label>
+                                    <div class="autocomplete-wrapper">
+                                        <input
+                                            type="text"
+                                            x-model="buscaAdvogado"
+                                            @focus="mostrarListaAdvogados = true"
+                                            @input="mostrarListaAdvogados = true"
+                                            class="form-control"
+                                            placeholder="Digite para buscar advogado..."
+                                        >
+                                        <button type="button" @click="recarregarAdvogados()" class="btn btn-xs btn-secondary btn-recarregar" title="Recarregar lista">
+                                            🔄
+                                        </button>
+                                    </div>
+                                    <!-- Lista de resultados -->
+                                    <div class="autocomplete-results" x-show="mostrarListaAdvogados && buscaAdvogado.length >= 0">
+                                        <div class="autocomplete-items">
+                                            <template x-for="advogado in advogadosFiltrados.slice(0, 10)" :key="advogado.id">
+                                                <div class="autocomplete-item" @click="selecionarAdvogado(advogado.id)">
+                                                    <div class="item-nome">
+                                                        <strong x-text="advogado.nome"></strong>
+                                                        <span x-show="advogado.oab" x-text="'OAB: ' + advogado.oab"></span>
+                                                    </div>
+                                                    <div class="item-contato">
+                                                        <small x-show="advogado.telefone" x-text="'📞 ' + advogado.telefone"></small>
+                                                        <small x-show="advogado.email" x-text="'✉️ ' + advogado.email"></small>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <div x-show="advogadosFiltrados.length === 0 && buscaAdvogado.length > 0" class="autocomplete-no-results">
+                                                Nenhum advogado encontrado
+                                            </div>
+                                        </div>
+                                        <!-- Botão adicionar novo -->
+                                        <div x-show="mostrarBotaoNovoAdvogado" class="autocomplete-add-new">
+                                            <button type="button" @click="abrirAdicionarAdvogado()" class="btn btn-sm btn-success">
+                                                ➕ Adicionar Novo Advogado "<span x-text="buscaAdvogado"></span>"
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Representa (Pessoa)</label>
+                                    <select x-model="novaRepresentacao.clienteId" class="form-control">
+                                        <option value="">Selecione a pessoa representada</option>
+                                        <template x-for="pessoa in pessoasParticipantes" :key="pessoa.id">
+                                            <option :value="pessoa.id" x-text="pessoa.nome"></option>
+                                        </template>
+                                    </select>
+                                    <small class="text-muted" x-show="form.participantes.length === 0">
+                                        ⚠️ Adicione participantes primeiro
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Representação</label>
+                                    <select x-model="novaRepresentacao.tipoRepresentacao" class="form-control">
+                                        <option value="">Selecione...</option>
+                                        <option value="CONSTITUIDO">Constituído</option>
+                                        <option value="DATIVO">Dativo</option>
+                                        <option value="AD_HOC">Ad Hoc</option>
+                                        <option value="DEFESA">Defesa</option>
+                                        <option value="ASSISTENCIA_ACUSACAO">Assistência de Acusação</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="button" @click="adicionarRepresentacao()" class="btn btn-sm btn-primary">
+                                ➕ Adicionar Representação
+                            </button>
+                        </div>
+                    </div>
+                    </div>
+                    <!-- FIM da seção oculta de Representação de Advogados -->
+
+                    <!-- Seção: Informações Adicionais -->
+                    <h3 class="section-title mt-4">📝 Informações Adicionais</h3>
+                    <div class="form-group">
+                        <label for="artigo" class="form-label">Artigo</label>
+                        <input
+                            type="text"
+                            id="artigo"
+                            x-model="form.artigo"
+                            class="form-control"
+                            placeholder="Ex: Art. 121, §2º, IV do CP"
+                        >
+                    </div>
+
+                    <!-- Flags/Opções -->
+                    <div class="form-group">
+                        <label class="form-label">Opções</label>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <label class="checkbox-label">
+                                <input type="checkbox" x-model="form.reuPreso">
+                                <span>Réu Preso</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" x-model="form.agendamentoTeams">
+                                <span>Agendamento via Teams</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" x-model="form.reconhecimento">
+                                <span>Reconhecimento</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" x-model="form.depoimentoEspecial">
+                                <span>Depoimento Especial</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea
+                            id="observacoes"
+                            x-model="form.observacoes"
+                            class="form-control"
+                            rows="4"
+                            placeholder="Digite observações sobre a audiência..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- Rodapé com botões -->
+                <div class="card-footer">
+                    <div class="form-actions">
+                        <button type="button" @click="cancelar" class="btn btn-secondary">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary" :disabled="salvando">
+                            <span x-show="!salvando">💾 Salvar Audiência</span>
+                            <span x-show="salvando">Salvando...</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <script src="/js/audiencia-form.js"></script>
+        </div>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Audiências - Notisblokk</title>
+    <link rel="stylesheet" href="/css/audiencias.css">
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content" x-data="audienciasApp()">
+            <!-- Cabeçalho e Ações -->
+            <div class="header-compact">
+                <h1 class="page-title">⚖️ Audiências Judiciais</h1>
+                <div class="acoes-topo">
+                    <button @click="abrirFormularioAudiencia()" class="btn btn-primary btn-sm">
+                        ➕ Nova Audiência
+                    </button>
+                    <button @click="abrirModalPauta()" class="btn btn-sm" :class="pautaDia.length > 0 ? 'btn-success' : 'btn-secondary'">
+                        📅 Pauta (<span x-text="pautaDia.length"></span>)
+                    </button>
+                    <button @click="abrirModalHorariosLivres()" class="btn btn-success btn-sm">
+                        🕐 Horários Livres
+                    </button>
+                    <button @click="abrirModalCadastros()" class="btn btn-secondary btn-sm">
+                        📋 Cadastros
+                    </button>
+                    <a href="/audiencias/advogados" class="btn btn-secondary btn-sm">
+                        👨‍⚖️ Advogados
+                    </a>
+                    <a href="/audiencias/pessoas" class="btn btn-secondary btn-sm">
+                        👤 Pessoas
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtros e Pesquisa Unificados -->
+            <div class="card mb-2">
+                <div class="card-body-compact">
+                    <div class="filtros-pesquisa-row">
+                        <input
+                            type="text"
+                            x-model="termoPesquisa"
+                            @input="pesquisarAudiencias()"
+                            placeholder="🔍 Pesquisar..."
+                            class="form-control-compact search-compact"
+                        >
+                        <input
+                            type="date"
+                            x-model="filtroData"
+                            @change="aplicarFiltros()"
+                            class="form-control-compact"
+                            title="Filtrar por data"
+                        >
+                        <select x-model="filtroVara" @change="aplicarFiltros()" class="form-control-compact">
+                            <option value="">Todas as varas</option>
+                            <template x-for="vara in varas" :key="vara.id">
+                                <option :value="vara.id" x-text="vara.nome"></option>
+                            </template>
+                        </select>
+                        <select x-model="filtroStatus" @change="aplicarFiltros()" class="form-control-compact">
+                            <option value="">Todos os status</option>
+                            <option value="DESIGNADA">Designada</option>
+                            <option value="REALIZADA">Realizada</option>
+                            <option value="CANCELADA">Cancelada</option>
+                            <option value="REDESIGNADA">Redesignada</option>
+                        </select>
+                        <button @click="limparFiltros()" class="btn btn-secondary btn-icon" title="Limpar filtros">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Audiências -->
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="audiencias-table">
+                        <thead>
+                            <tr>
+                                <th @click="ordenarPor('numeroProcesso')" class="sortable">
+                                    Processo <span x-text="getSortIcon('numeroProcesso')"></span>
+                                </th>
+                                <th @click="ordenarPor('dataAudiencia')" class="sortable">
+                                    Data <span x-text="getSortIcon('dataAudiencia')"></span>
+                                </th>
+                                <th>Horário</th>
+                                <th>Vara</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th class="acoes-col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="audiencia in audienciasProcessadas" :key="audiencia.id">
+                                <tr :class="getRowClass(audiencia)">
+                                    <td>
+                                        <strong x-text="audiencia.numeroProcesso"></strong>
+                                    </td>
+                                    <td x-text="audiencia.dataAudiencia + ' (' + audiencia.diaSemana + ')'"></td>
+                                    <td x-text="audiencia.horarioInicio + ' - ' + audiencia.horarioFim"></td>
+                                    <td x-text="audiencia.vara?.nome || 'N/A'"></td>
+                                    <td x-text="audiencia.tipoAudiencia"></td>
+                                    <td>
+                                        <span class="badge" :class="'badge-' + audiencia.status.toLowerCase()" x-text="audiencia.status"></span>
+                                    </td>
+                                    <td class="acoes-col">
+                                        <div class="btn-group">
+                                            <button @click="visualizarAudiencia(audiencia)" class="btn btn-sm btn-info" title="Visualizar">👁️</button>
+                                            <button @click="editarAudiencia(audiencia.id)" class="btn btn-sm btn-primary" title="Editar">✏️</button>
+                                            <button @click="deletarAudiencia(audiencia.id)" class="btn btn-sm btn-danger" title="Deletar">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
+                    <div x-show="audienciasProcessadas.length === 0" class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <p>Nenhuma audiência encontrada</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Cadastros -->
+            <div class="modal-overlay" :class="{ active: modalCadastros }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Cadastros Auxiliares</h2>
+                        <button @click="fecharModalCadastros()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="cadastros-tabs">
+                            <button
+                                @click="abaAtivaCadastro = 'varas'"
+                                :class="{'active': abaAtivaCadastro === 'varas'}"
+                                class="tab-button"
+                            >Varas</button>
+                            <button
+                                @click="abaAtivaCadastro = 'juizes'"
+                                :class="{'active': abaAtivaCadastro === 'juizes'}"
+                                class="tab-button"
+                            >Juízes</button>
+                            <button
+                                @click="abaAtivaCadastro = 'promotores'"
+                                :class="{'active': abaAtivaCadastro === 'promotores'}"
+                                class="tab-button"
+                            >Promotores</button>
+                        </div>
+
+                        <!-- ABA: Varas Judiciais -->
+                        <div x-show="abaAtivaCadastro === 'varas'" class="mt-3">
+                            <div class="cadastro-header">
+                                <h3>Varas Judiciais</h3>
+                                <button @click="novaVara()" class="btn btn-sm btn-primary">+ Nova Vara</button>
+                            </div>
+
+                            <!-- Formulário de Vara -->
+                            <div x-show="formVara.ativo" class="cadastro-form">
+                                <form @submit.prevent="salvarVara()">
+                                    <div class="form-group">
+                                        <label class="form-label">Nome da Vara *</label>
+                                        <input type="text" x-model="formVara.nome" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Comarca</label>
+                                        <input type="text" x-model="formVara.comarca" class="form-control">
+                                    </div>
+                                    <div class="form-actions-inline">
+                                        <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
+                                        <button type="button" @click="cancelarVara()" class="btn btn-sm btn-secondary">Cancelar</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Lista de Varas -->
+                            <div class="cadastro-lista">
+                                <template x-for="vara in varas" :key="vara.id">
+                                    <div class="cadastro-item">
+                                        <div class="cadastro-info">
+                                            <strong x-text="vara.nome"></strong>
+                                            <span class="text-muted" x-text="vara.comarca" x-show="vara.comarca"></span>
+                                        </div>
+                                        <div class="cadastro-acoes">
+                                            <button @click="editarVara(vara)" class="btn btn-xs btn-primary">✏️</button>
+                                            <button @click="deletarVara(vara.id)" class="btn btn-xs btn-danger">🗑️</button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div x-show="varas.length === 0" class="text-muted text-center">
+                                    Nenhuma vara cadastrada
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ABA: Juízes -->
+                        <div x-show="abaAtivaCadastro === 'juizes'" class="mt-3">
+                            <div class="cadastro-header">
+                                <h3>Juízes</h3>
+                                <button @click="novoJuiz()" class="btn btn-sm btn-primary">+ Novo Juiz</button>
+                            </div>
+
+                            <!-- Formulário de Juiz -->
+                            <div x-show="formJuiz.ativo" class="cadastro-form">
+                                <form @submit.prevent="salvarJuiz()">
+                                    <div class="form-group">
+                                        <label class="form-label">Nome do Juiz *</label>
+                                        <input type="text" x-model="formJuiz.nome" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Telefone</label>
+                                        <input type="text" x-model="formJuiz.telefone" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" x-model="formJuiz.email" class="form-control">
+                                    </div>
+                                    <div class="form-actions-inline">
+                                        <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
+                                        <button type="button" @click="cancelarJuiz()" class="btn btn-sm btn-secondary">Cancelar</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Lista de Juízes -->
+                            <div class="cadastro-lista">
+                                <template x-for="juiz in juizes" :key="juiz.id">
+                                    <div class="cadastro-item">
+                                        <div class="cadastro-info">
+                                            <strong x-text="juiz.nome"></strong>
+                                            <span class="text-muted" x-text="juiz.email" x-show="juiz.email"></span>
+                                        </div>
+                                        <div class="cadastro-acoes">
+                                            <button @click="editarJuiz(juiz)" class="btn btn-xs btn-primary">✏️</button>
+                                            <button @click="deletarJuiz(juiz.id)" class="btn btn-xs btn-danger">🗑️</button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div x-show="juizes.length === 0" class="text-muted text-center">
+                                    Nenhum juiz cadastrado
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ABA: Promotores -->
+                        <div x-show="abaAtivaCadastro === 'promotores'" class="mt-3">
+                            <div class="cadastro-header">
+                                <h3>Promotores de Justiça</h3>
+                                <button @click="novoPromotor()" class="btn btn-sm btn-primary">+ Novo Promotor</button>
+                            </div>
+
+                            <!-- Formulário de Promotor -->
+                            <div x-show="formPromotor.ativo" class="cadastro-form">
+                                <form @submit.prevent="salvarPromotor()">
+                                    <div class="form-group">
+                                        <label class="form-label">Nome do Promotor *</label>
+                                        <input type="text" x-model="formPromotor.nome" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Telefone</label>
+                                        <input type="text" x-model="formPromotor.telefone" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" x-model="formPromotor.email" class="form-control">
+                                    </div>
+                                    <div class="form-actions-inline">
+                                        <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
+                                        <button type="button" @click="cancelarPromotor()" class="btn btn-sm btn-secondary">Cancelar</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Lista de Promotores -->
+                            <div class="cadastro-lista">
+                                <template x-for="promotor in promotores" :key="promotor.id">
+                                    <div class="cadastro-item">
+                                        <div class="cadastro-info">
+                                            <strong x-text="promotor.nome"></strong>
+                                            <span class="text-muted" x-text="promotor.email" x-show="promotor.email"></span>
+                                        </div>
+                                        <div class="cadastro-acoes">
+                                            <button @click="editarPromotor(promotor)" class="btn btn-xs btn-primary">✏️</button>
+                                            <button @click="deletarPromotor(promotor.id)" class="btn btn-xs btn-danger">🗑️</button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div x-show="promotores.length === 0" class="text-muted text-center">
+                                    Nenhum promotor cadastrado
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="fecharModalCadastros()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Pauta do Dia -->
+            <div class="modal-overlay" :class="{ active: modalPauta }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">📅 Pauta do Dia</h2>
+                        <button @click="fecharModalPauta()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div x-show="pautaDia.length > 0">
+                            <p class="pauta-info"><strong x-text="pautaDia.length"></strong> audiência(s) agendada(s) para hoje.</p>
+
+                            <div class="pauta-lista">
+                                <template x-for="audiencia in pautaDia" :key="audiencia.id">
+                                    <div class="pauta-item">
+                                        <div class="pauta-horario" x-text="audiencia.horarioInicio"></div>
+                                        <div class="pauta-info-detalhe">
+                                            <div class="pauta-processo" x-text="audiencia.numeroProcesso"></div>
+                                            <div class="pauta-vara" x-text="audiencia.vara?.nome"></div>
+                                            <div class="pauta-tipo">
+                                                <span class="badge badge-sm" :class="'badge-' + audiencia.status.toLowerCase()" x-text="audiencia.tipoAudiencia"></span>
+                                            </div>
+                                        </div>
+                                        <div class="pauta-acoes">
+                                            <button @click="visualizarAudiencia(audiencia); fecharModalPauta();" class="btn btn-xs btn-info">Detalhes</button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div x-show="pautaDia.length === 0" class="empty-state">
+                            <div class="empty-state-icon">📅</div>
+                            <p>Nenhuma audiência agendada para hoje</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="imprimirPauta()" class="btn btn-primary" x-show="pautaDia.length > 0">
+                            🖨️ Imprimir Pauta (PDF)
+                        </button>
+                        <button @click="fecharModalPauta()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Detalhes -->
+            <div class="modal-overlay" :class="{ active: modalDetalhes }">
+                <div class="modal modal-detalhes-audiencia">
+                    <div class="modal-header">
+                        <h2 class="modal-title">📄 Detalhes da Audiência</h2>
+                        <button @click="fecharModalDetalhes()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body" x-show="audienciaSelecionada">
+                        <!-- Informações Básicas -->
+                        <div class="detalhes-compact">
+                            <h4 class="section-title">📋 Informações Básicas</h4>
+                            <div class="info-row">
+                                <span class="info-label">Processo:</span>
+                                <span class="info-value" x-text="audienciaSelecionada?.numeroProcesso"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Data/Hora:</span>
+                                <span class="info-value" x-text="audienciaSelecionada?.dataAudiencia + ' (' + audienciaSelecionada?.diaSemana + ') às ' + audienciaSelecionada?.horarioInicio"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Vara:</span>
+                                <span class="info-value" x-text="audienciaSelecionada?.vara?.nome"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Tipo/Formato:</span>
+                                <span class="info-value" x-text="audienciaSelecionada?.tipoAudiencia + ' - ' + audienciaSelecionada?.formato"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Status:</span>
+                                <span class="badge badge-sm" :class="'badge-' + audienciaSelecionada?.status.toLowerCase()" x-text="audienciaSelecionada?.status"></span>
+                            </div>
+                        </div>
+
+                        <!-- Magistrado e Promotoria -->
+                        <div class="detalhes-compact mt-2">
+                            <h4 class="section-title">👨‍⚖️ Juiz e Promotor</h4>
+                            <div class="info-row">
+                                <span class="info-label">Juiz:</span>
+                                <span class="info-value" x-text="audienciaSelecionada?.juiz?.nome || 'Não informado'"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Promotor:</span>
+                                <span class="info-value" x-text="audienciaSelecionada?.promotor?.nome || 'Não informado'"></span>
+                            </div>
+                        </div>
+
+                        <!-- Dados Adicionais (se houver) -->
+                        <div class="detalhes-compact mt-2" x-show="audienciaSelecionada?.artigo || audienciaSelecionada?.reuPreso || audienciaSelecionada?.agendamentoTeams || audienciaSelecionada?.reconhecimento || audienciaSelecionada?.depoimentoEspecial">
+                            <h4 class="section-title">⚖️ Informações Adicionais</h4>
+                            <div class="info-row" x-show="audienciaSelecionada?.artigo">
+                                <span class="info-label">Artigo:</span>
+                                <span class="info-value" x-text="audienciaSelecionada?.artigo"></span>
+                            </div>
+                            <div class="badges-row">
+                                <span x-show="audienciaSelecionada?.reuPreso" class="badge badge-sm badge-danger">Réu Preso</span>
+                                <span x-show="audienciaSelecionada?.agendamentoTeams" class="badge badge-sm badge-info">Teams</span>
+                                <span x-show="audienciaSelecionada?.reconhecimento" class="badge badge-sm badge-warning">Reconhecimento</span>
+                                <span x-show="audienciaSelecionada?.depoimentoEspecial" class="badge badge-sm badge-primary">Depoimento Especial</span>
+                            </div>
+                        </div>
+
+                        <!-- Participantes do Processo -->
+                        <div class="detalhes-compact mt-2" x-show="participantesDetalhes.length > 0">
+                            <h4 class="section-title">👥 Participantes (<span x-text="participantesDetalhes.length"></span>)</h4>
+                            <div class="participantes-lista-compact">
+                                <template x-for="(p, index) in participantesDetalhes" :key="index">
+                                    <div class="participante-compact">
+                                        <div class="participante-header">
+                                            <strong x-text="p.pessoaNome"></strong>
+                                            <span class="badge badge-xs" x-text="p.tipoParticipacao"></span>
+                                            <span x-show="p.intimado" class="badge badge-xs badge-success">✓ Intimado</span>
+                                        </div>
+                                        <div class="participante-advogado" x-show="p.advogadoNome">
+                                            <small>👨‍⚖️ <b x-text="p.advogadoNome"></b> (OAB: <span x-text="p.advogadoOab"></span>) - <span x-text="p.tipoRepresentacao"></span></small>
+                                        </div>
+                                        <div class="participante-obs" x-show="p.observacoes">
+                                            <small><i x-text="p.observacoes"></i></small>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Observações da Audiência -->
+                        <div class="detalhes-compact mt-2" x-show="audienciaSelecionada?.observacoes">
+                            <h4 class="section-title">📝 Observações</h4>
+                            <p class="obs-text" x-text="audienciaSelecionada?.observacoes"></p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="imprimirAudiencia(audienciaSelecionada?.id)" class="btn btn-success">🖨️ Imprimir PDF</button>
+                        <button @click="editarAudiencia(audienciaSelecionada?.id)" class="btn btn-primary">✏️ Editar</button>
+                        <button @click="fecharModalDetalhes()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Busca de Horários Livres -->
+            <div class="modal-overlay" :class="{ active: modalHorariosLivres }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">🕐 Buscar Horários Livres</h2>
+                        <button @click="fecharModalHorariosLivres()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Formulário de Busca -->
+                        <div class="horarios-livres-form">
+                            <div class="form-group">
+                                <label>Período de Busca:</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="date" x-model="horariosLivres.dataInicio" class="form-control" required>
+                                    <span style="align-self: center;">até</span>
+                                    <input type="date" x-model="horariosLivres.dataFim" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Vara (opcional):</label>
+                                <select x-model="horariosLivres.varaId" class="form-control">
+                                    <option value="">Todas as varas</option>
+                                    <template x-for="vara in varas" :key="vara.id">
+                                        <option :value="vara.id" x-text="vara.nome"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Duração da Audiência (minutos):</label>
+                                <select x-model="horariosLivres.duracaoMinutos" class="form-control">
+                                    <option value="30">30 minutos</option>
+                                    <option value="45">45 minutos</option>
+                                    <option value="60" selected>1 hora</option>
+                                    <option value="90">1h 30min</option>
+                                    <option value="120">2 horas</option>
+                                    <option value="180">3 horas</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Grade de Agendamento:</label>
+                                <select x-model="horariosLivres.gradeMinutos" class="form-control">
+                                    <option value="0">0 minutos (sem espaçamento)</option>
+                                    <option value="5">5 minutos</option>
+                                    <option value="10">10 minutos</option>
+                                    <option value="15" selected>15 minutos</option>
+                                    <option value="30">30 minutos</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Buffer antes/depois (minutos):</label>
+                                <input type="number" x-model="horariosLivres.bufferMinutos" class="form-control" min="0" max="60" value="10">
+                            </div>
+
+                            <button @click="buscarHorariosLivres()" class="btn btn-primary" style="width: 100%;">
+                                🔍 Buscar Horários Disponíveis
+                            </button>
+                        </div>
+
+                        <!-- Resultados -->
+                        <div x-show="horariosLivres.slots.length > 0" class="mt-3">
+                            <h4>Horários Disponíveis (<span x-text="horariosLivres.slots.length"></span>)</h4>
+                            <div class="horarios-livres-lista">
+                                <template x-for="(slotsPorDia, data) in agruparSlotsPorDia(horariosLivres.slots)" :key="data">
+                                    <div class="horarios-dia">
+                                        <h5 class="horarios-dia-titulo" x-text="formatarDataExtenso(data)"></h5>
+                                        <div class="horarios-dia-slots">
+                                            <template x-for="slot in slotsPorDia" :key="slot.horarioInicio">
+                                                <button
+                                                    @click="selecionarHorario(slot)"
+                                                    class="horario-slot"
+                                                    :title="'Duração: ' + slot.duracaoMinutos + ' minutos'">
+                                                    <span x-text="slot.horarioInicio.substring(0, 5)"></span>
+                                                    -
+                                                    <span x-text="slot.horarioFim.substring(0, 5)"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div x-show="horariosLivres.buscaRealizada && horariosLivres.slots.length === 0" class="empty-state">
+                            <div class="empty-state-icon">🕐</div>
+                            <p>Nenhum horário disponível encontrado no período selecionado</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="fecharModalHorariosLivres()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <script src="/js/audiencias.js"></script>
+        </div>
+    </th:block>
+</body>
+</html>

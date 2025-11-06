@@ -8,86 +8,63 @@
 <body>
     <th:block th:replace="~{layout/base :: base(~{::main-content})}">
         <div th:fragment="main-content" x-data="notasApp()">
-            <h1 class="mb-3">Anotações</h1>
-
-            <!-- Barra de Ações -->
-            <div class="acoes-container">
-                <a href="/notas/nova" class="btn btn-primary">
-                    ➕ Nova Nota
-                </a>
-                <button @click="abrirModalEtiquetas()" class="btn btn-secondary">
-                    🏷️ Gerenciar Etiquetas
-                </button>
-                <button @click="abrirModalStatus()" class="btn btn-secondary">
-                    📊 Gerenciar Status
-                </button>
-                <button @click="mostrarControlesColunas = false" class="btn btn-warning" :class="{'btn-danger': alertasUrgentes.length > 0}">
-                    🔔 Alertas (<span x-text="alertasUrgentes.length"></span>)
-                </button>
-            </div>
-
-            <!-- Filtros -->
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="filtros-container">
-                        <select id="filtroEtiqueta" class="form-control">
-                            <option value="">Todas as etiquetas</option>
-                        </select>
-                        <select id="filtroStatus" class="form-control">
-                            <option value="">Todos os status</option>
-                        </select>
-                    </div>
+            <!-- Cabeçalho e Ações -->
+            <div class="header-compact">
+                <h1 class="page-title">📝 Anotações</h1>
+                <div class="acoes-topo">
+                    <a href="/notas/nova" class="btn btn-primary btn-sm">
+                        ➕ Nova Nota
+                    </a>
+                    <button @click="abrirModalAlertas()" class="btn btn-sm" :class="alertasUrgentes.length > 0 ? 'btn-danger' : 'btn-warning'">
+                        🔔 Alertas (<span x-text="alertasUrgentes.length"></span>)
+                    </button>
+                    <button @click="abrirModalEtiquetas()" class="btn btn-secondary btn-sm">
+                        🏷️ Etiquetas
+                    </button>
+                    <button @click="abrirModalStatus()" class="btn btn-secondary btn-sm">
+                        📊 Status
+                    </button>
                 </div>
             </div>
 
-            <!-- Seção de Alertas -->
-            <div x-show="alertasUrgentes.length > 0" class="card mb-3 alertas-section">
-                <div class="card-header">
-                    <h2 class="card-title">🚨 Alertas Urgentes</h2>
-                </div>
-                <div class="card-body">
-                    <template x-for="alerta in alertasUrgentes" :key="alerta.id">
-                        <div class="alerta-item" :class="'alerta-' + alerta.nivel.toLowerCase()">
-                            <span class="alerta-icon" x-text="getAlertaIcon(alerta.nivel)"></span>
-                            <a :href="'/notas/editar/' + alerta.id" class="alerta-link" x-text="alerta.titulo"></a>
-                            <span class="alerta-prazo" x-text="alerta.prazoTexto"></span>
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <!-- Barra de Pesquisa e Controles -->
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="search-controls">
+            <!-- Filtros e Pesquisa Unificados -->
+            <div class="card mb-2">
+                <div class="card-body-compact">
+                    <div class="filtros-pesquisa-row">
                         <input
                             type="text"
                             x-model="termoPesquisa"
                             @input="pesquisarNotas()"
-                            placeholder="🔍 Pesquisar notas (título, conteúdo, etiqueta, status...)"
-                            class="form-input search-input"
+                            placeholder="🔍 Pesquisar..."
+                            class="form-control-compact search-compact"
                         >
-                        <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-sm">
-                            ⚙️ Colunas
+                        <select id="filtroEtiqueta" class="form-control-compact">
+                            <option value="">Todas as etiquetas</option>
+                        </select>
+                        <select id="filtroStatus" class="form-control-compact">
+                            <option value="">Todos os status</option>
+                        </select>
+                        <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-icon" title="Configurar colunas">
+                            ⚙️
                         </button>
                     </div>
 
                     <!-- Controles de Colunas -->
-                    <div x-show="mostrarControlesColunas" class="column-controls mt-2">
-                        <label class="column-toggle">
+                    <div x-show="mostrarControlesColunas" class="column-controls-compact">
+                        <label class="column-toggle-compact">
                             <input type="checkbox" x-model="colunasVisiveis.titulo"> Título
                         </label>
-                        <label class="column-toggle">
+                        <label class="column-toggle-compact">
                             <input type="checkbox" x-model="colunasVisiveis.etiqueta"> Etiqueta
                         </label>
-                        <label class="column-toggle">
+                        <label class="column-toggle-compact">
                             <input type="checkbox" x-model="colunasVisiveis.status"> Status
                         </label>
-                        <label class="column-toggle">
+                        <label class="column-toggle-compact">
                             <input type="checkbox" x-model="colunasVisiveis.prazo"> Prazo
                         </label>
-                        <label class="column-toggle">
-                            <input type="checkbox" x-model="colunasVisiveis.diasRestantes"> Dias Restantes
+                        <label class="column-toggle-compact">
+                            <input type="checkbox" x-model="colunasVisiveis.diasRestantes"> Dias Rest.
                         </label>
                     </div>
                 </div>
@@ -222,6 +199,47 @@
                 </div>
             </div>
 
+            <!-- Modal Alertas -->
+            <div class="modal-overlay" :class="{ active: modalAlertas }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">🔔 Alertas de Anotações</h2>
+                        <button @click="fecharModalAlertas()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                        <div x-show="alertasUrgentes.length === 0" class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <p>Nenhum alerta urgente no momento!</p>
+                        </div>
+
+                        <div x-show="alertasUrgentes.length > 0" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <template x-for="alerta in alertasUrgentes" :key="alerta.id">
+                                <div class="alerta-card" :class="'alerta-' + alerta.nivel.toLowerCase()">
+                                    <div class="alerta-card-header">
+                                        <span class="alerta-icon-grande" x-text="getAlertaIcon(alerta.nivel)"></span>
+                                        <span class="alerta-nivel-badge" x-text="alerta.nivel"></span>
+                                    </div>
+                                    <div class="alerta-card-body">
+                                        <h3 class="alerta-titulo" x-text="alerta.titulo"></h3>
+                                        <div class="alerta-prazo-info">
+                                            <strong>Prazo:</strong> <span x-text="alerta.prazoTexto"></span>
+                                        </div>
+                                    </div>
+                                    <div class="alerta-card-footer">
+                                        <a :href="'/notas/editar/' + alerta.id" class="btn btn-sm btn-primary">
+                                            Ver Anotação →
+                                        </a>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="fecharModalAlertas()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
             <script>
                 function notasApp() {
                     return {
@@ -233,6 +251,7 @@
                         statusList: [],
                         modalEtiquetas: false,
                         modalStatus: false,
+                        modalAlertas: false,
                         novaEtiqueta: '',
                         novoStatus: { nome: '', cor: '#6B7280' },
                         etiquetaEditandoId: null,
@@ -686,6 +705,14 @@
                         fecharModalStatus() {
                             this.modalStatus = false;
                             this.cancelarEdicaoStatus();
+                        },
+
+                        abrirModalAlertas() {
+                            this.modalAlertas = true;
+                        },
+
+                        fecharModalAlertas() {
+                            this.modalAlertas = false;
                         },
 
                         iniciarEdicaoStatus(status) {

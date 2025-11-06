@@ -155,3 +155,33 @@ a {
 .shadow-lg { box-shadow: var(--shadow-lg) !important; }
 .shadow-xl { box-shadow: var(--shadow-xl) !important; }
 .shadow-none { box-shadow: none !important; }
+
+/* ============================================================
+   CORREÇÕES ESPECÍFICAS PARA TEMA ESCURO
+   ============================================================ */
+
+/* Datepicker - Input de data no tema escuro */
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="time"],
+[data-theme="dark"] input[type="datetime-local"] {
+    color-scheme: dark;
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+/* Ícones do datepicker (calendário/relógio) no tema escuro */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+/* Firefox - Datepicker no tema escuro */
+[data-theme="dark"] input[type="date"]::-moz-calendar-picker-indicator,
+[data-theme="dark"] input[type="time"]::-moz-calendar-picker-indicator,
+[data-theme="dark"] input[type="datetime-local"]::-moz-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}

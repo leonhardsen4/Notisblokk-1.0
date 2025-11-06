@@ -86,7 +86,7 @@
                             </thead>
                             <tbody>
                                 <tr th:each="nota : ${notasAlerta}"
-                                    :class="'alerta-row alerta-' + ${nota.nivel.toLowerCase()}">
+                                    th:class="'alerta-row alerta-' + ${nota.nivel.toLowerCase()}">
                                     <td>
                                         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
                                             <strong th:text="${nota.titulo}" style="color: var(--color-text-primary);">Título da nota</strong>
@@ -108,7 +108,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a th:href="@{/notas/editar/{id}(id=${nota.id})}" class="btn btn-sm btn-primary" title="Ver anotação">
+                                        <a th:href="${'/notas/editar/' + nota.id}" class="btn btn-sm btn-primary" title="Ver anotação">
                                             Ver →
                                         </a>
                                     </td>

@@ -70,6 +70,7 @@ public class DatabaseConfig {
             executarSchema();
             criarUsuariosPadrao();
             criarStatusPadrao();
+            executarSchemaAudiencias();
 
             logger.info("Banco de dados inicializado com sucesso!");
         } catch (Exception e) {
@@ -339,6 +340,96 @@ public class DatabaseConfig {
             } else {
                 logger.info("Todos os status padrão já existem no banco de dados");
             }
+        }
+    }
+
+    /**
+     * Executa o schema SQL do módulo de Audiências Judiciais.
+     *
+     * <p>Cria as tabelas, índices e triggers necessários para o funcionamento
+     * do módulo de gerenciamento de audiências judiciais.</p>
+     *
+     * <p><b>Tabelas criadas:</b></p>
+     * <ul>
+     *   <li>vara - Varas judiciais</li>
+     *   <li>juiz - Magistrados</li>
+     *   <li>promotor - Promotores de justiça</li>
+     *   <li>advogado - Advogados</li>
+     *   <li>pessoa - Partes processuais</li>
+     *   <li>audiencia - Audiências agendadas</li>
+     *   <li>participacao_audiencia - Participantes das audiências</li>
+     *   <li>representacao_advogado - Representação advocatícia</li>
+     * </ul>
+     *
+     * @throws IOException se houver erro ao ler o arquivo audiencias-schema.sql
+     * @throws SQLException se houver erro ao executar o SQL
+     */
+    private static void executarSchemaAudiencias() throws IOException, SQLException {
+        logger.info("Executando schema SQL do módulo de Audiências...");
+
+        // DEBUG_AUDIENCIAS: Log importante para verificar carregamento do schema
+        System.out.println("DEBUG_AUDIENCIAS: Iniciando criação das tabelas do módulo de audiências");
+
+        // Ler o arquivo audiencias-schema.sql do classpath
+        String schemaFile = "/database/audiencias-schema.sql";
+        InputStream is = DatabaseConfig.class.getResourceAsStream(schemaFile);
+
+        if (is == null) {
+            logger.error("Arquivo audiencias-schema.sql não encontrado em resources/database");
+            throw new IOException("Arquivo audiencias-schema.sql não encontrado em resources/database");
+        }
+
+        String schema;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+            schema = reader.lines()
+                    .filter(line -> !line.trim().startsWith("--"))  // Remove comentários
+                    .filter(line -> !line.trim().isEmpty())         // Remove linhas vazias
+                    .collect(Collectors.joining("\n"));
+        }
+
+        // Executar o schema
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            // DEBUG_AUDIENCIAS: Verificar conexão com banco
+            System.out.println("DEBUG_AUDIENCIAS: Conexão com banco estabelecida, executando schema");
+
+            // Habilitar foreign keys explicitamente
+            stmt.execute("PRAGMA foreign_keys = ON;");
+
+            // Dividir statements considerando blocos BEGIN/END
+            String[] statements = splitSqlStatements(schema);
+
+            // DEBUG_AUDIENCIAS: Log de quantidade de statements
+            System.out.println("DEBUG_AUDIENCIAS: Total de statements a executar: " + statements.length);
+
+            int executados = 0;
+            for (String sql : statements) {
+                String trimmed = sql.trim();
+                if (!trimmed.isEmpty()) {
+                    logger.debug("Executando SQL Audiências: {}",
+                        trimmed.substring(0, Math.min(50, trimmed.length())) + "...");
+
+                    try {
+                        stmt.execute(trimmed);
+                        executados++;
+                    } catch (SQLException e) {
+                        // DEBUG_AUDIENCIAS: Log crítico de erro
+                        System.err.println("DEBUG_AUDIENCIAS: ERRO ao executar statement: " +
+                            trimmed.substring(0, Math.min(100, trimmed.length())));
+                        System.err.println("DEBUG_AUDIENCIAS: Mensagem de erro: " + e.getMessage());
+                        throw e;
+                    }
+                }
+            }
+
+            logger.info("Schema SQL de Audiências executado com sucesso! " +
+                "({} statements executados, 8 tabelas, 18 índices, 1 trigger)", executados);
+
+            // DEBUG_AUDIENCIAS: Confirmação de criação bem-sucedida
+            System.out.println("DEBUG_AUDIENCIAS: Módulo de audiências criado com sucesso!");
+            System.out.println("DEBUG_AUDIENCIAS: Tabelas criadas: vara, juiz, promotor, advogado, " +
+                "pessoa, audiencia, participacao_audiencia, representacao_advogado");
         }
     }
 
