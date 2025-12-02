@@ -841,11 +841,13 @@ function audienciaFormApp() {
                 const data = await response.json();
 
                 if (data.success) {
-                    this.conflitosEncontrados = data.dados || [];
+                    this.conflitosEncontrados = data.conflitos || [];
                     this.temConflito = this.conflitosEncontrados.length > 0;
 
                     if (this.temConflito) {
                         console.log('DEBUG_AUDIENCIAS: Conflitos encontrados:', this.conflitosEncontrados.length);
+                    } else {
+                        console.log('DEBUG_AUDIENCIAS: Nenhum conflito encontrado - horário disponível');
                     }
                 }
             } catch (error) {
