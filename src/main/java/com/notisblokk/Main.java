@@ -152,7 +152,7 @@ public class Main {
 
             logger.info("Conversores de data brasileiros registrados (dd/MM/yyyy e HH:mm)");
 
-            config.jsonMapper(Já executei mvn clean compilenew JavalinJackson(objectMapper, true));
+            config.jsonMapper(new JavalinJackson(objectMapper, true));
 
             // Habilitar logs de requisições
             config.bundledPlugins.enableDevLogging();

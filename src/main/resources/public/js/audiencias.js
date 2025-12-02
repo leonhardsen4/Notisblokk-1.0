@@ -33,8 +33,6 @@ function audienciasApp() {
             dataFim: '',
             varaId: '',
             duracaoMinutos: 60,
-            gradeMinutos: 15,
-            bufferMinutos: 10,
             slots: [],
             buscaRealizada: false
         },
@@ -735,8 +733,6 @@ function audienciasApp() {
             this.horariosLivres.dataFim = proxSemana.toISOString().split('T')[0];
             this.horariosLivres.varaId = '';
             this.horariosLivres.duracaoMinutos = 60;
-            this.horariosLivres.gradeMinutos = 15;
-            this.horariosLivres.bufferMinutos = 10;
             this.horariosLivres.slots = [];
             this.horariosLivres.buscaRealizada = false;
 
@@ -773,18 +769,16 @@ function audienciasApp() {
                 const dataInicio = this.converterDataParaBR(this.horariosLivres.dataInicio);
                 const dataFim = this.converterDataParaBR(this.horariosLivres.dataFim);
 
-                // Montar payload
-                const gradeMinutos = parseInt(this.horariosLivres.gradeMinutos);
+                // Montar payload - sempre sem espaçamento (grade = 0, buffer = 0)
                 const payload = {
                     dataInicio: dataInicio,
                     dataFim: dataFim,
                     varaId: this.horariosLivres.varaId || null,
                     duracaoMinutos: parseInt(this.horariosLivres.duracaoMinutos),
-                    bufferAntesMinutos: parseInt(this.horariosLivres.bufferMinutos),
-                    bufferDepoisMinutos: parseInt(this.horariosLivres.bufferMinutos),
-                    gradeMinutos: gradeMinutos,
-                    // Se grade é 0, não usar gap; caso contrário, usar a própria grade como gap mínimo
-                    gapMinimoMinutos: gradeMinutos === 0 ? 0 : gradeMinutos
+                    bufferAntesMinutos: 0,
+                    bufferDepoisMinutos: 0,
+                    gradeMinutos: 0,
+                    gapMinimoMinutos: 0
                 };
 
                 console.log('DEBUG_AUDIENCIAS: Payload:', payload);

@@ -470,29 +470,17 @@
                             <div class="form-group">
                                 <label>Duração da Audiência (minutos):</label>
                                 <select x-model="horariosLivres.duracaoMinutos" class="form-control">
+                                    <option value="15">15 minutos</option>
                                     <option value="30">30 minutos</option>
                                     <option value="45">45 minutos</option>
                                     <option value="60" selected>1 hora</option>
                                     <option value="90">1h 30min</option>
                                     <option value="120">2 horas</option>
+                                    <option value="150">2h 30min</option>
                                     <option value="180">3 horas</option>
+                                    <option value="210">3h 30min</option>
+                                    <option value="240">4 horas</option>
                                 </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Grade de Agendamento:</label>
-                                <select x-model="horariosLivres.gradeMinutos" class="form-control">
-                                    <option value="0">0 minutos (sem espaçamento)</option>
-                                    <option value="5">5 minutos</option>
-                                    <option value="10">10 minutos</option>
-                                    <option value="15" selected>15 minutos</option>
-                                    <option value="30">30 minutos</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Buffer antes/depois (minutos):</label>
-                                <input type="number" x-model="horariosLivres.bufferMinutos" class="form-control" min="0" max="60" value="10">
                             </div>
 
                             <button @click="buscarHorariosLivres()" class="btn btn-primary" style="width: 100%;">

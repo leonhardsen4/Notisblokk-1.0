@@ -196,10 +196,8 @@ public class AudienciaRepository {
             WHERE a.data_audiencia = ?
             AND a.vara_id = ?
             AND a.id != COALESCE(?, 0)
-            AND (
-                (a.horario_inicio < ? AND a.horario_fim > ?) OR
-                (a.horario_inicio >= ? AND a.horario_inicio < ?)
-            )
+            AND a.horario_inicio < ?
+            AND a.horario_fim > ?
             """;
 
         List<Map<String, Object>> conflitos = new ArrayList<>();
@@ -212,8 +210,6 @@ public class AudienciaRepository {
             pstmt.setObject(3, audienciaIdExcluir);
             pstmt.setString(4, horarioFimStr);
             pstmt.setString(5, horarioInicioStr);
-            pstmt.setString(6, horarioInicioStr);
-            pstmt.setString(7, horarioFimStr);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
