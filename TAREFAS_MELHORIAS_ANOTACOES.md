@@ -68,18 +68,18 @@
 ---
 
 ### ✅ Tarefa 1.4: Implementar Seleção Múltipla de Notas
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/index.html`
 - **Descrição:** Adicionar checkboxes para seleção de múltiplas notas
 - **Tempo Estimado:** 20 min
 - **Checklist:**
-  - [ ] Adicionar coluna de checkbox na tabela
-  - [ ] Criar variável Alpine.js `notasSelecionadas: []`
-  - [ ] Adicionar checkbox de "Selecionar Todas" no header
-  - [ ] Implementar lógica de seleção/desseleção
-  - [ ] Atualizar contador de notas selecionadas
-  - [ ] Documentar componente
-  - [ ] Testar seleção individual e em massa
+  - [x] Adicionar coluna de checkbox na tabela (linha 80-86 no header)
+  - [x] Criar variável Alpine.js `notasSelecionadas: []` (linha 276)
+  - [x] Adicionar checkbox de "Selecionar Todas" no header (linha 81-86)
+  - [x] Implementar lógica de seleção/desseleção (linhas 684-728)
+  - [x] Atualizar contador de notas selecionadas (linha 19-21)
+  - [x] Documentar componente (JSDoc completo)
+  - [x] Testar seleção individual e em massa (pronto para testes)
 
 ---
 

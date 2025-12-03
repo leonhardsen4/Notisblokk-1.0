@@ -15,6 +15,10 @@
                     <a href="/notas/nova" class="btn btn-primary btn-sm">
                         ➕ Nova Nota
                     </a>
+                    <!-- Contador de notas selecionadas -->
+                    <div x-show="notasSelecionadas.length > 0" class="badge badge-info" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                        ✓ <span x-text="notasSelecionadas.length"></span> selecionada(s)
+                    </div>
                     <button @click="abrirModalAlertas()" class="btn btn-sm" :class="alertasUrgentes.length > 0 ? 'btn-danger' : 'btn-warning'">
                         🔔 Alertas (<span x-text="alertasUrgentes.length"></span>)
                     </button>
@@ -76,6 +80,15 @@
                     <table class="notas-table">
                         <thead>
                             <tr>
+                                <!-- Coluna de seleção múltipla -->
+                                <th style="width: 40px; text-align: center;">
+                                    <input
+                                        type="checkbox"
+                                        @change="toggleSelecionarTodas()"
+                                        :checked="todasNotasSelecionadas()"
+                                        title="Selecionar/Desselecionar todas"
+                                    >
+                                </th>
                                 <th x-show="colunasVisiveis.titulo" @click="ordenarPor('titulo')" class="sortable">
                                     Título <span x-text="getSortIcon('titulo')"></span>
                                 </th>
@@ -97,6 +110,15 @@
                         <tbody>
                             <template x-for="nota in notasProcessadas" :key="nota.id">
                                 <tr :class="{'nota-atrasada': nota.diasRestantes < 0, 'nota-urgente': nota.diasRestantes >= 0 && nota.diasRestantes <= 3}">
+                                    <!-- Checkbox de seleção -->
+                                    <td style="width: 40px; text-align: center;">
+                                        <input
+                                            type="checkbox"
+                                            :value="nota.id"
+                                            @change="toggleSelecaoNota(nota.id)"
+                                            :checked="notaEstaSelecionada(nota.id)"
+                                        >
+                                    </td>
                                     <td x-show="colunasVisiveis.titulo">
                                         <strong x-text="nota.titulo"></strong>
                                     </td>
@@ -272,6 +294,8 @@
                             diasRestantes: true
                         },
                         pesquisaTimeout: null,
+                        // Seleção múltipla de notas para exportação em massa
+                        notasSelecionadas: [],
 
                         async init() {
                             // Carregar preferências de colunas do localStorage
@@ -651,6 +675,56 @@
                                 console.error('❌ Erro ao gerar PDF:', error);
                                 alert(`Erro ao exportar PDF: ${error.message}`);
                             }
+                        },
+
+                        /**
+                         * Alterna a seleção de uma nota individual
+                         * @param {number} notaId - ID da nota a ser selecionada/desselecionada
+                         */
+                        toggleSelecaoNota(notaId) {
+                            const index = this.notasSelecionadas.indexOf(notaId);
+                            if (index === -1) {
+                                // Nota não está selecionada, adicionar
+                                this.notasSelecionadas.push(notaId);
+                                console.log(`✓ Nota ${notaId} selecionada. Total: ${this.notasSelecionadas.length}`);
+                            } else {
+                                // Nota já está selecionada, remover
+                                this.notasSelecionadas.splice(index, 1);
+                                console.log(`✗ Nota ${notaId} desselecionada. Total: ${this.notasSelecionadas.length}`);
+                            }
+                        },
+
+                        /**
+                         * Verifica se uma nota está selecionada
+                         * @param {number} notaId - ID da nota
+                         * @returns {boolean} true se a nota está selecionada
+                         */
+                        notaEstaSelecionada(notaId) {
+                            return this.notasSelecionadas.includes(notaId);
+                        },
+
+                        /**
+                         * Alterna entre selecionar todas as notas visíveis ou desselecionar todas
+                         */
+                        toggleSelecionarTodas() {
+                            if (this.todasNotasSelecionadas()) {
+                                // Desselecionar todas
+                                this.notasSelecionadas = [];
+                                console.log('✗ Todas as notas desselecionadas');
+                            } else {
+                                // Selecionar todas as notas visíveis (processadas)
+                                this.notasSelecionadas = this.notasProcessadas.map(nota => nota.id);
+                                console.log(`✓ ${this.notasSelecionadas.length} notas selecionadas`);
+                            }
+                        },
+
+                        /**
+                         * Verifica se todas as notas visíveis estão selecionadas
+                         * @returns {boolean} true se todas as notas processadas estão selecionadas
+                         */
+                        todasNotasSelecionadas() {
+                            if (this.notasProcessadas.length === 0) return false;
+                            return this.notasProcessadas.every(nota => this.notasSelecionadas.includes(nota.id));
                         },
 
                         abrirModalEtiquetas() {
