@@ -129,9 +129,18 @@
 </head>
 <body>
     <th:block th:replace="~{layout/base :: base(~{::main-content})}">
-        <div th:fragment="main-content">
-            <div class="mb-3">
+        <div th:fragment="main-content" x-data="notaFormApp()">
+            <div class="mb-3" style="display: flex; gap: 0.75rem; align-items: center;">
                 <a href="/notas" class="btn btn-secondary">← Voltar para Anotações</a>
+                <!-- Botão de exportar PDF (só aparece ao editar nota existente) -->
+                <button
+                    type="button"
+                    @click="exportarPDF()"
+                    class="btn btn-success"
+                    x-show="notaId"
+                    title="Exportar esta nota em PDF">
+                    📄 Exportar PDF
+                </button>
             </div>
 
             <div class="card">
@@ -224,6 +233,80 @@
     <script th:inline="javascript">
         // Dados da nota (se estiver editando)
         const notaData = /*[[${nota}]]*/ null;
+
+        /**
+         * Função Alpine.js para gerenciar o formulário de nota
+         * @returns {Object} Objeto com estado e métodos do formulário
+         */
+        function notaFormApp() {
+            return {
+                notaId: notaData ? notaData.id : null,
+
+                /**
+                 * Exporta a nota atual para PDF
+                 * Só funciona ao editar uma nota existente
+                 */
+                async exportarPDF() {
+                    if (!this.notaId) {
+                        alert('É necessário salvar a nota antes de exportar para PDF.');
+                        return;
+                    }
+
+                    try {
+                        console.log(`📄 Gerando PDF para nota ID: ${this.notaId}`);
+
+                        // Fazer requisição para o endpoint de PDF
+                        const response = await fetch(`/api/notas/${this.notaId}/pdf`);
+
+                        if (!response.ok) {
+                            throw new Error(`Erro ao gerar PDF: ${response.statusText}`);
+                        }
+
+                        // Converter resposta em blob
+                        const blob = await response.blob();
+
+                        // Obter título da nota para nome do arquivo
+                        const tituloNota = document.getElementById('titulo').value || 'nota';
+
+                        // Criar nome do arquivo limpo (sem caracteres especiais)
+                        const nomeArquivo = tituloNota
+                            .replace(/[^a-zA-Z0-9\s-]/g, '') // Remove caracteres especiais
+                            .replace(/\s+/g, '_') // Substitui espaços por underscore
+                            .substring(0, 50); // Limita tamanho
+
+                        // Gerar timestamp no formato brasileiro (DDMMYYYY)
+                        const agora = new Date();
+                        const dia = String(agora.getDate()).padStart(2, '0');
+                        const mes = String(agora.getMonth() + 1).padStart(2, '0');
+                        const ano = agora.getFullYear();
+                        const timestamp = `${dia}${mes}${ano}`;
+
+                        const nomeCompleto = `Nota_${nomeArquivo}_${timestamp}.pdf`;
+
+                        // Criar link temporário para download
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = nomeCompleto;
+                        document.body.appendChild(link);
+                        link.click();
+
+                        // Limpar
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+
+                        console.log(`✓ PDF gerado com sucesso: ${nomeCompleto}`);
+
+                        // Feedback visual simples (será substituído por toast na tarefa 2.1)
+                        // Por enquanto, não mostramos nada para não poluir com alerts
+
+                    } catch (error) {
+                        console.error('❌ Erro ao gerar PDF:', error);
+                        alert(`Erro ao exportar PDF: ${error.message}`);
+                    }
+                }
+            };
+        }
 
         // Inicializar editor Quill
         const quill = new Quill('#editor', {

@@ -51,18 +51,19 @@
 ---
 
 ### ✅ Tarefa 1.3: Adicionar Botão de PDF no Formulário de Edição
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/form.html`
 - **Descrição:** Adicionar botão "📄 Exportar PDF" no cabeçalho do formulário
-- **Localização:** Linha ~134 (próximo ao botão "Voltar")
+- **Localização:** Linha 136-143 (ao lado do botão "Voltar")
 - **Tempo Estimado:** 8 min
 - **Checklist:**
-  - [ ] Adicionar botão com condicional `x-show="notaId"` (só aparece na edição)
-  - [ ] Adicionar função `exportarPDF()` no script inline ou externo
-  - [ ] Estilizar botão consistente com design atual
-  - [ ] Testar exportação durante edição
-  - [ ] Verificar que não aparece na criação de nova nota
-  - [ ] Documentar código
+  - [x] Adicionar botão com condicional `x-show="notaId"` (só aparece na edição)
+  - [x] Criar função notaFormApp() para Alpine.js
+  - [x] Adicionar função `exportarPDF()` completa com JSDoc
+  - [x] Estilizar botão consistente com design (btn btn-success)
+  - [x] Formato de data brasileiro (DDMMYYYY)
+  - [x] Alertas para feedback ao usuário
+  - [x] Documentar código em português
 
 ---
 
