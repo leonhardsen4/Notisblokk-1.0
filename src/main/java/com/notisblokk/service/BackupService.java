@@ -44,7 +44,8 @@ public class BackupService {
 
     private static final Logger logger = LoggerFactory.getLogger(BackupService.class);
     private static final ZoneId BRAZIL_ZONE = ZoneId.of("America/Sao_Paulo");
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+    // Formato brasileiro para backups: DDMMYYYY_HHmmss
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy_HHmmss");
 
     /**
      * Cria um backup completo do banco de dados SQLite.

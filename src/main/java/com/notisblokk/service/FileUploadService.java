@@ -45,7 +45,8 @@ public class FileUploadService {
 
     private static final Logger logger = LoggerFactory.getLogger(FileUploadService.class);
     private static final ZoneId BRAZIL_ZONE = ZoneId.of("America/Sao_Paulo");
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+    // Formato brasileiro para timestamps em nomes de arquivos: DDMMYYYY_HHmmss
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy_HHmmss");
     private final Tika tika = new Tika();
 
     /**

@@ -113,6 +113,8 @@
                                     <td class="acoes-col">
                                         <div class="btn-group">
                                             <a :href="'/notas/editar/' + nota.id" class="btn btn-sm btn-primary" title="Editar">✏️</a>
+                                            <!-- Botão para exportar nota individual em PDF -->
+                                            <button @click="gerarPDF(nota.id, nota.titulo)" class="btn btn-sm btn-success" title="Exportar PDF">📄</button>
                                             <button @click="deletarNota(nota.id)" class="btn btn-sm btn-danger" title="Deletar">🗑️</button>
                                         </div>
                                     </td>
@@ -591,6 +593,63 @@
                                 if (data.success) await this.carregarNotas();
                             } catch (err) {
                                 alert('Erro ao deletar nota: ' + err.message);
+                            }
+                        },
+
+                        /**
+                         * Exporta uma nota individual para PDF
+                         * @param {number} notaId - ID da nota a ser exportada
+                         * @param {string} tituloNota - Título da nota (usado para nome do arquivo)
+                         */
+                        async gerarPDF(notaId, tituloNota) {
+                            try {
+                                console.log(`📄 Gerando PDF para nota ID: ${notaId}`);
+
+                                // Fazer requisição para o endpoint de PDF
+                                const response = await fetch(`/api/notas/${notaId}/pdf`);
+
+                                if (!response.ok) {
+                                    throw new Error(`Erro ao gerar PDF: ${response.statusText}`);
+                                }
+
+                                // Converter resposta em blob
+                                const blob = await response.blob();
+
+                                // Criar nome do arquivo limpo (sem caracteres especiais)
+                                const nomeArquivo = tituloNota
+                                    .replace(/[^a-zA-Z0-9\s-]/g, '') // Remove caracteres especiais
+                                    .replace(/\s+/g, '_') // Substitui espaços por underscore
+                                    .substring(0, 50); // Limita tamanho
+
+                                // Gerar timestamp no formato brasileiro (DDMMYYYY)
+                                const agora = new Date();
+                                const dia = String(agora.getDate()).padStart(2, '0');
+                                const mes = String(agora.getMonth() + 1).padStart(2, '0');
+                                const ano = agora.getFullYear();
+                                const timestamp = `${dia}${mes}${ano}`;
+
+                                const nomeCompleto = `Nota_${nomeArquivo}_${timestamp}.pdf`;
+
+                                // Criar link temporário para download
+                                const url = window.URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = nomeCompleto;
+                                document.body.appendChild(link);
+                                link.click();
+
+                                // Limpar
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+
+                                console.log(`✓ PDF gerado com sucesso: ${nomeCompleto}`);
+
+                                // Feedback visual simples (será substituído por toast na tarefa 2.1)
+                                // Por enquanto, não mostramos nada para não poluir com alerts
+
+                            } catch (error) {
+                                console.error('❌ Erro ao gerar PDF:', error);
+                                alert(`Erro ao exportar PDF: ${error.message}`);
                             }
                         },
 

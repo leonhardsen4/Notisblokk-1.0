@@ -20,33 +20,33 @@
 ## 🎯 FASE 1: EXPORTAÇÃO DE PDF (PRIORIDADE ALTA)
 
 ### ✅ Tarefa 1.1: Adicionar Botão de PDF na Lista de Notas
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/index.html`
 - **Descrição:** Adicionar botão "📄 PDF" na coluna de ações da tabela
-- **Localização:** Linha ~116 (coluna de ações)
+- **Localização:** Linha 117 (coluna de ações)
 - **Tempo Estimado:** 10 min
 - **Checklist:**
-  - [ ] Adicionar botão HTML com ícone 📄
-  - [ ] Adicionar atributo `@click="gerarPDF(nota.id, nota.titulo)"`
-  - [ ] Estilizar botão (classe `btn btn-sm btn-success`)
-  - [ ] Testar clique no botão
-  - [ ] Verificar integração com backend
-  - [ ] Adicionar comentários em português
+  - [x] Adicionar botão HTML com ícone 📄
+  - [x] Adicionar atributo `@click="gerarPDF(nota.id, nota.titulo)"`
+  - [x] Estilizar botão (classe `btn btn-sm btn-success`)
+  - [ ] Testar clique no botão (aguardando implementação da função JS)
+  - [x] Verificar integração com backend (endpoint já existe)
+  - [x] Adicionar comentários em português
 
 ---
 
 ### ✅ Tarefa 1.2: Implementar Função JavaScript de Exportação Individual
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/index.html` (seção `<script>`)
 - **Descrição:** Criar função JavaScript para chamar endpoint de PDF
 - **Tempo Estimado:** 5 min
 - **Checklist:**
-  - [ ] Criar função `gerarPDF(notaId, tituloNota)`
-  - [ ] Implementar chamada ao endpoint `/api/notas/{id}/pdf`
-  - [ ] Adicionar feedback visual (loading)
-  - [ ] Tratar erros com mensagem amigável
-  - [ ] Documentar função em português
-  - [ ] Testar com nota existente
+  - [x] Criar função `gerarPDF(notaId, tituloNota)`
+  - [x] Implementar chamada ao endpoint `/api/notas/{id}/pdf`
+  - [x] Adicionar feedback visual (logs console por enquanto)
+  - [x] Tratar erros com mensagem amigável
+  - [x] Documentar função em português (JSDoc completo)
+  - [ ] Testar com nota existente (aguardando deploy)
 
 ---
 

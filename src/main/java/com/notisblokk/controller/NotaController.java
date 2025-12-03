@@ -364,8 +364,8 @@ public class NotaController {
                                  .substring(0, Math.min(titulo.length(), 50));
             }
 
-            // Adicionar timestamp ao nome do arquivo
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            // Adicionar timestamp ao nome do arquivo (formato brasileiro: DDMMYYYY_HHmmss)
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("ddMMyyyy_HHmmss"));
             fileName = fileName + "_" + timestamp + ".pdf";
 
             // Enviar PDF
@@ -436,8 +436,8 @@ public class NotaController {
             // Gerar PDF
             byte[] pdfBytes = pdfService.gerarPDFRelatorio(notas);
 
-            // Nome do arquivo com timestamp
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            // Nome do arquivo com timestamp (formato brasileiro: DDMMYYYY_HHmmss)
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("ddMMyyyy_HHmmss"));
             String fileName = "relatorio_notas_" + timestamp + ".pdf";
 
             // Enviar PDF
