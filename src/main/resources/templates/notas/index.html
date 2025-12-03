@@ -15,10 +15,17 @@
                     <a href="/notas/nova" class="btn btn-primary btn-sm">
                         ➕ Nova Nota
                     </a>
-                    <!-- Contador de notas selecionadas -->
+                    <!-- Contador e botão de exportação em massa -->
                     <div x-show="notasSelecionadas.length > 0" class="badge badge-info" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
                         ✓ <span x-text="notasSelecionadas.length"></span> selecionada(s)
                     </div>
+                    <button
+                        x-show="notasSelecionadas.length > 0"
+                        @click="exportarSelecionadas()"
+                        class="btn btn-success btn-sm"
+                        title="Exportar notas selecionadas para PDF">
+                        📊 Exportar Selecionadas (<span x-text="notasSelecionadas.length"></span>)
+                    </button>
                     <button @click="abrirModalAlertas()" class="btn btn-sm" :class="alertasUrgentes.length > 0 ? 'btn-danger' : 'btn-warning'">
                         🔔 Alertas (<span x-text="alertasUrgentes.length"></span>)
                     </button>
@@ -725,6 +732,76 @@
                         todasNotasSelecionadas() {
                             if (this.notasProcessadas.length === 0) return false;
                             return this.notasProcessadas.every(nota => this.notasSelecionadas.includes(nota.id));
+                        },
+
+                        /**
+                         * Exporta múltiplas notas selecionadas para um único PDF (relatório)
+                         * Faz POST para /api/notas/pdf/relatorio com array de IDs
+                         */
+                        async exportarSelecionadas() {
+                            if (this.notasSelecionadas.length === 0) {
+                                alert('Nenhuma nota selecionada para exportação.');
+                                return;
+                            }
+
+                            try {
+                                console.log(`📊 Exportando ${this.notasSelecionadas.length} nota(s) selecionada(s)`);
+
+                                // Fazer requisição POST com array de IDs
+                                const response = await fetch('/api/notas/pdf/relatorio', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        ids: this.notasSelecionadas
+                                    })
+                                });
+
+                                if (!response.ok) {
+                                    throw new Error(`Erro ao gerar PDF: ${response.statusText}`);
+                                }
+
+                                // Converter resposta em blob
+                                const blob = await response.blob();
+
+                                // Gerar timestamp no formato brasileiro (DDMMYYYY_HHmmss)
+                                const agora = new Date();
+                                const dia = String(agora.getDate()).padStart(2, '0');
+                                const mes = String(agora.getMonth() + 1).padStart(2, '0');
+                                const ano = agora.getFullYear();
+                                const hora = String(agora.getHours()).padStart(2, '0');
+                                const min = String(agora.getMinutes()).padStart(2, '0');
+                                const seg = String(agora.getSeconds()).padStart(2, '0');
+                                const timestamp = `${dia}${mes}${ano}_${hora}${min}${seg}`;
+
+                                const nomeCompleto = `Relatorio_Notas_${timestamp}.pdf`;
+
+                                // Criar link temporário para download
+                                const url = window.URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = nomeCompleto;
+                                document.body.appendChild(link);
+                                link.click();
+
+                                // Limpar
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+
+                                console.log(`✓ Relatório PDF gerado com sucesso: ${nomeCompleto}`);
+
+                                // Limpar seleção após exportação bem-sucedida
+                                this.notasSelecionadas = [];
+                                console.log('✓ Seleção limpa após exportação');
+
+                                // Feedback visual simples (será substituído por toast na tarefa 2.1)
+                                // Por enquanto, não mostramos nada para não poluir com alerts
+
+                            } catch (error) {
+                                console.error('❌ Erro ao exportar notas selecionadas:', error);
+                                alert(`Erro ao exportar relatório: ${error.message}`);
+                            }
                         },
 
                         abrirModalEtiquetas() {

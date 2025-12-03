@@ -84,19 +84,19 @@
 ---
 
 ### ✅ Tarefa 1.5: Adicionar Botão de Exportação em Massa
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/index.html`
 - **Descrição:** Criar botão para exportar PDF com múltiplas notas selecionadas
 - **Tempo Estimado:** 15 min
 - **Checklist:**
-  - [ ] Adicionar botão "📊 Exportar Selecionadas (X)"
-  - [ ] Desabilitar quando nenhuma nota estiver selecionada
-  - [ ] Implementar função `exportarSelecionadas()`
-  - [ ] Fazer POST para `/api/notas/pdf/relatorio` com IDs
-  - [ ] Baixar PDF gerado automaticamente
-  - [ ] Limpar seleção após exportação bem-sucedida
-  - [ ] Adicionar tratamento de erros
-  - [ ] Documentar código
+  - [x] Adicionar botão "📊 Exportar Selecionadas (X)" (linha 22-28)
+  - [x] Desabilitar quando nenhuma nota estiver selecionada (x-show)
+  - [x] Implementar função `exportarSelecionadas()` (linhas 741-805)
+  - [x] Fazer POST para `/api/notas/pdf/relatorio` com IDs
+  - [x] Baixar PDF gerado automaticamente
+  - [x] Limpar seleção após exportação bem-sucedida
+  - [x] Adicionar tratamento de erros (try/catch completo)
+  - [x] Documentar código (JSDoc completo)
 
 ---
 
