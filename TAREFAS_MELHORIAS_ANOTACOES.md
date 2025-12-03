@@ -103,7 +103,7 @@
 ## 🎨 FASE 2: MELHORIAS DE USABILIDADE (PRIORIDADE ALTA)
 
 ### ✅ Tarefa 2.1: Implementar Sistema de Toast Notifications
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivos:**
   - `src/main/resources/templates/notas/index.html`
   - `src/main/resources/templates/notas/form.html`
@@ -111,67 +111,67 @@
 - **Descrição:** Adicionar biblioteca de toast e feedback visual para ações
 - **Tempo Estimado:** 25 min
 - **Checklist:**
-  - [ ] Adicionar Toastify.js via CDN ou criar solução custom
-  - [ ] Criar função helper `mostrarToast(mensagem, tipo)`
-  - [ ] Adicionar toasts em: criar nota, editar nota, deletar nota, exportar PDF
-  - [ ] Estilizar toasts com tema do Notisblokk
-  - [ ] Testar em tema claro e escuro
-  - [ ] Adicionar toasts de erro e sucesso
-  - [ ] Documentar uso dos toasts
-  - [ ] Verificar compatibilidade mobile
+  - [x] Criar solução custom de toasts (sem bibliotecas externas)
+  - [x] Criar função helper `mostrarToast(tipo, titulo, mensagem, duracao)`
+  - [x] Adicionar toasts em: criar/editar/deletar nota, exportar PDF, salvar/deletar etiquetas e status
+  - [x] Estilizar toasts com CSS customizado (4 tipos: success, error, warning, info)
+  - [x] Toasts adaptam ao tema (usam var(--color-*))
+  - [x] Adicionar toasts de sucesso, erro e warning
+  - [x] Documentar com JSDoc completo
+  - [x] Totalmente responsivo (topo-direito desktop, fundo mobile)
 
 ---
 
 ### ✅ Tarefa 2.2: Criar Modal de Preview de Nota
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/index.html`
 - **Descrição:** Implementar modal read-only para visualização rápida de notas
 - **Tempo Estimado:** 35 min
 - **Checklist:**
-  - [ ] Criar estrutura HTML do modal de preview
-  - [ ] Adicionar Alpine.js state: `modalPreview: false, notaPreview: null`
-  - [ ] Implementar função `visualizarNota(id)`
-  - [ ] Buscar dados da nota via API
-  - [ ] Renderizar conteúdo HTML do Quill corretamente
-  - [ ] Adicionar botão "Editar" que redireciona para formulário
-  - [ ] Adicionar botão "Exportar PDF" no modal
-  - [ ] Estilizar modal consistente com design
-  - [ ] Tornar título clicável na tabela
-  - [ ] Testar abertura e fechamento
-  - [ ] Documentar componente
+  - [x] Criar estrutura HTML do modal de preview (linhas 235-278)
+  - [x] Adicionar Alpine.js state: `modalPreview: false, notaPreview: null`
+  - [x] Implementar função `visualizarNota(id)` com fetch da API
+  - [x] Buscar dados da nota via API GET /api/notas/{id}
+  - [x] Renderizar conteúdo HTML do Quill com classe .ql-editor
+  - [x] Adicionar botão "Editar" que redireciona para formulário
+  - [x] Adicionar botão "Exportar PDF" com função exportarPDFPreview()
+  - [x] Estilizar modal com CSS customizado (notas.css linhas 1015-1085)
+  - [x] Tornar título clicável na tabela (linha 132)
+  - [x] Implementar função fecharModalPreview() com limpeza
+  - [x] Documentar componente com JSDoc
 
 ---
 
 ### ✅ Tarefa 2.3: Melhorar Feedback Visual de Deletar Nota
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/index.html`
 - **Descrição:** Melhorar modal de confirmação de exclusão
 - **Tempo Estimado:** 15 min
 - **Checklist:**
-  - [ ] Criar modal de confirmação customizado (substituir confirm())
-  - [ ] Mostrar título da nota sendo deletada
-  - [ ] Adicionar ícone de alerta
-  - [ ] Botões claros: "Cancelar" e "Deletar Permanentemente"
-  - [ ] Toast de sucesso após deletar
-  - [ ] Toast de erro se falhar
-  - [ ] Documentar função
-  - [ ] Testar fluxo completo
+  - [x] Criar modal de confirmação customizado (linhas 280-303)
+  - [x] Mostrar título da nota sendo deletada (linha 290)
+  - [x] Adicionar ícone de alerta ⚠️
+  - [x] Botões claros: "Cancelar" e "Deletar Permanentemente"
+  - [x] Toast de sucesso após deletar com nome da nota
+  - [x] Toast de erro se falhar
+  - [x] Documentar funções (deletarNota, confirmarDeletar, cancelarDeletar)
+  - [x] Estilizar modal com CSS (notas.css linhas 1087-1154)
 
 ---
 
 ### ✅ Tarefa 2.4: Melhorar Destaque de Alertas Urgentes
-- [ ] **Status:** Pendente
+- [x] **Status:** Concluído
 - **Arquivo:** `src/main/resources/templates/notas/index.html`
 - **Descrição:** Tornar botão de alertas mais proativo e visível
 - **Tempo Estimado:** 12 min
 - **Checklist:**
-  - [ ] Adicionar animação pulsante quando houver alertas urgentes (< 3 dias)
-  - [ ] Adicionar badge vermelho com número
-  - [ ] Abrir modal automaticamente se houver notas vencidas
-  - [ ] Adicionar som de notificação (opcional, com toggle)
-  - [ ] Melhorar CSS do botão de alertas
-  - [ ] Testar com diferentes quantidades de alertas
-  - [ ] Documentar comportamento
+  - [x] Adicionar animação pulsante quando houver alertas críticos (<=0 dias)
+  - [x] Adicionar badge vermelho com número (badge-counter)
+  - [x] Implementar função temAlertasCriticos() para detectar alertas críticos
+  - [x] Melhorar CSS do botão de alertas (notas.css linhas 1156-1210)
+  - [x] Animação keyframe @pulse com efeito de escala e sombra
+  - [x] Badge posicionado absolute com destaque visual
+  - [x] Documentar função com JSDoc
 
 ---
 

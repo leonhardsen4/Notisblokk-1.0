@@ -8,6 +8,8 @@
 <body>
     <th:block th:replace="~{layout/base :: base(~{::main-content})}">
         <div th:fragment="main-content" x-data="notasApp()">
+            <!-- Container de Toast Notifications -->
+            <div id="toast-container" class="toast-container"></div>
             <!-- Cabeçalho e Ações -->
             <div class="header-compact">
                 <h1 class="page-title">📝 Anotações</h1>
@@ -26,8 +28,9 @@
                         title="Exportar notas selecionadas para PDF">
                         📊 Exportar Selecionadas (<span x-text="notasSelecionadas.length"></span>)
                     </button>
-                    <button @click="abrirModalAlertas()" class="btn btn-sm" :class="alertasUrgentes.length > 0 ? 'btn-danger' : 'btn-warning'">
-                        🔔 Alertas (<span x-text="alertasUrgentes.length"></span>)
+                    <button @click="abrirModalAlertas()" class="btn btn-sm btn-alertas" :class="{'btn-danger': alertasUrgentes.length > 0, 'btn-warning': alertasUrgentes.length === 0, 'pulse-animation': temAlertasCriticos()}">
+                        🔔 Alertas
+                        <span x-show="alertasUrgentes.length > 0" class="badge-counter" x-text="alertasUrgentes.length"></span>
                     </button>
                     <button @click="abrirModalEtiquetas()" class="btn btn-secondary btn-sm">
                         🏷️ Etiquetas
@@ -127,7 +130,7 @@
                                         >
                                     </td>
                                     <td x-show="colunasVisiveis.titulo">
-                                        <strong x-text="nota.titulo"></strong>
+                                        <strong @click="visualizarNota(nota.id)" style="cursor: pointer; color: var(--color-primary); text-decoration: underline;" x-text="nota.titulo"></strong>
                                     </td>
                                     <td x-show="colunasVisiveis.etiqueta">
                                         <span class="badge" :style="'background-color: ' + (nota.etiqueta.corHex || '#6B7280') + '; color: ' + getContrastColor(nota.etiqueta.corHex || '#6B7280')" x-text="nota.etiqueta.nome"></span>
@@ -230,6 +233,76 @@
                 </div>
             </div>
 
+            <!-- Modal Preview de Nota -->
+            <div class="modal-overlay" :class="{ active: modalPreview }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">👁️ Visualizar Nota</h2>
+                        <button @click="fecharModalPreview()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body" x-show="notaPreview">
+                        <!-- Título da Nota -->
+                        <h3 class="nota-preview-titulo" x-text="notaPreview?.titulo"></h3>
+
+                        <!-- Metadados -->
+                        <div class="nota-preview-meta">
+                            <div class="meta-item">
+                                <strong>Etiqueta:</strong>
+                                <span class="badge" :style="'background-color: ' + (notaPreview?.etiqueta?.corHex || '#6B7280') + '; color: ' + getContrastColor(notaPreview?.etiqueta?.corHex || '#6B7280')" x-text="notaPreview?.etiqueta?.nome"></span>
+                            </div>
+                            <div class="meta-item">
+                                <strong>Status:</strong>
+                                <span class="badge" :style="'background-color: ' + (notaPreview?.status?.corHex || '#6B7280') + '; color: ' + getContrastColor(notaPreview?.status?.corHex || '#6B7280')" x-text="notaPreview?.status?.nome"></span>
+                            </div>
+                            <div class="meta-item">
+                                <strong>Prazo Final:</strong>
+                                <span x-text="notaPreview?.prazoFinal"></span>
+                            </div>
+                        </div>
+
+                        <!-- Conteúdo da Nota -->
+                        <div class="nota-preview-conteudo">
+                            <h4>Conteúdo:</h4>
+                            <div class="ql-editor" x-html="notaPreview?.conteudo || '<p>Sem conteúdo</p>'"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="exportarPDFPreview()" class="btn btn-success">
+                            📄 Exportar PDF
+                        </button>
+                        <a :href="'/notas/editar/' + notaPreview?.id" class="btn btn-primary">
+                            ✏️ Editar
+                        </a>
+                        <button @click="fecharModalPreview()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Confirmar Exclusão -->
+            <div class="modal-overlay" :class="{ active: modalConfirmarDeletar }">
+                <div class="modal modal-confirm-delete">
+                    <div class="modal-header modal-header-danger">
+                        <h2 class="modal-title">⚠️ Confirmar Exclusão</h2>
+                        <button @click="cancelarDeletar()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja deletar a seguinte nota?</p>
+                        <div class="nota-deletar-info" x-show="notaDeletar">
+                            <strong x-text="notaDeletar?.titulo"></strong>
+                        </div>
+                        <p class="text-danger">⚠️ Esta ação não pode ser desfeita!</p>
+                    </div>
+                    <div class="modal-footer modal-footer-danger">
+                        <button @click="cancelarDeletar()" class="btn btn-secondary">
+                            ✕ Cancelar
+                        </button>
+                        <button @click="confirmarDeletar()" class="btn btn-danger">
+                            🗑️ Deletar Permanentemente
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Modal Alertas -->
             <div class="modal-overlay" :class="{ active: modalAlertas }">
                 <div class="modal modal-large">
@@ -272,6 +345,69 @@
             </div>
 
             <script>
+                /**
+                 * Sistema de Toast Notifications
+                 * @param {string} tipo - Tipo do toast: 'success', 'error', 'warning', 'info'
+                 * @param {string} titulo - Título da notificação
+                 * @param {string} mensagem - Mensagem detalhada (opcional)
+                 * @param {number} duracao - Duração em ms (padrão: 4000ms)
+                 */
+                function mostrarToast(tipo, titulo, mensagem = '', duracao = 4000) {
+                    const container = document.getElementById('toast-container');
+                    if (!container) {
+                        console.error('Container de toasts não encontrado');
+                        return;
+                    }
+
+                    // Mapear ícones por tipo
+                    const icones = {
+                        success: '✓',
+                        error: '✕',
+                        warning: '⚠',
+                        info: 'ℹ'
+                    };
+
+                    // Criar elemento do toast
+                    const toast = document.createElement('div');
+                    toast.className = `toast toast-${tipo}`;
+                    toast.innerHTML = `
+                        <div class="toast-icon">${icones[tipo] || 'ℹ'}</div>
+                        <div class="toast-content">
+                            <div class="toast-title">${titulo}</div>
+                            ${mensagem ? `<div class="toast-message">${mensagem}</div>` : ''}
+                        </div>
+                        <button class="toast-close" aria-label="Fechar">&times;</button>
+                    `;
+
+                    // Adicionar ao container
+                    container.appendChild(toast);
+
+                    // Botão de fechar
+                    const closeBtn = toast.querySelector('.toast-close');
+                    closeBtn.addEventListener('click', () => {
+                        removerToast(toast);
+                    });
+
+                    // Auto-remover após duração
+                    setTimeout(() => {
+                        removerToast(toast);
+                    }, duracao);
+
+                    // Log para debugging
+                    console.log(`🔔 Toast [${tipo}]: ${titulo}${mensagem ? ' - ' + mensagem : ''}`);
+                }
+
+                /**
+                 * Remove um toast com animação
+                 * @param {HTMLElement} toast - Elemento do toast a ser removido
+                 */
+                function removerToast(toast) {
+                    toast.classList.add('toast-hiding');
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }
+
                 function notasApp() {
                     return {
                         notas: [],
@@ -283,6 +419,10 @@
                         modalEtiquetas: false,
                         modalStatus: false,
                         modalAlertas: false,
+                        modalPreview: false,
+                        notaPreview: null,
+                        modalConfirmarDeletar: false,
+                        notaDeletar: null,
                         novaEtiqueta: '',
                         novoStatus: { nome: '', cor: '#6B7280' },
                         etiquetaEditandoId: null,
@@ -344,7 +484,7 @@
 
                                 if (!data.success) {
                                     console.error('Erro da API:', data.message || data.error);
-                                    alert('Erro ao carregar notas: ' + (data.message || data.error || 'Erro desconhecido'));
+                                    mostrarToast('error', 'Erro ao Carregar', data.message || data.error || 'Não foi possível carregar as notas');
                                     return;
                                 }
 
@@ -353,7 +493,7 @@
                                 this.processarNotas();
                             } catch (err) {
                                 console.error('Erro ao carregar notas:', err);
-                                alert('Erro ao carregar notas. Verifique o console.');
+                                mostrarToast('error', 'Erro ao Carregar', 'Ocorreu um erro ao carregar as notas');
                             }
                         },
 
@@ -584,7 +724,7 @@
 
                                 if (!data.success) {
                                     console.error('Erro ao carregar status:', data.message);
-                                    alert('Erro ao carregar status: ' + (data.message || 'Erro desconhecido'));
+                                    mostrarToast('error', 'Erro ao Carregar Status', data.message || 'Não foi possível carregar os status');
                                     return;
                                 }
 
@@ -608,23 +748,62 @@
                                 console.log(`✓ ${this.statusList.length} status carregados com sucesso`);
                             } catch (err) {
                                 console.error('Erro ao carregar status:', err);
-                                alert('Erro ao carregar status. Verifique o console.');
+                                mostrarToast('error', 'Erro ao Carregar Status', 'Ocorreu um erro ao carregar os status');
                             }
                         },
 
                         // Alertas agora são gerados localmente pela função gerarAlertasUrgentes()
                         // que é chamada automaticamente ao processar as notas
 
-                        async deletarNota(id) {
-                            if (!confirm('Deseja realmente deletar esta nota?')) return;
+                        /**
+                         * Abre modal de confirmação para deletar nota
+                         * @param {number} id - ID da nota a ser deletada
+                         */
+                        deletarNota(id) {
+                            // Buscar a nota na lista processada
+                            const nota = this.notasProcessadas.find(n => n.id === id);
+                            if (nota) {
+                                this.notaDeletar = nota;
+                                this.modalConfirmarDeletar = true;
+                            }
+                        },
+
+                        /**
+                         * Confirma e executa a exclusão da nota
+                         */
+                        async confirmarDeletar() {
+                            if (!this.notaDeletar) return;
+
+                            const id = this.notaDeletar.id;
+                            const titulo = this.notaDeletar.titulo;
+
                             try {
                                 const res = await fetch(`/api/notas/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
-                                alert(data.message);
-                                if (data.success) await this.carregarNotas();
+
+                                if (data.success) {
+                                    mostrarToast('success', 'Nota Deletada', `"${titulo}" foi removida com sucesso!`);
+                                    await this.carregarNotas();
+                                } else {
+                                    mostrarToast('error', 'Erro ao Deletar', data.message || 'Não foi possível deletar a nota');
+                                }
                             } catch (err) {
-                                alert('Erro ao deletar nota: ' + err.message);
+                                mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao tentar deletar a nota');
+                                console.error('Erro ao deletar nota:', err);
+                            } finally {
+                                // Fechar modal
+                                this.cancelarDeletar();
                             }
+                        },
+
+                        /**
+                         * Cancela a exclusão e fecha o modal
+                         */
+                        cancelarDeletar() {
+                            this.modalConfirmarDeletar = false;
+                            setTimeout(() => {
+                                this.notaDeletar = null;
+                            }, 300);
                         },
 
                         /**
@@ -675,12 +854,12 @@
 
                                 console.log(`✓ PDF gerado com sucesso: ${nomeCompleto}`);
 
-                                // Feedback visual simples (será substituído por toast na tarefa 2.1)
-                                // Por enquanto, não mostramos nada para não poluir com alerts
+                                // Feedback visual com toast
+                                mostrarToast('success', 'PDF Exportado', 'Nota exportada com sucesso!');
 
                             } catch (error) {
                                 console.error('❌ Erro ao gerar PDF:', error);
-                                alert(`Erro ao exportar PDF: ${error.message}`);
+                                mostrarToast('error', 'Erro ao Exportar', `Não foi possível gerar o PDF: ${error.message}`);
                             }
                         },
 
@@ -740,7 +919,7 @@
                          */
                         async exportarSelecionadas() {
                             if (this.notasSelecionadas.length === 0) {
-                                alert('Nenhuma nota selecionada para exportação.');
+                                mostrarToast('warning', 'Nenhuma Seleção', 'Selecione pelo menos uma nota para exportar');
                                 return;
                             }
 
@@ -792,15 +971,16 @@
                                 console.log(`✓ Relatório PDF gerado com sucesso: ${nomeCompleto}`);
 
                                 // Limpar seleção após exportação bem-sucedida
+                                const quantidadeExportada = this.notasSelecionadas.length;
                                 this.notasSelecionadas = [];
                                 console.log('✓ Seleção limpa após exportação');
 
-                                // Feedback visual simples (será substituído por toast na tarefa 2.1)
-                                // Por enquanto, não mostramos nada para não poluir com alerts
+                                // Feedback visual com toast
+                                mostrarToast('success', 'Relatório Gerado', `${quantidadeExportada} nota(s) exportada(s) com sucesso!`);
 
                             } catch (error) {
                                 console.error('❌ Erro ao exportar notas selecionadas:', error);
-                                alert(`Erro ao exportar relatório: ${error.message}`);
+                                mostrarToast('error', 'Erro ao Exportar Relatório', `Não foi possível gerar o PDF: ${error.message}`);
                             }
                         },
 
@@ -815,6 +995,7 @@
                                     ? `/api/etiquetas/${this.etiquetaEditandoId}`
                                     : '/api/etiquetas';
                                 const method = this.etiquetaEditandoId ? 'PUT' : 'POST';
+                                const acao = this.etiquetaEditandoId ? 'atualizada' : 'criada';
 
                                 const res = await fetch(url, {
                                     method: method,
@@ -823,15 +1004,17 @@
                                 });
                                 const data = await res.json();
                                 if (data.success) {
+                                    mostrarToast('success', 'Etiqueta Salva', `Etiqueta ${acao} com sucesso!`);
                                     this.novaEtiqueta = '';
                                     this.etiquetaEditandoId = null;
                                     await this.carregarEtiquetas();
                                     await this.carregarNotas(); // Recarregar notas para atualizar badges
                                 } else {
-                                    alert('Erro: ' + data.message);
+                                    mostrarToast('error', 'Erro ao Salvar', data.message || 'Não foi possível salvar a etiqueta');
                                 }
                             } catch (err) {
-                                alert('Erro ao salvar etiqueta: ' + err.message);
+                                mostrarToast('error', 'Erro ao Salvar', 'Ocorreu um erro ao salvar a etiqueta');
+                                console.error('Erro ao salvar etiqueta:', err);
                             }
                         },
 
@@ -840,13 +1023,16 @@
                             try {
                                 const res = await fetch(`/api/etiquetas/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
-                                alert(data.message);
                                 if (data.success) {
+                                    mostrarToast('success', 'Etiqueta Deletada', data.message || 'Etiqueta removida com sucesso!');
                                     await this.carregarEtiquetas();
                                     await this.carregarNotas();
+                                } else {
+                                    mostrarToast('error', 'Erro ao Deletar', data.message || 'Não foi possível deletar a etiqueta');
                                 }
                             } catch (err) {
-                                alert('Erro ao deletar etiqueta: ' + err.message);
+                                mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao deletar a etiqueta');
+                                console.error('Erro ao deletar etiqueta:', err);
                             }
                         },
 
@@ -876,6 +1062,7 @@
                                     ? `/api/status/${this.statusEditandoId}`
                                     : '/api/status';
                                 const method = this.statusEditandoId ? 'PUT' : 'POST';
+                                const acao = this.statusEditandoId ? 'atualizado' : 'criado';
 
                                 console.log('Salvando status:', { nome: this.novoStatus.nome, corHex: this.novoStatus.cor, method });
                                 const res = await fetch(url, {
@@ -886,17 +1073,17 @@
                                 const data = await res.json();
                                 console.log('Resposta do servidor:', data);
                                 if (data.success) {
-                                    alert(data.message);
+                                    mostrarToast('success', 'Status Salvo', `Status ${acao} com sucesso!`);
                                     this.novoStatus = { nome: '', cor: '#6B7280' };
                                     this.statusEditandoId = null;
                                     await this.carregarStatus();
                                     await this.carregarNotas(); // Recarregar notas para atualizar badges
                                 } else {
-                                    alert('Erro: ' + data.message);
+                                    mostrarToast('error', 'Erro ao Salvar', data.message || 'Não foi possível salvar o status');
                                 }
                             } catch (err) {
                                 console.error('Erro ao salvar:', err);
-                                alert('Erro ao salvar status: ' + err.message);
+                                mostrarToast('error', 'Erro ao Salvar', 'Ocorreu um erro ao salvar o status');
                             }
                         },
 
@@ -905,16 +1092,77 @@
                             try {
                                 const res = await fetch(`/api/status/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
-                                alert(data.message);
-                                if (data.success) await this.carregarStatus();
+                                if (data.success) {
+                                    mostrarToast('success', 'Status Deletado', data.message || 'Status removido com sucesso!');
+                                    await this.carregarStatus();
+                                } else {
+                                    mostrarToast('error', 'Erro ao Deletar', data.message || 'Não foi possível deletar o status');
+                                }
                             } catch (err) {
-                                alert('Erro ao deletar status: ' + err.message);
+                                mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao deletar o status');
+                                console.error('Erro ao deletar status:', err);
                             }
                         },
 
                         fecharModalStatus() {
                             this.modalStatus = false;
                             this.cancelarEdicaoStatus();
+                        },
+
+                        /**
+                         * Abre modal de preview para visualizar nota
+                         * @param {number} notaId - ID da nota a ser visualizada
+                         */
+                        async visualizarNota(notaId) {
+                            try {
+                                console.log(`👁️ Abrindo preview da nota ID: ${notaId}`);
+
+                                // Buscar dados da nota via API
+                                const res = await fetch(`/api/notas/${notaId}`);
+                                const data = await res.json();
+
+                                if (!data.success) {
+                                    mostrarToast('error', 'Erro ao Carregar', 'Não foi possível carregar a nota');
+                                    return;
+                                }
+
+                                // Armazenar nota e abrir modal
+                                this.notaPreview = data.dados;
+                                this.modalPreview = true;
+
+                                console.log('✓ Nota carregada para preview:', this.notaPreview);
+
+                            } catch (err) {
+                                console.error('Erro ao visualizar nota:', err);
+                                mostrarToast('error', 'Erro ao Visualizar', 'Ocorreu um erro ao carregar a nota');
+                            }
+                        },
+
+                        /**
+                         * Fecha modal de preview
+                         */
+                        fecharModalPreview() {
+                            this.modalPreview = false;
+                            // Limpar dados após animação de fechamento
+                            setTimeout(() => {
+                                this.notaPreview = null;
+                            }, 300);
+                        },
+
+                        /**
+                         * Exporta PDF da nota que está em preview
+                         */
+                        async exportarPDFPreview() {
+                            if (!this.notaPreview) return;
+                            await this.gerarPDF(this.notaPreview.id, this.notaPreview.titulo);
+                        },
+
+                        /**
+                         * Verifica se há alertas críticos (atrasados ou vencendo hoje)
+                         * @returns {boolean} true se houver alertas críticos
+                         */
+                        temAlertasCriticos() {
+                            return this.alertasUrgentes.some(alerta => alerta.diasRestantes <= 0);
                         },
 
                         abrirModalAlertas() {

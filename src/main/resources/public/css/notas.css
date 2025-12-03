@@ -815,3 +815,396 @@
         width: 100%;
     }
 }
+
+/* ============================================================================
+   TOAST NOTIFICATIONS
+   ============================================================================ */
+
+/* Container de toasts fixo no canto superior direito */
+.toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 400px;
+    pointer-events: none;
+}
+
+/* Toast individual */
+.toast {
+    pointer-events: all;
+    background-color: var(--color-surface);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-width: 300px;
+    max-width: 400px;
+    border-left: 4px solid;
+    animation: slideInRight 0.3s ease-out;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.toast-hiding {
+    opacity: 0;
+    transform: translateX(100px);
+}
+
+/* Tipos de toast */
+.toast-success {
+    border-left-color: #10b981;
+}
+
+.toast-error {
+    border-left-color: #ef4444;
+}
+
+.toast-warning {
+    border-left-color: #f59e0b;
+}
+
+.toast-info {
+    border-left-color: #3b82f6;
+}
+
+/* Ícone do toast */
+.toast-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.toast-success .toast-icon {
+    color: #10b981;
+}
+
+.toast-error .toast-icon {
+    color: #ef4444;
+}
+
+.toast-warning .toast-icon {
+    color: #f59e0b;
+}
+
+.toast-info .toast-icon {
+    color: #3b82f6;
+}
+
+/* Conteúdo do toast */
+.toast-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.toast-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.toast-message {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Botão de fechar */
+.toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    color: var(--color-text-secondary);
+    padding: 0;
+    line-height: 1;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+}
+
+/* Animação de entrada */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Barra de progresso (opcional) */
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background-color: currentColor;
+    opacity: 0.3;
+    border-bottom-left-radius: 0.5rem;
+    transition: width linear;
+}
+
+.toast-success .toast-progress {
+    color: #10b981;
+}
+
+.toast-error .toast-progress {
+    color: #ef4444;
+}
+
+.toast-warning .toast-progress {
+    color: #f59e0b;
+}
+
+.toast-info .toast-progress {
+    color: #3b82f6;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .toast-container {
+        top: auto;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        max-width: 100%;
+    }
+
+    .toast {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .toast.toast-hiding {
+        transform: translateY(50px);
+    }
+}
+
+/* ============================================================================
+   MODAL DE PREVIEW DE NOTA
+   ============================================================================ */
+
+.nota-preview-titulo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.nota-preview-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: var(--color-background);
+    border-radius: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.meta-item strong {
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+}
+
+.nota-preview-conteudo {
+    margin-top: 1.5rem;
+}
+
+.nota-preview-conteudo h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 0.75rem 0;
+}
+
+.nota-preview-conteudo .ql-editor {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    min-height: 150px;
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.6;
+}
+
+/* Responsividade para preview */
+@media (max-width: 768px) {
+    .nota-preview-meta {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .nota-preview-titulo {
+        font-size: 1.25rem;
+    }
+
+    .nota-preview-conteudo .ql-editor {
+        max-height: 300px;
+    }
+}
+
+/* ============================================================================
+   MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+   ============================================================================ */
+
+.modal-confirm-delete {
+    max-width: 500px;
+}
+
+.modal-header-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-bottom: 2px solid #ef4444;
+}
+
+.modal-header-danger .modal-title {
+    color: #dc2626;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-body p {
+    margin: 0 0 1rem 0;
+    color: var(--color-text-primary);
+    line-height: 1.6;
+}
+
+.nota-deletar-info {
+    padding: 1rem;
+    background-color: rgba(239, 68, 68, 0.05);
+    border: 1px solid #ef4444;
+    border-radius: 0.375rem;
+    margin: 1rem 0;
+}
+
+.nota-deletar-info strong {
+    color: #dc2626;
+    font-size: 1.0625rem;
+}
+
+.text-danger {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.modal-footer-danger {
+    background-color: var(--color-background);
+    border-top: 1px solid var(--color-border);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Responsividade para modal de confirmação */
+@media (max-width: 768px) {
+    .modal-confirm-delete {
+        max-width: 100%;
+    }
+
+    .modal-footer-danger {
+        flex-direction: column-reverse;
+    }
+
+    .modal-footer-danger .btn {
+        width: 100%;
+    }
+}
+
+/* ============================================================================
+   MELHORIAS DE ALERTAS URGENTES
+   ============================================================================ */
+
+/* Botão de alertas com badge */
+.btn-alertas {
+    position: relative;
+    font-weight: 600;
+}
+
+.badge-counter {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #dc2626;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    min-width: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Animação pulsante para alertas críticos */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    }
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+/* Destaque adicional ao botão de alertas com alertas críticos */
+.btn-alertas.pulse-animation {
+    background-color: #dc2626 !important;
+    border-color: #b91c1c !important;
+}
+
+.btn-alertas.pulse-animation:hover {
+    background-color: #b91c1c !important;
+    border-color: #991b1b !important;
+}
