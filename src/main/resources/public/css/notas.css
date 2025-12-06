@@ -242,7 +242,7 @@
 }
 
 .notas-table thead {
-    background-color: var(--color-background);
+    background-color: var(--color-bg-secondary);
     border-bottom: 2px solid var(--color-border);
 }
 
@@ -1527,5 +1527,270 @@
         flex: 1;
         min-width: calc(50% - 0.25rem);
         text-align: center;
+    }
+}
+
+/* ========================================
+   MELHORIAS DE UI - DEZEMBRO 2025
+   ======================================== */
+
+/* Campo de pesquisa em largura total */
+.search-full-width {
+    width: 100% !important;
+    flex: 1;
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+}
+
+/* ========================================
+   SEÇÕES COLAPSÁVEIS
+   ======================================== */
+
+.card-body-compact-collapsible {
+    padding: 0;
+}
+
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    background-color: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 0.2s;
+}
+
+.collapsible-header:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.collapsible-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.collapsible-icon {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    transition: transform 0.2s;
+}
+
+.collapsible-content {
+    padding: 0.75rem 1rem;
+}
+
+.filter-active-count {
+    font-size: 0.8rem;
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
+/* ========================================
+   FILTROS COMPACTOS
+   ======================================== */
+
+.filter-section-compact {
+    margin-bottom: 0.75rem;
+}
+
+.filter-section-compact:last-child {
+    margin-bottom: 0;
+}
+
+.filter-section-header-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+}
+
+.filter-label-compact {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--color-text);
+}
+
+.filter-badges-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.filter-badge-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border: 2px solid var(--color-border);
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.filter-badge-compact:hover {
+    background-color: var(--color-bg-hover);
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+.filter-badge-compact.filter-badge-active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+    font-weight: 600;
+}
+
+.filter-badge-compact .filter-badge-count {
+    background-color: rgba(0, 0, 0, 0.15);
+    padding: 0.1rem 0.35rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 1.2rem;
+    text-align: center;
+}
+
+.filter-badge-compact.filter-badge-active .filter-badge-count {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================
+   FILTRO DE DATA COMPACTO
+   ======================================== */
+
+.date-filter-container-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.date-filter-inputs-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.date-input-group-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.date-input-group-compact label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.date-input-group-compact input[type="date"] {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    min-width: 140px;
+}
+
+.date-filter-presets-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+/* ========================================
+   CONTROLES DE TABELA
+   ======================================== */
+
+.table-header-controls {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    background-color: var(--color-bg-secondary);
+}
+
+.btn-icon-controls {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.column-controls-table {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-hover);
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* ========================================
+   RESPONSIVIDADE MOBILE
+   ======================================== */
+
+@media (max-width: 768px) {
+    .collapsible-header {
+        padding: 0.6rem 0.75rem;
+    }
+
+    .collapsible-content {
+        padding: 0.6rem 0.75rem;
+    }
+
+    .collapsible-title {
+        font-size: 0.85rem;
+    }
+
+    .filter-badges-compact {
+        gap: 0.3rem;
+    }
+
+    .filter-badge-compact {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .date-filter-inputs-compact {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .date-input-group-compact {
+        width: 100%;
+    }
+
+    .date-input-group-compact input[type="date"] {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .date-filter-presets-compact {
+        justify-content: stretch;
+    }
+
+    .date-filter-presets-compact .btn-preset {
+        flex: 1;
+        min-width: calc(50% - 0.2rem);
+        text-align: center;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+    }
+
+    .column-controls-table {
+        gap: 0.75rem;
+        padding: 0.6rem 0.75rem;
+    }
+
+    .table-header-controls {
+        padding: 0.6rem 0.75rem;
     }
 }

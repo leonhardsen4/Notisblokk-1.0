@@ -75,24 +75,55 @@
 
             <!-- Tabela -->
             <div class="card mt-3">
+                <!-- Cabeçalho da Tabela com Controle de Colunas -->
+                <div class="table-header-controls">
+                    <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-sm btn-icon-controls" title="Configurar colunas visíveis">
+                        ⚙️ Configurar Colunas
+                    </button>
+                </div>
+
+                <!-- Controles de Colunas -->
+                <div x-show="mostrarControlesColunas" class="column-controls-table">
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.nome"> Nome
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.cpf"> CPF
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.telefone"> Telefone
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.email"> Email
+                    </label>
+                </div>
+
                 <div class="table-responsive">
                     <table class="audiencias-table">
                         <thead>
                             <tr>
-                                <th>Nome</th>
-                                <th>CPF</th>
-                                <th>Telefone</th>
-                                <th>Email</th>
+                                <th x-show="colunasVisiveis.nome" @click="ordenarPor('nome')" class="sortable">
+                                    Nome <span x-text="getSortIcon('nome')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.cpf" @click="ordenarPor('cpf')" class="sortable">
+                                    CPF <span x-text="getSortIcon('cpf')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.telefone" @click="ordenarPor('telefone')" class="sortable">
+                                    Telefone <span x-text="getSortIcon('telefone')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.email" @click="ordenarPor('email')" class="sortable">
+                                    Email <span x-text="getSortIcon('email')"></span>
+                                </th>
                                 <th class="acoes-col">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <template x-for="pessoa in pessoasFiltradas" :key="pessoa.id">
+                            <template x-for="pessoa in pessoasProcessadas" :key="pessoa.id">
                                 <tr>
-                                    <td><strong x-text="pessoa.nome"></strong></td>
-                                    <td x-text="pessoa.cpf || '-'"></td>
-                                    <td x-text="pessoa.telefone || '-'"></td>
-                                    <td x-text="pessoa.email || '-'"></td>
+                                    <td x-show="colunasVisiveis.nome"><strong x-text="pessoa.nome"></strong></td>
+                                    <td x-show="colunasVisiveis.cpf" x-text="pessoa.cpf || '-'"></td>
+                                    <td x-show="colunasVisiveis.telefone" x-text="pessoa.telefone || '-'"></td>
+                                    <td x-show="colunasVisiveis.email" x-text="pessoa.email || '-'"></td>
                                     <td class="acoes-col">
                                         <div class="btn-group">
                                             <button @click="editar(pessoa)" class="btn btn-sm btn-primary">✏️</button>
@@ -104,7 +135,7 @@
                         </tbody>
                     </table>
 
-                    <div x-show="pessoasFiltradas.length === 0" class="empty-state">
+                    <div x-show="pessoasProcessadas.length === 0" class="empty-state">
                         <div class="empty-state-icon">👤</div>
                         <p>Nenhuma pessoa cadastrada</p>
                     </div>

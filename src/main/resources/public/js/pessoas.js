@@ -11,6 +11,17 @@ function pessoasApp() {
         editando: false,
         termoPesquisa: '',
         pesquisaTimeout: null,
+        mostrarControlesColunas: false,
+        colunaOrdenacao: 'nome',
+        direcaoOrdenacao: 'asc',
+
+        // Controle de colunas visíveis
+        colunasVisiveis: {
+            nome: true,
+            cpf: true,
+            telefone: true,
+            email: true
+        },
 
         // Formulário
         form: {
@@ -60,6 +71,48 @@ function pessoasApp() {
         },
 
         /**
+         * Computed property: pessoas processadas (filtradas e ordenadas)
+         */
+        get pessoasProcessadas() {
+            // 1. Filtrar por pesquisa
+            let resultado = this.pessoasFiltradas;
+
+            // 2. Ordenar
+            resultado = [...resultado].sort((a, b) => {
+                let valorA, valorB;
+
+                switch (this.colunaOrdenacao) {
+                    case 'nome':
+                        valorA = (a.nome || '').toLowerCase();
+                        valorB = (b.nome || '').toLowerCase();
+                        break;
+                    case 'cpf':
+                        valorA = (a.cpf || '').toLowerCase();
+                        valorB = (b.cpf || '').toLowerCase();
+                        break;
+                    case 'telefone':
+                        valorA = (a.telefone || '').toLowerCase();
+                        valorB = (b.telefone || '').toLowerCase();
+                        break;
+                    case 'email':
+                        valorA = (a.email || '').toLowerCase();
+                        valorB = (b.email || '').toLowerCase();
+                        break;
+                    default:
+                        valorA = (a.nome || '').toLowerCase();
+                        valorB = (b.nome || '').toLowerCase();
+                        break;
+                }
+
+                if (valorA < valorB) return this.direcaoOrdenacao === 'asc' ? -1 : 1;
+                if (valorA > valorB) return this.direcaoOrdenacao === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            return resultado;
+        },
+
+        /**
          * Pesquisar
          */
         pesquisar() {
@@ -76,6 +129,28 @@ function pessoasApp() {
                     this.pessoasFiltradas = [...this.pessoas];
                 }
             }, 300);
+        },
+
+        /**
+         * Ordenar por coluna
+         */
+        ordenarPor(coluna) {
+            if (this.colunaOrdenacao === coluna) {
+                // Alternar direção
+                this.direcaoOrdenacao = this.direcaoOrdenacao === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Nova coluna, começar em ascendente
+                this.colunaOrdenacao = coluna;
+                this.direcaoOrdenacao = 'asc';
+            }
+        },
+
+        /**
+         * Obter ícone de ordenação
+         */
+        getSortIcon(coluna) {
+            if (this.colunaOrdenacao !== coluna) return '⇅';
+            return this.direcaoOrdenacao === 'asc' ? '↑' : '↓';
         },
 
         /**

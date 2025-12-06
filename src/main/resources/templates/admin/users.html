@@ -2,10 +2,11 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Gerenciar Usuários - Notisblokk</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
     <th:block th:replace="~{layout/base :: base(~{::main-content})}">
-        <div th:fragment="main-content">
+        <div th:fragment="main-content" x-data="usersApp()">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <h1 style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);">Gerenciar Usuários</h1>
                 <button class="btn btn-primary" onclick="ModalManager.show('modalNewUser')">+ Novo Usuário</button>
@@ -14,6 +15,20 @@
             <!-- Alerts -->
             <div th:if="${success}" class="alert alert-success" th:text="${success}">Sucesso</div>
             <div th:if="${error}" class="alert alert-error" th:text="${error}">Erro</div>
+
+            <!-- Barra de Pesquisa -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <input
+                        type="text"
+                        x-model="termoPesquisa"
+                        @input="pesquisar()"
+                        placeholder="🔍 Pesquisar usuários por nome, username, email..."
+                        class="form-input search-input"
+                        style="width: 100%;"
+                    >
+                </div>
+            </div>
 
             <!-- Stats -->
             <div class="grid grid-cols-3 mb-4">
@@ -39,44 +54,92 @@
 
             <!-- Table -->
             <div class="card">
+                <!-- Cabeçalho da Tabela com Controle de Colunas -->
+                <div class="table-header-controls">
+                    <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-sm btn-icon-controls" title="Configurar colunas visíveis">
+                        ⚙️ Configurar Colunas
+                    </button>
+                </div>
+
+                <!-- Controles de Colunas -->
+                <div x-show="mostrarControlesColunas" class="column-controls-table">
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.id"> ID
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.nome"> Nome
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.username"> Username
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.email"> Email
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.role"> Role
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.status"> Status
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.criadoEm"> Criado em
+                    </label>
+                </div>
+
                 <div class="card-body" style="padding: 0;">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Nome</th>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Criado em</th>
+                                    <th x-show="colunasVisiveis.id" @click="ordenarPor('id')" class="sortable">
+                                        ID <span x-text="getSortIcon('id')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.nome" @click="ordenarPor('fullName')" class="sortable">
+                                        Nome <span x-text="getSortIcon('fullName')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.username" @click="ordenarPor('username')" class="sortable">
+                                        Username <span x-text="getSortIcon('username')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.email" @click="ordenarPor('email')" class="sortable">
+                                        Email <span x-text="getSortIcon('email')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.role" @click="ordenarPor('roleDisplayName')" class="sortable">
+                                        Role <span x-text="getSortIcon('roleDisplayName')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.status" @click="ordenarPor('active')" class="sortable">
+                                        Status <span x-text="getSortIcon('active')"></span>
+                                    </th>
+                                    <th x-show="colunasVisiveis.criadoEm" @click="ordenarPor('formattedCreatedAt')" class="sortable">
+                                        Criado em <span x-text="getSortIcon('formattedCreatedAt')"></span>
+                                    </th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="user : ${users}">
-                                    <td th:text="${user.id}">1</td>
-                                    <td th:text="${user.fullName}">Nome</td>
-                                    <td th:text="${user.username}">username</td>
-                                    <td th:text="${user.email}">email@example.com</td>
-                                    <td>
-                                        <span th:class="'badge ' + (${user.admin} ? 'badge-info' : 'badge-secondary')" th:text="${user.roleDisplayName}">Role</span>
-                                    </td>
-                                    <td>
-                                        <span th:class="'badge ' + (${user.active} ? 'badge-success' : 'badge-error')" th:text="${user.active} ? 'Ativo' : 'Inativo'">Status</span>
-                                    </td>
-                                    <td th:text="${user.formattedCreatedAt}">--</td>
-                                    <td>
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            <button class="btn btn-secondary btn-sm" th:onclick="'toggleUserStatus(' + ${user.id} + ')'">
-                                                <span th:text="${user.active} ? 'Desativar' : 'Ativar'">Toggle</span>
-                                            </button>
-                                            <button class="btn btn-danger btn-sm" th:onclick="'deleteUser(' + ${user.id} + ')'">Excluir</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr th:if="${#lists.isEmpty(users)}">
+                                <template x-for="user in usersProcessados" :key="user.id">
+                                    <tr>
+                                        <td x-show="colunasVisiveis.id" x-text="user.id">1</td>
+                                        <td x-show="colunasVisiveis.nome" x-text="user.fullName">Nome</td>
+                                        <td x-show="colunasVisiveis.username" x-text="user.username">username</td>
+                                        <td x-show="colunasVisiveis.email" x-text="user.email">email@example.com</td>
+                                        <td x-show="colunasVisiveis.role">
+                                            <span :class="'badge ' + (user.admin ? 'badge-info' : 'badge-secondary')" x-text="user.roleDisplayName">Role</span>
+                                        </td>
+                                        <td x-show="colunasVisiveis.status">
+                                            <span :class="'badge ' + (user.active ? 'badge-success' : 'badge-error')" x-text="user.active ? 'Ativo' : 'Inativo'">Status</span>
+                                        </td>
+                                        <td x-show="colunasVisiveis.criadoEm" x-text="user.formattedCreatedAt">--</td>
+                                        <td>
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <button class="btn btn-secondary btn-sm" @click="toggleUserStatus(user.id)">
+                                                    <span x-text="user.active ? 'Desativar' : 'Ativar'">Toggle</span>
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" @click="deleteUser(user.id)">Excluir</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="usersProcessados.length === 0">
                                     <td colspan="8" style="text-align: center; color: var(--color-text-secondary);">Nenhum usuário encontrado</td>
                                 </tr>
                             </tbody>
@@ -134,37 +197,134 @@
         </div>
     </th:block>
 
-    <script>
-        function toggleUserStatus(userId) {
-            if (!confirm('Deseja alterar o status deste usuário?')) return;
+    <script th:inline="javascript">
+        function usersApp() {
+            return {
+                // Estado
+                users: /*[[${users}]]*/ [],
+                usersFiltrados: [],
+                usersProcessados: [],
+                mostrarControlesColunas: false,
+                colunaOrdenacao: 'id',
+                direcaoOrdenacao: 'asc',
+                termoPesquisa: '',
+                colunasVisiveis: {
+                    id: true,
+                    nome: true,
+                    username: true,
+                    email: true,
+                    role: true,
+                    status: true,
+                    criadoEm: true
+                },
 
-            fetch(`/admin/users/${userId}/toggle`, { method: 'PATCH' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        AlertManager.success('Status alterado com sucesso!');
-                        setTimeout(() => location.reload(), 1000);
+                // Inicialização
+                init() {
+                    this.usersFiltrados = [...this.users];
+                    this.ordenar();
+                },
+
+                // Pesquisar usuários
+                pesquisar() {
+                    const termo = this.termoPesquisa.toLowerCase();
+                    if (termo.trim()) {
+                        this.usersFiltrados = this.users.filter(u =>
+                            (u.fullName || '').toLowerCase().includes(termo) ||
+                            (u.username || '').toLowerCase().includes(termo) ||
+                            (u.email || '').toLowerCase().includes(termo)
+                        );
                     } else {
-                        AlertManager.error(data.message);
+                        this.usersFiltrados = [...this.users];
                     }
-                })
-                .catch(err => AlertManager.error('Erro ao alterar status'));
-        }
+                    this.ordenar();
+                },
 
-        function deleteUser(userId) {
-            if (!confirm('Deseja realmente excluir este usuário? Esta ação não pode ser desfeita!')) return;
+                // Computed property: usuários processados (ordenados)
+                get usuariosProcessados() {
+                    return this.usersProcessados;
+                },
 
-            fetch(`/admin/users/${userId}`, { method: 'DELETE' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        AlertManager.success('Usuário excluído com sucesso!');
-                        setTimeout(() => location.reload(), 1000);
+                // Ordenar por coluna
+                ordenarPor(coluna) {
+                    if (this.colunaOrdenacao === coluna) {
+                        // Alternar direção
+                        this.direcaoOrdenacao = this.direcaoOrdenacao === 'asc' ? 'desc' : 'asc';
                     } else {
-                        AlertManager.error(data.message);
+                        // Nova coluna, começar em ascendente
+                        this.colunaOrdenacao = coluna;
+                        this.direcaoOrdenacao = 'asc';
                     }
-                })
-                .catch(err => AlertManager.error('Erro ao excluir usuário'));
+                    this.ordenar();
+                },
+
+                // Ordenar a lista
+                ordenar() {
+                    this.usersProcessados = [...this.usersFiltrados].sort((a, b) => {
+                        let valorA = a[this.colunaOrdenacao];
+                        let valorB = b[this.colunaOrdenacao];
+
+                        // Tratar valores booleanos (status)
+                        if (typeof valorA === 'boolean') {
+                            valorA = valorA ? 1 : 0;
+                            valorB = valorB ? 1 : 0;
+                        }
+                        // Tratar strings
+                        else if (typeof valorA === 'string') {
+                            valorA = valorA.toLowerCase();
+                            valorB = (valorB || '').toLowerCase();
+                        }
+                        // Tratar null/undefined
+                        else if (valorA === null || valorA === undefined) {
+                            valorA = '';
+                            valorB = valorB || '';
+                        }
+
+                        if (valorA < valorB) return this.direcaoOrdenacao === 'asc' ? -1 : 1;
+                        if (valorA > valorB) return this.direcaoOrdenacao === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                },
+
+                // Obter ícone de ordenação
+                getSortIcon(coluna) {
+                    if (this.colunaOrdenacao !== coluna) return '⇅';
+                    return this.direcaoOrdenacao === 'asc' ? '↑' : '↓';
+                },
+
+                // Alternar status do usuário
+                toggleUserStatus(userId) {
+                    if (!confirm('Deseja alterar o status deste usuário?')) return;
+
+                    fetch(`/admin/users/${userId}/toggle`, { method: 'PATCH' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                AlertManager.success('Status alterado com sucesso!');
+                                setTimeout(() => location.reload(), 1000);
+                            } else {
+                                AlertManager.error(data.message);
+                            }
+                        })
+                        .catch(err => AlertManager.error('Erro ao alterar status'));
+                },
+
+                // Deletar usuário
+                deleteUser(userId) {
+                    if (!confirm('Deseja realmente excluir este usuário? Esta ação não pode ser desfeita!')) return;
+
+                    fetch(`/admin/users/${userId}`, { method: 'DELETE' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                AlertManager.success('Usuário excluído com sucesso!');
+                                setTimeout(() => location.reload(), 1000);
+                            } else {
+                                AlertManager.error(data.message);
+                            }
+                        })
+                        .catch(err => AlertManager.error('Erro ao excluir usuário'));
+                }
+            }
         }
     </script>
 </body>

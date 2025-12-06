@@ -81,8 +81,20 @@ public class NotaDTO {
 
     /**
      * Calcula os dias restantes até o prazo final.
+     *
+     * <p>Notas com status "Resolvido" ou "Cancelado" não terão dias restantes calculados,
+     * pois já foram concluídas e não precisam mais de alertas de prazo.</p>
      */
     private void calcularDiasRestantes() {
+        // Não calcular dias restantes para notas resolvidas ou canceladas
+        if (status != null) {
+            String statusNome = status.getNome().toLowerCase();
+            if (statusNome.contains("resolvid") || statusNome.contains("cancelad")) {
+                this.diasRestantes = null; // Deixar null para indicar que não precisa contar
+                return;
+            }
+        }
+
         if (prazoFinal != null) {
             LocalDate hoje = LocalDate.now();
             this.diasRestantes = ChronoUnit.DAYS.between(hoje, prazoFinal);

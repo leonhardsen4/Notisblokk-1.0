@@ -22,6 +22,17 @@ function audienciasApp() {
         modalHorariosLivres: false,
         abaAtivaCadastro: 'varas',
 
+        // Controle de colunas
+        mostrarControlesColunas: false,
+        colunasVisiveis: {
+            processo: true,
+            data: true,
+            horario: true,
+            vara: true,
+            tipo: true,
+            status: true
+        },
+
         // Formulários de cadastro
         formVara: { ativo: false, id: null, nome: '', comarca: '' },
         formJuiz: { ativo: false, id: null, nome: '', telefone: '', email: '' },
@@ -210,6 +221,22 @@ function audienciasApp() {
                     case 'dataAudiencia':
                         valorA = this.dataParaOrdenacao(a.dataAudiencia);
                         valorB = this.dataParaOrdenacao(b.dataAudiencia);
+                        break;
+                    case 'horarioInicio':
+                        valorA = a.horarioInicio || '';
+                        valorB = b.horarioInicio || '';
+                        break;
+                    case 'varaNome':
+                        valorA = a.vara?.nome?.toLowerCase() || '';
+                        valorB = b.vara?.nome?.toLowerCase() || '';
+                        break;
+                    case 'tipoAudiencia':
+                        valorA = a.tipoAudiencia?.toLowerCase() || '';
+                        valorB = b.tipoAudiencia?.toLowerCase() || '';
+                        break;
+                    case 'status':
+                        valorA = a.status?.toLowerCase() || '';
+                        valorB = b.status?.toLowerCase() || '';
                         break;
                     default:
                         valorA = a[this.colunaOrdenacao] || '';

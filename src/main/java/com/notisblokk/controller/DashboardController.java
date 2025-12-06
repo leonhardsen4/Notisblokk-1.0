@@ -64,13 +64,15 @@ public class DashboardController {
             // Calcular estatísticas de notas
             long totalNotas = todasNotas.size();
 
-            // Notas vencidas (prazo já passou)
+            // Notas vencidas (prazo já passou) - excluindo resolvidas/canceladas
             List<NotaDTO> notasVencidas = todasNotas.stream()
+                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
                 .filter(nota -> nota.getPrazoFinal() != null && nota.getPrazoFinal().isBefore(hoje))
                 .collect(Collectors.toList());
 
-            // Notas urgentes (vencendo nos próximos 7 dias)
+            // Notas urgentes (vencendo nos próximos 7 dias) - excluindo resolvidas/canceladas
             List<NotaDTO> notasUrgentes = todasNotas.stream()
+                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
                 .filter(nota -> {
                     if (nota.getPrazoFinal() == null) return false;
                     long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
@@ -78,8 +80,9 @@ public class DashboardController {
                 })
                 .collect(Collectors.toList());
 
-            // Notas vencidas ou urgentes (para exibir na lista)
+            // Notas vencidas ou urgentes (para exibir na lista) - excluindo resolvidas/canceladas
             List<Map<String, Object>> notasAlerta = todasNotas.stream()
+                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
                 .filter(nota -> {
                     if (nota.getPrazoFinal() == null) return false;
                     long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
@@ -155,9 +158,11 @@ public class DashboardController {
 
             long totalNotas = todasNotas.size();
             long notasVencidas = todasNotas.stream()
+                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
                 .filter(nota -> nota.getPrazoFinal() != null && nota.getPrazoFinal().isBefore(hoje))
                 .count();
             long notasUrgentes = todasNotas.stream()
+                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
                 .filter(nota -> {
                     if (nota.getPrazoFinal() == null) return false;
                     long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
@@ -180,5 +185,22 @@ public class DashboardController {
                 "message", "Erro ao obter estatísticas"
             ));
         }
+    }
+
+    /**
+     * Verifica se uma nota está resolvida ou cancelada.
+     *
+     * <p>Notas com esses status não devem aparecer em alertas de prazo,
+     * pois já foram concluídas de alguma forma.</p>
+     *
+     * @param nota nota a ser verificada
+     * @return true se a nota está resolvida ou cancelada, false caso contrário
+     */
+    private boolean isNotaResolvida(NotaDTO nota) {
+        if (nota.getStatus() == null || nota.getStatus().getNome() == null) {
+            return false;
+        }
+        String statusNome = nota.getStatus().getNome().toLowerCase();
+        return statusNome.contains("resolvid") || statusNome.contains("cancelad");
     }
 }

@@ -73,34 +73,71 @@
 
             <!-- Tabela de Audiências -->
             <div class="card">
+                <!-- Cabeçalho da Tabela com Controle de Colunas -->
+                <div class="table-header-controls">
+                    <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-sm btn-icon-controls" title="Configurar colunas visíveis">
+                        ⚙️ Configurar Colunas
+                    </button>
+                </div>
+
+                <!-- Controles de Colunas -->
+                <div x-show="mostrarControlesColunas" class="column-controls-table">
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.processo"> Processo
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.data"> Data
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.horario"> Horário
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.vara"> Vara
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.tipo"> Tipo
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.status"> Status
+                    </label>
+                </div>
+
                 <div class="table-responsive">
                     <table class="audiencias-table">
                         <thead>
                             <tr>
-                                <th @click="ordenarPor('numeroProcesso')" class="sortable">
+                                <th x-show="colunasVisiveis.processo" @click="ordenarPor('numeroProcesso')" class="sortable">
                                     Processo <span x-text="getSortIcon('numeroProcesso')"></span>
                                 </th>
-                                <th @click="ordenarPor('dataAudiencia')" class="sortable">
+                                <th x-show="colunasVisiveis.data" @click="ordenarPor('dataAudiencia')" class="sortable">
                                     Data <span x-text="getSortIcon('dataAudiencia')"></span>
                                 </th>
-                                <th>Horário</th>
-                                <th>Vara</th>
-                                <th>Tipo</th>
-                                <th>Status</th>
+                                <th x-show="colunasVisiveis.horario" @click="ordenarPor('horarioInicio')" class="sortable">
+                                    Horário <span x-text="getSortIcon('horarioInicio')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.vara" @click="ordenarPor('varaNome')" class="sortable">
+                                    Vara <span x-text="getSortIcon('varaNome')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.tipo" @click="ordenarPor('tipoAudiencia')" class="sortable">
+                                    Tipo <span x-text="getSortIcon('tipoAudiencia')"></span>
+                                </th>
+                                <th x-show="colunasVisiveis.status" @click="ordenarPor('status')" class="sortable">
+                                    Status <span x-text="getSortIcon('status')"></span>
+                                </th>
                                 <th class="acoes-col">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             <template x-for="audiencia in audienciasProcessadas" :key="audiencia.id">
                                 <tr :class="getRowClass(audiencia)">
-                                    <td>
+                                    <td x-show="colunasVisiveis.processo">
                                         <strong x-text="audiencia.numeroProcesso"></strong>
                                     </td>
-                                    <td x-text="audiencia.dataAudiencia + ' (' + audiencia.diaSemana + ')'"></td>
-                                    <td x-text="audiencia.horarioInicio + ' - ' + audiencia.horarioFim"></td>
-                                    <td x-text="audiencia.vara?.nome || 'N/A'"></td>
-                                    <td x-text="audiencia.tipoAudiencia"></td>
-                                    <td>
+                                    <td x-show="colunasVisiveis.data" x-text="audiencia.dataAudiencia + ' (' + audiencia.diaSemana + ')'"></td>
+                                    <td x-show="colunasVisiveis.horario" x-text="audiencia.horarioInicio + ' - ' + audiencia.horarioFim"></td>
+                                    <td x-show="colunasVisiveis.vara" x-text="audiencia.vara?.nome || 'N/A'"></td>
+                                    <td x-show="colunasVisiveis.tipo" x-text="audiencia.tipoAudiencia"></td>
+                                    <td x-show="colunasVisiveis.status">
                                         <span class="badge" :class="'badge-' + audiencia.status.toLowerCase()" x-text="audiencia.status"></span>
                                     </td>
                                     <td class="acoes-col">

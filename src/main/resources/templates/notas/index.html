@@ -64,7 +64,7 @@
                 </div>
             </div>
 
-            <!-- Filtros e Pesquisa Unificados -->
+            <!-- Barra de Pesquisa -->
             <div class="card mb-2">
                 <div class="card-body-compact">
                     <div class="filtros-pesquisa-row">
@@ -72,179 +72,175 @@
                             type="text"
                             x-model="termoPesquisa"
                             @input="pesquisarNotas()"
-                            placeholder="🔍 Pesquisar..."
-                            class="form-control-compact search-compact"
+                            placeholder="🔍 Pesquisar notas..."
+                            class="form-control-compact search-full-width"
                         >
-                        <select id="filtroEtiqueta" class="form-control-compact">
-                            <option value="">Todas as etiquetas</option>
-                        </select>
-                        <select id="filtroStatus" class="form-control-compact">
-                            <option value="">Todos os status</option>
-                        </select>
-                        <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-icon" title="Configurar colunas">
-                            ⚙️
-                        </button>
-                    </div>
-
-                    <!-- Controles de Colunas -->
-                    <div x-show="mostrarControlesColunas" class="column-controls-compact">
-                        <label class="column-toggle-compact">
-                            <input type="checkbox" x-model="colunasVisiveis.titulo"> Título
-                        </label>
-                        <label class="column-toggle-compact">
-                            <input type="checkbox" x-model="colunasVisiveis.etiqueta"> Etiqueta
-                        </label>
-                        <label class="column-toggle-compact">
-                            <input type="checkbox" x-model="colunasVisiveis.status"> Status
-                        </label>
-                        <label class="column-toggle-compact">
-                            <input type="checkbox" x-model="colunasVisiveis.prazo"> Prazo
-                        </label>
-                        <label class="column-toggle-compact">
-                            <input type="checkbox" x-model="colunasVisiveis.diasRestantes"> Dias Rest.
-                        </label>
                     </div>
                 </div>
             </div>
 
-            <!-- Filtros Visuais com Badges -->
+            <!-- Filtros Visuais com Badges (Colapsável) -->
             <div class="card mb-2" x-show="etiquetas.length > 0 || statusList.length > 0">
-                <div class="card-body-compact">
-                    <!-- Etiquetas -->
-                    <div x-show="etiquetas.length > 0" class="filter-section">
-                        <div class="filter-section-header">
-                            <span class="filter-label">🏷️ Etiquetas:</span>
-                            <button
-                                x-show="filtrosAtivos.etiquetas.length > 0"
-                                @click="limparFiltrosEtiquetas()"
-                                class="btn-clear-filter"
-                                title="Limpar filtros de etiquetas">
-                                ✕ Limpar
-                            </button>
-                        </div>
-                        <div class="filter-badges">
-                            <template x-for="etiqueta in etiquetas" :key="etiqueta.id">
-                                <button
-                                    @click="toggleFiltroEtiqueta(etiqueta.id)"
-                                    class="filter-badge"
-                                    :class="{ 'filter-badge-active': filtroEtiquetaAtivo(etiqueta.id) }"
-                                    :title="'Filtrar por ' + etiqueta.nome">
-                                    <span class="filter-badge-name" x-text="etiqueta.nome"></span>
-                                    <span class="filter-badge-count" x-text="contarNotasPorEtiqueta(etiqueta.id)"></span>
-                                </button>
-                            </template>
-                        </div>
+                <div class="card-body-compact-collapsible">
+                    <div class="collapsible-header" @click="secaoFiltrosVisiveisExpandida = !secaoFiltrosVisiveisExpandida">
+                        <span class="collapsible-title">
+                            🏷️ Filtros por Etiquetas e Status
+                            <span x-show="(filtrosAtivos.etiquetas.length + filtrosAtivos.status.length) > 0"
+                                  class="filter-active-count"
+                                  x-text="'(' + (filtrosAtivos.etiquetas.length + filtrosAtivos.status.length) + ' ativo' + ((filtrosAtivos.etiquetas.length + filtrosAtivos.status.length) > 1 ? 's' : '') + ')'">
+                            </span>
+                        </span>
+                        <span class="collapsible-icon" x-text="secaoFiltrosVisiveisExpandida ? '▲' : '▼'"></span>
                     </div>
 
-                    <!-- Status -->
-                    <div x-show="statusList.length > 0" class="filter-section">
-                        <div class="filter-section-header">
-                            <span class="filter-label">📊 Status:</span>
+                    <div x-show="secaoFiltrosVisiveisExpandida" class="collapsible-content">
+                        <!-- Etiquetas -->
+                        <div x-show="etiquetas.length > 0" class="filter-section-compact">
+                            <div class="filter-section-header-compact">
+                                <span class="filter-label-compact">🏷️ Etiquetas:</span>
+                                <button
+                                    x-show="filtrosAtivos.etiquetas.length > 0"
+                                    @click.stop="limparFiltrosEtiquetas()"
+                                    class="btn-clear-filter"
+                                    title="Limpar filtros de etiquetas">
+                                    ✕ Limpar
+                                </button>
+                            </div>
+                            <div class="filter-badges-compact">
+                                <template x-for="etiqueta in etiquetas" :key="etiqueta.id">
+                                    <button
+                                        @click="toggleFiltroEtiqueta(etiqueta.id)"
+                                        class="filter-badge-compact"
+                                        :class="{ 'filter-badge-active': filtroEtiquetaAtivo(etiqueta.id) }"
+                                        :title="'Filtrar por ' + etiqueta.nome">
+                                        <span class="filter-badge-name" x-text="etiqueta.nome"></span>
+                                        <span class="filter-badge-count" x-text="contarNotasPorEtiqueta(etiqueta.id)"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div x-show="statusList.length > 0" class="filter-section-compact">
+                            <div class="filter-section-header-compact">
+                                <span class="filter-label-compact">📊 Status:</span>
+                                <button
+                                    x-show="filtrosAtivos.status.length > 0"
+                                    @click.stop="limparFiltrosStatus()"
+                                    class="btn-clear-filter"
+                                    title="Limpar filtros de status">
+                                    ✕ Limpar
+                                </button>
+                            </div>
+                            <div class="filter-badges-compact">
+                                <template x-for="status in statusList" :key="status.id">
+                                    <button
+                                        @click="toggleFiltroStatus(status.id)"
+                                        class="filter-badge-compact"
+                                        :class="{ 'filter-badge-active': filtroStatusAtivo(status.id) }"
+                                        :style="filtroStatusAtivo(status.id) ? 'background-color: ' + status.corHex + '; border-color: ' + status.corHex + '; color: ' + getContrastColor(status.corHex) : ''"
+                                        :title="'Filtrar por ' + status.nome">
+                                        <span class="filter-badge-name" x-text="status.nome"></span>
+                                        <span class="filter-badge-count" x-text="contarNotasPorStatus(status.id)"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Botão Limpar Todos os Filtros -->
+                        <div x-show="filtrosAtivos.etiquetas.length > 0 || filtrosAtivos.status.length > 0" class="filter-section-compact" style="margin-top: 0.5rem;">
                             <button
-                                x-show="filtrosAtivos.status.length > 0"
-                                @click="limparFiltrosStatus()"
-                                class="btn-clear-filter"
-                                title="Limpar filtros de status">
-                                ✕ Limpar
+                                @click="limparTodosFiltros()"
+                                class="btn btn-secondary btn-sm btn-clear-all">
+                                ✕ Limpar Todos os Filtros
                             </button>
                         </div>
-                        <div class="filter-badges">
-                            <template x-for="status in statusList" :key="status.id">
-                                <button
-                                    @click="toggleFiltroStatus(status.id)"
-                                    class="filter-badge"
-                                    :class="{ 'filter-badge-active': filtroStatusAtivo(status.id) }"
-                                    :style="filtroStatusAtivo(status.id) ? 'background-color: ' + status.corHex + '; border-color: ' + status.corHex + '; color: ' + getContrastColor(status.corHex) : ''"
-                                    :title="'Filtrar por ' + status.nome">
-                                    <span class="filter-badge-name" x-text="status.nome"></span>
-                                    <span class="filter-badge-count" x-text="contarNotasPorStatus(status.id)"></span>
-                                </button>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Botão Limpar Todos os Filtros -->
-                    <div x-show="filtrosAtivos.etiquetas.length > 0 || filtrosAtivos.status.length > 0" class="filter-section">
-                        <button
-                            @click="limparTodosFiltros()"
-                            class="btn btn-secondary btn-sm btn-clear-all">
-                            ✕ Limpar Todos os Filtros
-                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Filtro por Intervalo de Datas -->
+            <!-- Filtro por Intervalo de Datas (Colapsável) -->
             <div class="card mb-2">
-                <div class="card-body-compact">
-                    <div class="date-filter-container">
-                        <div class="date-filter-header">
-                            <span style="font-weight: 600; color: var(--color-text-primary);">📅 Filtrar por Prazo</span>
-                        </div>
+                <div class="card-body-compact-collapsible">
+                    <div class="collapsible-header" @click="secaoFiltroDataExpandida = !secaoFiltroDataExpandida">
+                        <span class="collapsible-title">
+                            📅 Filtrar por Prazo
+                            <span x-show="filtroData.inicio || filtroData.fim"
+                                  class="filter-active-count">
+                                (ativo)
+                            </span>
+                        </span>
+                        <span class="collapsible-icon" x-text="secaoFiltroDataExpandida ? '▲' : '▼'"></span>
+                    </div>
 
-                        <!-- Campos de Data -->
-                        <div class="date-filter-inputs">
-                            <div class="date-input-group">
-                                <label for="dataInicio">De:</label>
-                                <input
-                                    type="date"
-                                    id="dataInicio"
-                                    x-model="filtroData.inicio"
-                                    @change="aplicarFiltroData()"
-                                    class="form-control-compact">
+                    <div x-show="secaoFiltroDataExpandida" class="collapsible-content">
+                        <div class="date-filter-container-compact">
+                            <!-- Campos de Data -->
+                            <div class="date-filter-inputs-compact">
+                                <div class="date-input-group-compact">
+                                    <label for="dataInicio">De:</label>
+                                    <input
+                                        type="date"
+                                        id="dataInicio"
+                                        x-model="filtroData.inicio"
+                                        @change="aplicarFiltroData()"
+                                        :max="filtroData.fim || ''"
+                                        class="form-control-compact">
+                                </div>
+
+                                <div class="date-input-group-compact">
+                                    <label for="dataFim">Até:</label>
+                                    <input
+                                        type="date"
+                                        id="dataFim"
+                                        x-model="filtroData.fim"
+                                        @change="aplicarFiltroData()"
+                                        :min="filtroData.inicio || ''"
+                                        class="form-control-compact">
+                                </div>
+
+                                <button
+                                    x-show="filtroData.inicio || filtroData.fim"
+                                    @click="limparFiltroData()"
+                                    class="btn btn-secondary btn-sm"
+                                    title="Limpar filtro de data">
+                                    ✕ Limpar
+                                </button>
                             </div>
 
-                            <div class="date-input-group">
-                                <label for="dataFim">Até:</label>
-                                <input
-                                    type="date"
-                                    id="dataFim"
-                                    x-model="filtroData.fim"
-                                    @change="aplicarFiltroData()"
-                                    class="form-control-compact">
+                            <!-- Presets de Data -->
+                            <div class="date-filter-presets-compact">
+                                <button
+                                    @click="aplicarPreset('hoje')"
+                                    class="btn btn-sm btn-preset"
+                                    :class="{ 'btn-preset-active': presetAtivo === 'hoje' }">
+                                    Hoje
+                                </button>
+                                <button
+                                    @click="aplicarPreset('esta-semana')"
+                                    class="btn btn-sm btn-preset"
+                                    :class="{ 'btn-preset-active': presetAtivo === 'esta-semana' }">
+                                    Esta Semana
+                                </button>
+                                <button
+                                    @click="aplicarPreset('este-mes')"
+                                    class="btn btn-sm btn-preset"
+                                    :class="{ 'btn-preset-active': presetAtivo === 'este-mes' }">
+                                    Este Mês
+                                </button>
+                                <button
+                                    @click="aplicarPreset('proximos-7-dias')"
+                                    class="btn btn-sm btn-preset"
+                                    :class="{ 'btn-preset-active': presetAtivo === 'proximos-7-dias' }">
+                                    Próximos 7 Dias
+                                </button>
+                                <button
+                                    @click="aplicarPreset('proximos-30-dias')"
+                                    class="btn btn-sm btn-preset"
+                                    :class="{ 'btn-preset-active': presetAtivo === 'proximos-30-dias' }">
+                                    Próximos 30 Dias
+                                </button>
                             </div>
-
-                            <button
-                                x-show="filtroData.inicio || filtroData.fim"
-                                @click="limparFiltroData()"
-                                class="btn btn-secondary btn-sm"
-                                title="Limpar filtro de data">
-                                ✕ Limpar
-                            </button>
-                        </div>
-
-                        <!-- Presets de Data -->
-                        <div class="date-filter-presets">
-                            <button
-                                @click="aplicarPreset('hoje')"
-                                class="btn btn-sm btn-preset"
-                                :class="{ 'btn-preset-active': presetAtivo === 'hoje' }">
-                                Hoje
-                            </button>
-                            <button
-                                @click="aplicarPreset('esta-semana')"
-                                class="btn btn-sm btn-preset"
-                                :class="{ 'btn-preset-active': presetAtivo === 'esta-semana' }">
-                                Esta Semana
-                            </button>
-                            <button
-                                @click="aplicarPreset('este-mes')"
-                                class="btn btn-sm btn-preset"
-                                :class="{ 'btn-preset-active': presetAtivo === 'este-mes' }">
-                                Este Mês
-                            </button>
-                            <button
-                                @click="aplicarPreset('proximos-7-dias')"
-                                class="btn btn-sm btn-preset"
-                                :class="{ 'btn-preset-active': presetAtivo === 'proximos-7-dias' }">
-                                Próximos 7 Dias
-                            </button>
-                            <button
-                                @click="aplicarPreset('proximos-30-dias')"
-                                class="btn btn-sm btn-preset"
-                                :class="{ 'btn-preset-active': presetAtivo === 'proximos-30-dias' }">
-                                Próximos 30 Dias
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -252,6 +248,32 @@
 
             <!-- Tabela de Notas -->
             <div class="card">
+                <!-- Cabeçalho da Tabela com Controle de Colunas -->
+                <div class="table-header-controls">
+                    <button @click="mostrarControlesColunas = !mostrarControlesColunas" class="btn btn-secondary btn-sm btn-icon-controls" title="Configurar colunas visíveis">
+                        ⚙️ Configurar Colunas
+                    </button>
+                </div>
+
+                <!-- Controles de Colunas -->
+                <div x-show="mostrarControlesColunas" class="column-controls-table">
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.titulo"> Título
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.etiqueta"> Etiqueta
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.status"> Status
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.prazo"> Prazo
+                    </label>
+                    <label class="column-toggle-compact">
+                        <input type="checkbox" x-model="colunasVisiveis.diasRestantes"> Dias Restantes
+                    </label>
+                </div>
+
                 <div class="table-responsive">
                     <table class="notas-table">
                         <thead>
@@ -285,7 +307,7 @@
                         </thead>
                         <tbody>
                             <template x-for="nota in notasProcessadas" :key="nota.id">
-                                <tr :class="{'nota-atrasada': nota.diasRestantes < 0, 'nota-urgente': nota.diasRestantes >= 0 && nota.diasRestantes <= 3}">
+                                <tr :class="{'nota-atrasada': nota.diasRestantes !== null && nota.diasRestantes < 0, 'nota-urgente': nota.diasRestantes !== null && nota.diasRestantes >= 0 && nota.diasRestantes <= 3}">
                                     <!-- Checkbox de seleção -->
                                     <td style="width: 40px; text-align: center;">
                                         <input
@@ -748,6 +770,9 @@
                             fim: ''
                         },
                         presetAtivo: '',
+                        // Controle de seções colapsáveis
+                        secaoFiltrosVisiveisExpandida: false,
+                        secaoFiltroDataExpandida: false,
 
                         async init() {
                             // Carregar preferências de colunas do localStorage
@@ -760,17 +785,6 @@
                             await this.carregarStatus();
                             await this.carregarNotas();
                             // Alertas são gerados automaticamente em processarNotas()
-
-                            // Adicionar event listeners para os filtros
-                            document.getElementById('filtroEtiqueta').addEventListener('change', (e) => {
-                                this.filtroEtiqueta = e.target.value;
-                                this.processarNotas();
-                            });
-
-                            document.getElementById('filtroStatus').addEventListener('change', (e) => {
-                                this.filtroStatus = e.target.value;
-                                this.processarNotas();
-                            });
 
                             // Watch para salvar preferências de colunas
                             this.$watch('colunasVisiveis', (value) => {
@@ -814,17 +828,26 @@
 
                             // 1. Calcular dias restantes para cada nota
                             const notasComDias = this.notas.map(nota => {
-                                const prazo = this.parseDataBrasileira(nota.prazoFinal);
-                                const hoje = new Date();
-                                hoje.setHours(0, 0, 0, 0);
-                                const diasRestantes = Math.floor((prazo - hoje) / (1000 * 60 * 60 * 24));
+                                let diasRestantes = null;
+                                let prazoDate = null;
 
-                                console.log(`📅 Nota "${nota.titulo}": prazoFinal="${nota.prazoFinal}", prazoDate=${prazo}, diasRestantes=${diasRestantes}`);
+                                // Verificar se a nota é resolvida ou cancelada
+                                const statusNome = nota.status?.nome?.toLowerCase() || '';
+                                const isResolvida = statusNome.includes('resolvid') || statusNome.includes('cancelad');
+
+                                if (!isResolvida && nota.prazoFinal) {
+                                    prazoDate = this.parseDataBrasileira(nota.prazoFinal);
+                                    const hoje = new Date();
+                                    hoje.setHours(0, 0, 0, 0);
+                                    diasRestantes = Math.floor((prazoDate - hoje) / (1000 * 60 * 60 * 24));
+                                }
+
+                                console.log(`📅 Nota "${nota.titulo}": status="${nota.status?.nome}", prazoFinal="${nota.prazoFinal}", diasRestantes=${diasRestantes}`);
 
                                 return {
                                     ...nota,
                                     diasRestantes,
-                                    prazoDate: prazo
+                                    prazoDate
                                 };
                             });
 
@@ -902,8 +925,9 @@
                                         break;
                                     case 'diasRestantes':
                                     default:
-                                        valorA = a.diasRestantes;
-                                        valorB = b.diasRestantes;
+                                        // Tratar null: colocar no final
+                                        valorA = a.diasRestantes !== null ? a.diasRestantes : Number.MAX_SAFE_INTEGER;
+                                        valorB = b.diasRestantes !== null ? b.diasRestantes : Number.MAX_SAFE_INTEGER;
                                         break;
                                 }
 
@@ -925,12 +949,17 @@
                             notas.forEach(nota => {
                                 // Ignorar notas com status "Resolvido" ou "Cancelado"
                                 const statusNome = nota.status?.nome?.toLowerCase() || '';
-                                if (statusNome === 'resolvido' || statusNome === 'cancelado') {
+                                if (statusNome.includes('resolvid') || statusNome.includes('cancelad')) {
                                     return; // Não gera alerta para essas notas
                                 }
 
                                 let nivel, prazoTexto;
                                 const dias = nota.diasRestantes;
+
+                                // Pular notas sem diasRestantes (já resolvidas ou canceladas)
+                                if (dias === null || dias === undefined) {
+                                    return;
+                                }
 
                                 if (dias < 0) {
                                     nivel = 'CRÍTICO';
@@ -1041,16 +1070,7 @@
                                 const res = await fetch('/api/etiquetas');
                                 const data = await res.json();
                                 this.etiquetas = data.dados || [];
-
-                                // Popular select de filtro
-                                const selectFiltro = document.getElementById('filtroEtiqueta');
-                                selectFiltro.innerHTML = '<option value="">Todas as etiquetas</option>';
-                                this.etiquetas.forEach(etiqueta => {
-                                    const option = document.createElement('option');
-                                    option.value = etiqueta.id;
-                                    option.textContent = etiqueta.nome;
-                                    selectFiltro.appendChild(option);
-                                });
+                                console.log('Etiquetas carregadas:', this.etiquetas.length);
                             } catch (err) {
                                 console.error('Erro ao carregar etiquetas:', err);
                             } finally {
@@ -1079,15 +1099,7 @@
                                     return;
                                 }
 
-                                // Popular select de filtro
-                                const selectFiltro = document.getElementById('filtroStatus');
-                                selectFiltro.innerHTML = '<option value="">Todos os status</option>';
-                                this.statusList.forEach(status => {
-                                    const option = document.createElement('option');
-                                    option.value = status.id;
-                                    option.textContent = status.nome;
-                                    selectFiltro.appendChild(option);
-                                });
+                                console.log('Status disponíveis:', this.statusList.length);
 
                                 console.log(`✓ ${this.statusList.length} status carregados com sucesso`);
                             } catch (err) {
@@ -1782,6 +1794,8 @@
                         },
 
                         getBadgeClass(dias) {
+                            // Notas resolvidas ou canceladas não têm badge de urgência
+                            if (dias === null || dias === undefined) return '';
                             if (dias < 0) return 'badge-critico';
                             if (dias <= 1) return 'badge-urgente';
                             if (dias <= 3) return 'badge-atencao';
@@ -1791,6 +1805,8 @@
 
                         getDiasPrazoText(nota) {
                             const dias = nota.diasRestantes;
+                            // Notas resolvidas ou canceladas não têm diasRestantes calculado
+                            if (dias === null || dias === undefined) return '-';
                             if (dias < 0) return `Atrasada ${Math.abs(dias)} dia(s)`;
                             if (dias === 0) return 'Vence HOJE';
                             if (dias === 1) return 'Vence AMANHÃ';
