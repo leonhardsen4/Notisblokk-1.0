@@ -347,6 +347,8 @@ public class Main {
         // Notas
         app.get("/api/notas", notaController::listar); // Suporta paginação via query params
         app.get("/api/notas/paginado", notaController::listarPaginado); // Endpoint dedicado para paginação
+        app.get("/api/notas/buscar", notaController::buscarPorTexto); // Busca por texto (query param: q)
+        app.get("/api/notas/intervalo", notaController::buscarPorIntervaloPrazo); // Busca por intervalo de datas (query params: inicio, fim)
         app.get("/api/notas/{id}", notaController::buscarPorId);
         app.get("/api/notas/etiqueta/{etiquetaId}", notaController::buscarPorEtiqueta);
         app.post("/api/notas", notaController::criar);

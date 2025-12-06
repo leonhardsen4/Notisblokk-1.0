@@ -10,6 +10,15 @@
         <div th:fragment="main-content" x-data="notasApp()">
             <!-- Container de Toast Notifications -->
             <div id="toast-container" class="toast-container"></div>
+
+            <!-- Loading Overlay -->
+            <div id="loading-overlay" class="loading-overlay">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <div class="loading-text" id="loading-text">Carregando...</div>
+                </div>
+            </div>
+
             <!-- Cabeçalho e Ações -->
             <div class="header-compact">
                 <h1 class="page-title">📝 Anotações</h1>
@@ -27,6 +36,20 @@
                         class="btn btn-success btn-sm"
                         title="Exportar notas selecionadas para PDF">
                         📊 Exportar Selecionadas (<span x-text="notasSelecionadas.length"></span>)
+                    </button>
+                    <button
+                        x-show="notasSelecionadas.length > 0"
+                        @click="abrirModalMudarStatus()"
+                        class="btn btn-primary btn-sm"
+                        title="Mudar status das notas selecionadas">
+                        📊 Mudar Status (<span x-text="notasSelecionadas.length"></span>)
+                    </button>
+                    <button
+                        x-show="notasSelecionadas.length > 0"
+                        @click="abrirModalDeletarSelecionadas()"
+                        class="btn btn-danger btn-sm"
+                        title="Deletar notas selecionadas">
+                        🗑️ Deletar Selecionadas (<span x-text="notasSelecionadas.length"></span>)
                     </button>
                     <button @click="abrirModalAlertas()" class="btn btn-sm btn-alertas" :class="{'btn-danger': alertasUrgentes.length > 0, 'btn-warning': alertasUrgentes.length === 0, 'pulse-animation': temAlertasCriticos()}">
                         🔔 Alertas
@@ -80,6 +103,149 @@
                         <label class="column-toggle-compact">
                             <input type="checkbox" x-model="colunasVisiveis.diasRestantes"> Dias Rest.
                         </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros Visuais com Badges -->
+            <div class="card mb-2" x-show="etiquetas.length > 0 || statusList.length > 0">
+                <div class="card-body-compact">
+                    <!-- Etiquetas -->
+                    <div x-show="etiquetas.length > 0" class="filter-section">
+                        <div class="filter-section-header">
+                            <span class="filter-label">🏷️ Etiquetas:</span>
+                            <button
+                                x-show="filtrosAtivos.etiquetas.length > 0"
+                                @click="limparFiltrosEtiquetas()"
+                                class="btn-clear-filter"
+                                title="Limpar filtros de etiquetas">
+                                ✕ Limpar
+                            </button>
+                        </div>
+                        <div class="filter-badges">
+                            <template x-for="etiqueta in etiquetas" :key="etiqueta.id">
+                                <button
+                                    @click="toggleFiltroEtiqueta(etiqueta.id)"
+                                    class="filter-badge"
+                                    :class="{ 'filter-badge-active': filtroEtiquetaAtivo(etiqueta.id) }"
+                                    :title="'Filtrar por ' + etiqueta.nome">
+                                    <span class="filter-badge-name" x-text="etiqueta.nome"></span>
+                                    <span class="filter-badge-count" x-text="contarNotasPorEtiqueta(etiqueta.id)"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div x-show="statusList.length > 0" class="filter-section">
+                        <div class="filter-section-header">
+                            <span class="filter-label">📊 Status:</span>
+                            <button
+                                x-show="filtrosAtivos.status.length > 0"
+                                @click="limparFiltrosStatus()"
+                                class="btn-clear-filter"
+                                title="Limpar filtros de status">
+                                ✕ Limpar
+                            </button>
+                        </div>
+                        <div class="filter-badges">
+                            <template x-for="status in statusList" :key="status.id">
+                                <button
+                                    @click="toggleFiltroStatus(status.id)"
+                                    class="filter-badge"
+                                    :class="{ 'filter-badge-active': filtroStatusAtivo(status.id) }"
+                                    :style="filtroStatusAtivo(status.id) ? 'background-color: ' + status.corHex + '; border-color: ' + status.corHex + '; color: ' + getContrastColor(status.corHex) : ''"
+                                    :title="'Filtrar por ' + status.nome">
+                                    <span class="filter-badge-name" x-text="status.nome"></span>
+                                    <span class="filter-badge-count" x-text="contarNotasPorStatus(status.id)"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Botão Limpar Todos os Filtros -->
+                    <div x-show="filtrosAtivos.etiquetas.length > 0 || filtrosAtivos.status.length > 0" class="filter-section">
+                        <button
+                            @click="limparTodosFiltros()"
+                            class="btn btn-secondary btn-sm btn-clear-all">
+                            ✕ Limpar Todos os Filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro por Intervalo de Datas -->
+            <div class="card mb-2">
+                <div class="card-body-compact">
+                    <div class="date-filter-container">
+                        <div class="date-filter-header">
+                            <span style="font-weight: 600; color: var(--color-text-primary);">📅 Filtrar por Prazo</span>
+                        </div>
+
+                        <!-- Campos de Data -->
+                        <div class="date-filter-inputs">
+                            <div class="date-input-group">
+                                <label for="dataInicio">De:</label>
+                                <input
+                                    type="date"
+                                    id="dataInicio"
+                                    x-model="filtroData.inicio"
+                                    @change="aplicarFiltroData()"
+                                    class="form-control-compact">
+                            </div>
+
+                            <div class="date-input-group">
+                                <label for="dataFim">Até:</label>
+                                <input
+                                    type="date"
+                                    id="dataFim"
+                                    x-model="filtroData.fim"
+                                    @change="aplicarFiltroData()"
+                                    class="form-control-compact">
+                            </div>
+
+                            <button
+                                x-show="filtroData.inicio || filtroData.fim"
+                                @click="limparFiltroData()"
+                                class="btn btn-secondary btn-sm"
+                                title="Limpar filtro de data">
+                                ✕ Limpar
+                            </button>
+                        </div>
+
+                        <!-- Presets de Data -->
+                        <div class="date-filter-presets">
+                            <button
+                                @click="aplicarPreset('hoje')"
+                                class="btn btn-sm btn-preset"
+                                :class="{ 'btn-preset-active': presetAtivo === 'hoje' }">
+                                Hoje
+                            </button>
+                            <button
+                                @click="aplicarPreset('esta-semana')"
+                                class="btn btn-sm btn-preset"
+                                :class="{ 'btn-preset-active': presetAtivo === 'esta-semana' }">
+                                Esta Semana
+                            </button>
+                            <button
+                                @click="aplicarPreset('este-mes')"
+                                class="btn btn-sm btn-preset"
+                                :class="{ 'btn-preset-active': presetAtivo === 'este-mes' }">
+                                Este Mês
+                            </button>
+                            <button
+                                @click="aplicarPreset('proximos-7-dias')"
+                                class="btn btn-sm btn-preset"
+                                :class="{ 'btn-preset-active': presetAtivo === 'proximos-7-dias' }">
+                                Próximos 7 Dias
+                            </button>
+                            <button
+                                @click="aplicarPreset('proximos-30-dias')"
+                                class="btn btn-sm btn-preset"
+                                :class="{ 'btn-preset-active': presetAtivo === 'proximos-30-dias' }">
+                                Próximos 30 Dias
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -303,6 +469,92 @@
                 </div>
             </div>
 
+            <!-- Modal Confirmar Deletar Selecionadas -->
+            <div class="modal-overlay" :class="{ active: modalDeletarSelecionadas }">
+                <div class="modal modal-confirm-delete">
+                    <div class="modal-header modal-header-danger">
+                        <h2 class="modal-title">⚠️ Deletar Múltiplas Notas</h2>
+                        <button @click="fecharModalDeletarSelecionadas()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja deletar <strong x-text="notasSelecionadas.length"></strong> nota(s) selecionada(s)?</p>
+                        <p class="text-danger" style="font-weight: 600; margin-top: 1rem;">
+                            ⚠️ Esta ação não pode ser desfeita!
+                        </p>
+                        <div class="nota-deletar-info" style="max-height: 200px; overflow-y: auto; margin-top: 1rem; padding: 0.5rem; background-color: var(--color-bg-secondary); border-radius: 8px;">
+                            <p style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-secondary);">
+                                Notas que serão deletadas:
+                            </p>
+                            <template x-for="(notaId, index) in notasSelecionadas" :key="notaId">
+                                <div style="padding: 0.25rem 0; border-bottom: 1px solid var(--color-border);">
+                                    <span x-text="(index + 1) + '. ' + obterTituloNota(notaId)"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-danger">
+                        <button @click="fecharModalDeletarSelecionadas()" class="btn btn-secondary">
+                            ✕ Cancelar
+                        </button>
+                        <button @click="confirmarDeletarSelecionadas()" class="btn btn-danger">
+                            🗑️ Deletar <span x-text="notasSelecionadas.length"></span> Nota(s)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Mudar Status das Selecionadas -->
+            <div class="modal-overlay" :class="{ active: modalMudarStatus }">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h2 class="modal-title">📊 Mudar Status</h2>
+                        <button @click="fecharModalMudarStatus()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Selecione o novo status para <strong x-text="notasSelecionadas.length"></strong> nota(s) selecionada(s):</p>
+
+                        <div style="margin-top: 1.5rem;">
+                            <label for="novoStatusMassa" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--color-text-primary);">
+                                Novo Status:
+                            </label>
+                            <select
+                                id="novoStatusMassa"
+                                x-model="novoStatusMassa"
+                                class="form-control"
+                                style="width: 100%;">
+                                <option value="">-- Selecione um status --</option>
+                                <template x-for="status in statusList" :key="status.id">
+                                    <option :value="status.id" x-text="status.nome"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Prévia das notas que serão alteradas -->
+                        <div class="nota-deletar-info" style="max-height: 150px; overflow-y: auto; margin-top: 1.5rem; padding: 0.5rem; background-color: var(--color-bg-secondary); border-radius: 8px;">
+                            <p style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-secondary);">
+                                Notas que serão atualizadas:
+                            </p>
+                            <template x-for="(notaId, index) in notasSelecionadas" :key="notaId">
+                                <div style="padding: 0.25rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.875rem;">
+                                    <span x-text="(index + 1) + '. ' + obterTituloNota(notaId)"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="fecharModalMudarStatus()" class="btn btn-secondary">
+                            ✕ Cancelar
+                        </button>
+                        <button
+                            @click="confirmarMudarStatus()"
+                            class="btn btn-primary"
+                            :disabled="!novoStatusMassa">
+                            📊 Atualizar <span x-text="notasSelecionadas.length"></span> Nota(s)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Modal Alertas -->
             <div class="modal-overlay" :class="{ active: modalAlertas }">
                 <div class="modal modal-large">
@@ -345,6 +597,45 @@
             </div>
 
             <script>
+                /**
+                 * ========================================
+                 * INDICADOR DE LOADING
+                 * ========================================
+                 */
+
+                /**
+                 * Mostra o indicador de loading com mensagem opcional.
+                 * @param {string} message - Mensagem a exibir (padrão: "Carregando...")
+                 */
+                function mostrarLoading(message = 'Carregando...') {
+                    const overlay = document.getElementById('loading-overlay');
+                    const text = document.getElementById('loading-text');
+
+                    if (overlay && text) {
+                        text.textContent = message;
+                        overlay.classList.add('active');
+                        console.log(`⏳ Loading: ${message}`);
+                    }
+                }
+
+                /**
+                 * Oculta o indicador de loading.
+                 */
+                function ocultarLoading() {
+                    const overlay = document.getElementById('loading-overlay');
+
+                    if (overlay) {
+                        overlay.classList.remove('active');
+                        console.log('✓ Loading ocultado');
+                    }
+                }
+
+                /**
+                 * ========================================
+                 * SISTEMA DE TOAST NOTIFICATIONS
+                 * ========================================
+                 */
+
                 /**
                  * Sistema de Toast Notifications
                  * @param {string} tipo - Tipo do toast: 'success', 'error', 'warning', 'info'
@@ -423,6 +714,9 @@
                         notaPreview: null,
                         modalConfirmarDeletar: false,
                         notaDeletar: null,
+                        modalDeletarSelecionadas: false,
+                        modalMudarStatus: false,
+                        novoStatusMassa: '',
                         novaEtiqueta: '',
                         novoStatus: { nome: '', cor: '#6B7280' },
                         etiquetaEditandoId: null,
@@ -443,6 +737,17 @@
                         pesquisaTimeout: null,
                         // Seleção múltipla de notas para exportação em massa
                         notasSelecionadas: [],
+                        // Filtros ativos (permite múltiplas seleções)
+                        filtrosAtivos: {
+                            etiquetas: [],
+                            status: []
+                        },
+                        // Filtro por intervalo de datas
+                        filtroData: {
+                            inicio: '',
+                            fim: ''
+                        },
+                        presetAtivo: '',
 
                         async init() {
                             // Carregar preferências de colunas do localStorage
@@ -471,9 +776,13 @@
                             this.$watch('colunasVisiveis', (value) => {
                                 localStorage.setItem('notasColunasVisiveis', JSON.stringify(value));
                             });
+
+                            // Configurar atalhos de teclado
+                            this.setupKeyboardShortcuts();
                         },
 
                         async carregarNotas() {
+                            mostrarLoading('Carregando notas...');
                             try {
                                 const url = '/api/notas';
                                 console.log('Carregando notas de:', url);
@@ -494,6 +803,8 @@
                             } catch (err) {
                                 console.error('Erro ao carregar notas:', err);
                                 mostrarToast('error', 'Erro ao Carregar', 'Ocorreu um erro ao carregar as notas');
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
@@ -529,17 +840,46 @@
                                 );
                             }
 
-                            // 3. Filtrar por etiqueta
+                            // 3. Filtrar por etiqueta (dropdown - mantido para compatibilidade)
                             if (this.filtroEtiqueta) {
                                 notasFiltradas = notasFiltradas.filter(n => n.etiqueta.id == this.filtroEtiqueta);
                             }
 
-                            // 4. Filtrar por status
+                            // 4. Filtrar por status (dropdown - mantido para compatibilidade)
                             if (this.filtroStatus) {
                                 notasFiltradas = notasFiltradas.filter(n => n.status.id == this.filtroStatus);
                             }
 
-                            // 5. Ordenar
+                            // 5. Filtros múltiplos por etiquetas (badges)
+                            if (this.filtrosAtivos.etiquetas.length > 0) {
+                                notasFiltradas = notasFiltradas.filter(n =>
+                                    this.filtrosAtivos.etiquetas.includes(n.etiqueta.id)
+                                );
+                            }
+
+                            // 6. Filtros múltiplos por status (badges)
+                            if (this.filtrosAtivos.status.length > 0) {
+                                notasFiltradas = notasFiltradas.filter(n =>
+                                    this.filtrosAtivos.status.includes(n.status.id)
+                                );
+                            }
+
+                            // 7. Filtrar por intervalo de datas
+                            if (this.filtroData.inicio && this.filtroData.fim) {
+                                const dataInicio = new Date(this.filtroData.inicio);
+                                const dataFim = new Date(this.filtroData.fim);
+                                dataInicio.setHours(0, 0, 0, 0);
+                                dataFim.setHours(23, 59, 59, 999);
+
+                                notasFiltradas = notasFiltradas.filter(n => {
+                                    const prazoNota = n.prazoDate;
+                                    return prazoNota >= dataInicio && prazoNota <= dataFim;
+                                });
+
+                                console.log(`📅 Filtro de data aplicado: ${notasFiltradas.length} notas entre ${this.filtroData.inicio} e ${this.filtroData.fim}`);
+                            }
+
+                            // 8. Ordenar
                             notasFiltradas.sort((a, b) => {
                                 let valorA, valorB;
 
@@ -696,6 +1036,7 @@
                         },
 
                         async carregarEtiquetas() {
+                            mostrarLoading('Carregando etiquetas...');
                             try {
                                 const res = await fetch('/api/etiquetas');
                                 const data = await res.json();
@@ -712,10 +1053,13 @@
                                 });
                             } catch (err) {
                                 console.error('Erro ao carregar etiquetas:', err);
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
                         async carregarStatus() {
+                            mostrarLoading('Carregando status...');
                             try {
                                 const res = await fetch('/api/status');
                                 const data = await res.json();
@@ -749,6 +1093,8 @@
                             } catch (err) {
                                 console.error('Erro ao carregar status:', err);
                                 mostrarToast('error', 'Erro ao Carregar Status', 'Ocorreu um erro ao carregar os status');
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
@@ -777,6 +1123,7 @@
                             const id = this.notaDeletar.id;
                             const titulo = this.notaDeletar.titulo;
 
+                            mostrarLoading('Deletando nota...');
                             try {
                                 const res = await fetch(`/api/notas/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
@@ -786,10 +1133,12 @@
                                     await this.carregarNotas();
                                 } else {
                                     mostrarToast('error', 'Erro ao Deletar', data.message || 'Não foi possível deletar a nota');
+                                    ocultarLoading();
                                 }
                             } catch (err) {
                                 mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao tentar deletar a nota');
                                 console.error('Erro ao deletar nota:', err);
+                                ocultarLoading();
                             } finally {
                                 // Fechar modal
                                 this.cancelarDeletar();
@@ -807,11 +1156,239 @@
                         },
 
                         /**
+                         * ========================================
+                         * DELEÇÃO EM MASSA
+                         * ========================================
+                         */
+
+                        /**
+                         * Abre modal de confirmação para deletar notas selecionadas.
+                         */
+                        abrirModalDeletarSelecionadas() {
+                            if (this.notasSelecionadas.length === 0) {
+                                mostrarToast('warning', 'Nenhuma Nota Selecionada', 'Selecione ao menos uma nota para deletar');
+                                return;
+                            }
+
+                            this.modalDeletarSelecionadas = true;
+                            console.log(`🗑️ Modal de deletar selecionadas aberto. ${this.notasSelecionadas.length} nota(s) selecionada(s)`);
+                        },
+
+                        /**
+                         * Fecha modal de confirmação de deletar selecionadas.
+                         */
+                        fecharModalDeletarSelecionadas() {
+                            this.modalDeletarSelecionadas = false;
+                        },
+
+                        /**
+                         * Obtém o título de uma nota pelo ID.
+                         * @param {number} notaId - ID da nota
+                         * @returns {string} Título da nota ou mensagem de erro
+                         */
+                        obterTituloNota(notaId) {
+                            const nota = this.notas.find(n => n.id === notaId);
+                            return nota ? nota.titulo : 'Nota não encontrada';
+                        },
+
+                        /**
+                         * Confirma e executa a exclusão de múltiplas notas selecionadas.
+                         * Deleta as notas em paralelo e mostra progresso ao usuário.
+                         */
+                        async confirmarDeletarSelecionadas() {
+                            const quantidade = this.notasSelecionadas.length;
+
+                            if (quantidade === 0) return;
+
+                            this.fecharModalDeletarSelecionadas();
+                            mostrarLoading(`Deletando ${quantidade} nota(s)...`);
+
+                            try {
+                                let sucessos = 0;
+                                let erros = 0;
+
+                                // Deletar notas em paralelo
+                                const promises = this.notasSelecionadas.map(async (notaId) => {
+                                    try {
+                                        const res = await fetch(`/api/notas/${notaId}`, { method: 'DELETE' });
+                                        const data = await res.json();
+
+                                        if (data.success) {
+                                            sucessos++;
+                                            console.log(`✓ Nota ID ${notaId} deletada com sucesso`);
+                                        } else {
+                                            erros++;
+                                            console.error(`✗ Erro ao deletar nota ID ${notaId}:`, data.message);
+                                        }
+                                    } catch (err) {
+                                        erros++;
+                                        console.error(`✗ Exceção ao deletar nota ID ${notaId}:`, err);
+                                    }
+                                });
+
+                                // Aguardar todas as requisições
+                                await Promise.all(promises);
+
+                                // Limpar seleção
+                                this.notasSelecionadas = [];
+
+                                // Recarregar lista de notas
+                                await this.carregarNotas();
+
+                                // Mostrar resultado
+                                if (erros === 0) {
+                                    mostrarToast('success', 'Notas Deletadas',
+                                        `${sucessos} nota(s) deletada(s) com sucesso!`);
+                                } else if (sucessos === 0) {
+                                    mostrarToast('error', 'Erro ao Deletar',
+                                        `Não foi possível deletar nenhuma nota. ${erros} erro(s).`);
+                                } else {
+                                    mostrarToast('warning', 'Deleção Parcial',
+                                        `${sucessos} nota(s) deletada(s), ${erros} erro(s).`);
+                                }
+
+                                console.log(`📊 Resultado da deleção em massa: ${sucessos} sucessos, ${erros} erros`);
+
+                            } catch (err) {
+                                mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao deletar as notas');
+                                console.error('Erro ao deletar notas em massa:', err);
+                            } finally {
+                                ocultarLoading();
+                            }
+                        },
+
+                        /**
+                         * ========================================
+                         * MUDAR STATUS EM MASSA
+                         * ========================================
+                         */
+
+                        /**
+                         * Abre modal para mudar status das notas selecionadas.
+                         */
+                        abrirModalMudarStatus() {
+                            if (this.notasSelecionadas.length === 0) {
+                                mostrarToast('warning', 'Nenhuma Nota Selecionada', 'Selecione ao menos uma nota para mudar o status');
+                                return;
+                            }
+
+                            this.novoStatusMassa = ''; // Limpar seleção anterior
+                            this.modalMudarStatus = true;
+                            console.log(`📊 Modal de mudar status aberto. ${this.notasSelecionadas.length} nota(s) selecionada(s)`);
+                        },
+
+                        /**
+                         * Fecha modal de mudar status.
+                         */
+                        fecharModalMudarStatus() {
+                            this.modalMudarStatus = false;
+                            this.novoStatusMassa = '';
+                        },
+
+                        /**
+                         * Confirma e executa a mudança de status de múltiplas notas.
+                         * Atualiza as notas em paralelo e mostra progresso ao usuário.
+                         */
+                        async confirmarMudarStatus() {
+                            const quantidade = this.notasSelecionadas.length;
+                            const novoStatusId = parseInt(this.novoStatusMassa);
+
+                            if (!novoStatusId) {
+                                mostrarToast('warning', 'Status Não Selecionado', 'Por favor, selecione um status');
+                                return;
+                            }
+
+                            if (quantidade === 0) return;
+
+                            // Buscar nome do status selecionado
+                            const statusObj = this.statusList.find(s => s.id === novoStatusId);
+                            const nomeStatus = statusObj ? statusObj.nome : 'Status';
+
+                            this.fecharModalMudarStatus();
+                            mostrarLoading(`Atualizando status de ${quantidade} nota(s)...`);
+
+                            try {
+                                let sucessos = 0;
+                                let erros = 0;
+
+                                // Atualizar notas em paralelo
+                                const promises = this.notasSelecionadas.map(async (notaId) => {
+                                    try {
+                                        // Buscar nota atual para manter outros dados
+                                        const nota = this.notas.find(n => n.id === notaId);
+                                        if (!nota) {
+                                            erros++;
+                                            console.error(`✗ Nota ID ${notaId} não encontrada`);
+                                            return;
+                                        }
+
+                                        // Montar payload de atualização
+                                        const payload = {
+                                            titulo: nota.titulo,
+                                            conteudo: nota.conteudo,
+                                            prazoFinal: nota.prazoFinal,
+                                            etiquetaId: nota.etiqueta.id,
+                                            statusId: novoStatusId
+                                        };
+
+                                        const res = await fetch(`/api/notas/${notaId}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(payload)
+                                        });
+                                        const data = await res.json();
+
+                                        if (data.success) {
+                                            sucessos++;
+                                            console.log(`✓ Status da nota ID ${notaId} atualizado para "${nomeStatus}"`);
+                                        } else {
+                                            erros++;
+                                            console.error(`✗ Erro ao atualizar nota ID ${notaId}:`, data.message);
+                                        }
+                                    } catch (err) {
+                                        erros++;
+                                        console.error(`✗ Exceção ao atualizar nota ID ${notaId}:`, err);
+                                    }
+                                });
+
+                                // Aguardar todas as requisições
+                                await Promise.all(promises);
+
+                                // Limpar seleção
+                                this.notasSelecionadas = [];
+
+                                // Recarregar lista de notas
+                                await this.carregarNotas();
+
+                                // Mostrar resultado
+                                if (erros === 0) {
+                                    mostrarToast('success', 'Status Atualizado',
+                                        `Status de ${sucessos} nota(s) alterado para "${nomeStatus}"!`);
+                                } else if (sucessos === 0) {
+                                    mostrarToast('error', 'Erro ao Atualizar',
+                                        `Não foi possível atualizar nenhuma nota. ${erros} erro(s).`);
+                                } else {
+                                    mostrarToast('warning', 'Atualização Parcial',
+                                        `${sucessos} nota(s) atualizada(s), ${erros} erro(s).`);
+                                }
+
+                                console.log(`📊 Resultado da mudança de status em massa: ${sucessos} sucessos, ${erros} erros`);
+
+                            } catch (err) {
+                                mostrarToast('error', 'Erro ao Atualizar', 'Ocorreu um erro ao atualizar o status das notas');
+                                console.error('Erro ao mudar status em massa:', err);
+                            } finally {
+                                ocultarLoading();
+                            }
+                        },
+
+                        /**
                          * Exporta uma nota individual para PDF
                          * @param {number} notaId - ID da nota a ser exportada
                          * @param {string} tituloNota - Título da nota (usado para nome do arquivo)
                          */
                         async gerarPDF(notaId, tituloNota) {
+                            mostrarLoading('Gerando PDF...');
                             try {
                                 console.log(`📄 Gerando PDF para nota ID: ${notaId}`);
 
@@ -860,6 +1437,8 @@
                             } catch (error) {
                                 console.error('❌ Erro ao gerar PDF:', error);
                                 mostrarToast('error', 'Erro ao Exportar', `Não foi possível gerar o PDF: ${error.message}`);
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
@@ -923,6 +1502,7 @@
                                 return;
                             }
 
+                            mostrarLoading(`Gerando relatório com ${this.notasSelecionadas.length} nota(s)...`);
                             try {
                                 console.log(`📊 Exportando ${this.notasSelecionadas.length} nota(s) selecionada(s)`);
 
@@ -981,6 +1561,8 @@
                             } catch (error) {
                                 console.error('❌ Erro ao exportar notas selecionadas:', error);
                                 mostrarToast('error', 'Erro ao Exportar Relatório', `Não foi possível gerar o PDF: ${error.message}`);
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
@@ -989,6 +1571,7 @@
                         },
 
                         async salvarEtiqueta() {
+                            mostrarLoading('Salvando etiqueta...');
                             try {
                                 // Se estiver editando, fazer PUT; senão, fazer POST
                                 const url = this.etiquetaEditandoId
@@ -1015,11 +1598,14 @@
                             } catch (err) {
                                 mostrarToast('error', 'Erro ao Salvar', 'Ocorreu um erro ao salvar a etiqueta');
                                 console.error('Erro ao salvar etiqueta:', err);
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
                         async deletarEtiqueta(id) {
                             if (!confirm('Deletar esta etiqueta? Todas as notas associadas também serão deletadas!')) return;
+                            mostrarLoading('Deletando etiqueta...');
                             try {
                                 const res = await fetch(`/api/etiquetas/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
@@ -1033,6 +1619,8 @@
                             } catch (err) {
                                 mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao deletar a etiqueta');
                                 console.error('Erro ao deletar etiqueta:', err);
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
@@ -1056,6 +1644,7 @@
                         },
 
                         async salvarStatus() {
+                            mostrarLoading('Salvando status...');
                             try {
                                 // Se estiver editando, fazer PUT; senão, fazer POST
                                 const url = this.statusEditandoId
@@ -1084,11 +1673,14 @@
                             } catch (err) {
                                 console.error('Erro ao salvar:', err);
                                 mostrarToast('error', 'Erro ao Salvar', 'Ocorreu um erro ao salvar o status');
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
                         async deletarStatus(id) {
                             if (!confirm('Deseja realmente deletar este status?')) return;
+                            mostrarLoading('Deletando status...');
                             try {
                                 const res = await fetch(`/api/status/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
@@ -1101,6 +1693,8 @@
                             } catch (err) {
                                 mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao deletar o status');
                                 console.error('Erro ao deletar status:', err);
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
@@ -1114,6 +1708,7 @@
                          * @param {number} notaId - ID da nota a ser visualizada
                          */
                         async visualizarNota(notaId) {
+                            mostrarLoading('Carregando nota...');
                             try {
                                 console.log(`👁️ Abrindo preview da nota ID: ${notaId}`);
 
@@ -1135,6 +1730,8 @@
                             } catch (err) {
                                 console.error('Erro ao visualizar nota:', err);
                                 mostrarToast('error', 'Erro ao Visualizar', 'Ocorreu um erro ao carregar a nota');
+                            } finally {
+                                ocultarLoading();
                             }
                         },
 
@@ -1224,6 +1821,318 @@
 
                             // Se a luminância for maior que 0.5, usar texto escuro; senão, usar texto claro
                             return luminance > 0.5 ? 'black' : 'white';
+                        },
+
+                        /**
+                         * ========================================
+                         * FILTROS VISUAIS COM BADGES
+                         * ========================================
+                         */
+
+                        /**
+                         * Alterna filtro de etiqueta (permite múltiplas seleções).
+                         * @param {number} etiquetaId - ID da etiqueta
+                         */
+                        toggleFiltroEtiqueta(etiquetaId) {
+                            const index = this.filtrosAtivos.etiquetas.indexOf(etiquetaId);
+                            if (index > -1) {
+                                // Remove filtro
+                                this.filtrosAtivos.etiquetas.splice(index, 1);
+                                console.log(`🏷️ Filtro de etiqueta ${etiquetaId} removido`);
+                            } else {
+                                // Adiciona filtro
+                                this.filtrosAtivos.etiquetas.push(etiquetaId);
+                                console.log(`🏷️ Filtro de etiqueta ${etiquetaId} adicionado`);
+                            }
+                            this.processarNotas();
+                        },
+
+                        /**
+                         * Alterna filtro de status (permite múltiplas seleções).
+                         * @param {number} statusId - ID do status
+                         */
+                        toggleFiltroStatus(statusId) {
+                            const index = this.filtrosAtivos.status.indexOf(statusId);
+                            if (index > -1) {
+                                // Remove filtro
+                                this.filtrosAtivos.status.splice(index, 1);
+                                console.log(`📊 Filtro de status ${statusId} removido`);
+                            } else {
+                                // Adiciona filtro
+                                this.filtrosAtivos.status.push(statusId);
+                                console.log(`📊 Filtro de status ${statusId} adicionado`);
+                            }
+                            this.processarNotas();
+                        },
+
+                        /**
+                         * Verifica se um filtro de etiqueta está ativo.
+                         * @param {number} etiquetaId - ID da etiqueta
+                         * @returns {boolean} true se o filtro está ativo
+                         */
+                        filtroEtiquetaAtivo(etiquetaId) {
+                            return this.filtrosAtivos.etiquetas.includes(etiquetaId);
+                        },
+
+                        /**
+                         * Verifica se um filtro de status está ativo.
+                         * @param {number} statusId - ID do status
+                         * @returns {boolean} true se o filtro está ativo
+                         */
+                        filtroStatusAtivo(statusId) {
+                            return this.filtrosAtivos.status.includes(statusId);
+                        },
+
+                        /**
+                         * Conta quantas notas têm determinada etiqueta (considerando filtros ativos).
+                         * @param {number} etiquetaId - ID da etiqueta
+                         * @returns {number} quantidade de notas
+                         */
+                        contarNotasPorEtiqueta(etiquetaId) {
+                            return this.notas.filter(n => n.etiqueta.id === etiquetaId).length;
+                        },
+
+                        /**
+                         * Conta quantas notas têm determinado status (considerando filtros ativos).
+                         * @param {number} statusId - ID do status
+                         * @returns {number} quantidade de notas
+                         */
+                        contarNotasPorStatus(statusId) {
+                            return this.notas.filter(n => n.status.id === statusId).length;
+                        },
+
+                        /**
+                         * Limpa todos os filtros de etiquetas.
+                         */
+                        limparFiltrosEtiquetas() {
+                            this.filtrosAtivos.etiquetas = [];
+                            console.log('🏷️ Filtros de etiquetas limpos');
+                            this.processarNotas();
+                        },
+
+                        /**
+                         * Limpa todos os filtros de status.
+                         */
+                        limparFiltrosStatus() {
+                            this.filtrosAtivos.status = [];
+                            console.log('📊 Filtros de status limpos');
+                            this.processarNotas();
+                        },
+
+                        /**
+                         * Limpa todos os filtros (etiquetas e status).
+                         */
+                        limparTodosFiltros() {
+                            this.filtrosAtivos.etiquetas = [];
+                            this.filtrosAtivos.status = [];
+                            console.log('✨ Todos os filtros limpos');
+                            mostrarToast('info', 'Filtros Limpos', 'Todos os filtros foram removidos');
+                            this.processarNotas();
+                        },
+
+                        /**
+                         * ========================================
+                         * FILTRO POR INTERVALO DE DATAS
+                         * ========================================
+                         */
+
+                        /**
+                         * Aplica filtro por intervalo de datas.
+                         * Filtra notas cujo prazo final está entre as datas especificadas.
+                         */
+                        aplicarFiltroData() {
+                            this.presetAtivo = ''; // Limpar preset se usuário alterar datas manualmente
+                            this.processarNotas();
+
+                            if (this.filtroData.inicio && this.filtroData.fim) {
+                                const dataInicioFormatada = new Date(this.filtroData.inicio).toLocaleDateString('pt-BR');
+                                const dataFimFormatada = new Date(this.filtroData.fim).toLocaleDateString('pt-BR');
+                                mostrarToast('info', 'Filtro de Data Aplicado',
+                                    `Mostrando notas de ${dataInicioFormatada} até ${dataFimFormatada}`);
+                            }
+                        },
+
+                        /**
+                         * Limpa filtro por intervalo de datas.
+                         */
+                        limparFiltroData() {
+                            this.filtroData.inicio = '';
+                            this.filtroData.fim = '';
+                            this.presetAtivo = '';
+                            console.log('✨ Filtro de data limpo');
+                            mostrarToast('info', 'Filtro de Data Limpo', 'Filtro por prazo removido');
+                            this.processarNotas();
+                        },
+
+                        /**
+                         * Aplica preset de intervalo de data.
+                         * @param {string} preset - Nome do preset (hoje, esta-semana, este-mes, proximos-7-dias, proximos-30-dias)
+                         */
+                        aplicarPreset(preset) {
+                            const hoje = new Date();
+                            hoje.setHours(0, 0, 0, 0);
+
+                            let dataInicio = new Date(hoje);
+                            let dataFim = new Date(hoje);
+
+                            switch (preset) {
+                                case 'hoje':
+                                    // Início e fim são hoje
+                                    break;
+
+                                case 'esta-semana':
+                                    // Do domingo ao sábado da semana atual
+                                    const diaSemana = hoje.getDay();
+                                    dataInicio = new Date(hoje);
+                                    dataInicio.setDate(hoje.getDate() - diaSemana);
+                                    dataFim = new Date(dataInicio);
+                                    dataFim.setDate(dataInicio.getDate() + 6);
+                                    break;
+
+                                case 'este-mes':
+                                    // Do dia 1 ao último dia do mês atual
+                                    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                                    dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+                                    break;
+
+                                case 'proximos-7-dias':
+                                    // De hoje até 7 dias à frente
+                                    dataFim = new Date(hoje);
+                                    dataFim.setDate(hoje.getDate() + 7);
+                                    break;
+
+                                case 'proximos-30-dias':
+                                    // De hoje até 30 dias à frente
+                                    dataFim = new Date(hoje);
+                                    dataFim.setDate(hoje.getDate() + 30);
+                                    break;
+                            }
+
+                            // Formatar datas para input type="date" (yyyy-MM-dd)
+                            this.filtroData.inicio = dataInicio.toISOString().split('T')[0];
+                            this.filtroData.fim = dataFim.toISOString().split('T')[0];
+                            this.presetAtivo = preset;
+
+                            console.log(`📅 Preset aplicado: ${preset} (${this.filtroData.inicio} - ${this.filtroData.fim})`);
+                            this.processarNotas();
+
+                            // Mostrar toast com informação do preset
+                            const presetNomes = {
+                                'hoje': 'Hoje',
+                                'esta-semana': 'Esta Semana',
+                                'este-mes': 'Este Mês',
+                                'proximos-7-dias': 'Próximos 7 Dias',
+                                'proximos-30-dias': 'Próximos 30 Dias'
+                            };
+                            mostrarToast('info', 'Preset Aplicado', `Filtro: ${presetNomes[preset]}`);
+                        },
+
+                        /**
+                         * ========================================
+                         * ATALHOS DE TECLADO
+                         * ========================================
+                         */
+
+                        /**
+                         * Configura atalhos de teclado globais para melhorar a navegação.
+                         *
+                         * Atalhos disponíveis:
+                         * - Ctrl+N ou Alt+N: Nova nota
+                         * - Esc: Fechar modais
+                         * - /: Focar no campo de busca
+                         * - Ctrl+L: Limpar todos os filtros
+                         */
+                        setupKeyboardShortcuts() {
+                            document.addEventListener('keydown', (e) => {
+                                // Ignorar atalhos se estiver digitando em um input/textarea (exceto atalhos específicos)
+                                const isTyping = ['INPUT', 'TEXTAREA'].includes(e.target.tagName);
+
+                                // Ctrl+N ou Alt+N: Nova nota
+                                if ((e.ctrlKey || e.altKey) && e.key.toLowerCase() === 'n') {
+                                    e.preventDefault();
+                                    console.log('⌨️ Atalho: Nova Nota');
+                                    window.location.href = '/notas/nova';
+                                    return;
+                                }
+
+                                // Esc: Fechar modais
+                                if (e.key === 'Escape') {
+                                    console.log('⌨️ Atalho: ESC - Fechando modais');
+
+                                    if (this.modalEtiquetas) {
+                                        this.fecharModalEtiquetas();
+                                    } else if (this.modalStatus) {
+                                        this.fecharModalStatus();
+                                    } else if (this.modalAlertas) {
+                                        this.fecharModalAlertas();
+                                    } else if (this.modalPreview) {
+                                        this.fecharModalPreview();
+                                    } else if (this.modalConfirmarDeletar) {
+                                        this.cancelarDeletar();
+                                    } else if (this.mostrarControlesColunas) {
+                                        this.mostrarControlesColunas = false;
+                                    }
+                                    return;
+                                }
+
+                                // / : Focar no campo de busca (apenas se não estiver digitando)
+                                if (e.key === '/' && !isTyping) {
+                                    e.preventDefault();
+                                    console.log('⌨️ Atalho: / - Foco na busca');
+                                    const searchInput = document.querySelector('input[placeholder*="Pesquisar"]');
+                                    if (searchInput) {
+                                        searchInput.focus();
+                                        searchInput.select();
+                                    }
+                                    return;
+                                }
+
+                                // Ctrl+L: Limpar todos os filtros
+                                if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+                                    e.preventDefault();
+                                    console.log('⌨️ Atalho: Ctrl+L - Limpar filtros');
+                                    if (this.filtrosAtivos.etiquetas.length > 0 || this.filtrosAtivos.status.length > 0) {
+                                        this.limparTodosFiltros();
+                                    } else {
+                                        mostrarToast('info', 'Nenhum Filtro', 'Não há filtros ativos para limpar');
+                                    }
+                                    return;
+                                }
+
+                                // Ctrl+A: Abrir modal de alertas
+                                if (e.ctrlKey && e.key.toLowerCase() === 'a' && !isTyping) {
+                                    e.preventDefault();
+                                    console.log('⌨️ Atalho: Ctrl+A - Alertas');
+                                    this.abrirModalAlertas();
+                                    return;
+                                }
+
+                                // Ctrl+E: Abrir modal de etiquetas
+                                if (e.ctrlKey && e.key.toLowerCase() === 'e' && !isTyping) {
+                                    e.preventDefault();
+                                    console.log('⌨️ Atalho: Ctrl+E - Etiquetas');
+                                    this.abrirModalEtiquetas();
+                                    return;
+                                }
+
+                                // Ctrl+T: Abrir modal de status
+                                if (e.ctrlKey && e.key.toLowerCase() === 't' && !isTyping) {
+                                    e.preventDefault();
+                                    console.log('⌨️ Atalho: Ctrl+T - Status');
+                                    this.abrirModalStatus();
+                                    return;
+                                }
+                            });
+
+                            console.log('⌨️ Atalhos de teclado configurados');
+                            console.log('📋 Atalhos disponíveis:');
+                            console.log('   • Ctrl+N ou Alt+N: Nova nota');
+                            console.log('   • Esc: Fechar modais');
+                            console.log('   • /: Focar no campo de busca');
+                            console.log('   • Ctrl+L: Limpar todos os filtros');
+                            console.log('   • Ctrl+A: Abrir alertas');
+                            console.log('   • Ctrl+E: Abrir etiquetas');
+                            console.log('   • Ctrl+T: Abrir status');
                         }
                     }
                 }

@@ -210,6 +210,98 @@ public class NotaController {
     }
 
     /**
+     * GET /api/notas/buscar
+     * Busca notas por texto no título ou conteúdo.
+     * Query param: q (termo de busca)
+     */
+    public void buscarPorTexto(Context ctx) {
+        try {
+            String termo = ctx.queryParam("q");
+
+            if (termo == null || termo.trim().isEmpty()) {
+                ctx.status(400);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Parâmetro de busca 'q' é obrigatório"
+                ));
+                return;
+            }
+
+            List<NotaDTO> notas = notaService.buscarPorTexto(termo);
+
+            ctx.json(Map.of(
+                "success", true,
+                "dados", notas,
+                "total", notas.size()
+            ));
+
+            logger.debug("Busca por '{}': encontradas {} notas", termo, notas.size());
+
+        } catch (Exception e) {
+            logger.error("Erro ao buscar notas por texto", e);
+            ctx.status(500);
+            ctx.json(Map.of(
+                "success", false,
+                "message", "Erro ao buscar notas: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * GET /api/notas/intervalo
+     * Busca notas por intervalo de prazo final.
+     * Query params: inicio (data início), fim (data fim)
+     * Formatos aceitos: yyyy-MM-dd, dd/MM/yyyy, dd-MM-yyyy
+     */
+    public void buscarPorIntervaloPrazo(Context ctx) {
+        try {
+            String dataInicio = ctx.queryParam("inicio");
+            String dataFim = ctx.queryParam("fim");
+
+            if (dataInicio == null || dataInicio.trim().isEmpty()) {
+                ctx.status(400);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Parâmetro 'inicio' é obrigatório"
+                ));
+                return;
+            }
+
+            if (dataFim == null || dataFim.trim().isEmpty()) {
+                ctx.status(400);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Parâmetro 'fim' é obrigatório"
+                ));
+                return;
+            }
+
+            List<NotaDTO> notas = notaService.buscarPorIntervaloPrazo(dataInicio, dataFim);
+
+            ctx.json(Map.of(
+                "success", true,
+                "dados", notas,
+                "total", notas.size(),
+                "intervalo", Map.of(
+                    "inicio", dataInicio,
+                    "fim", dataFim
+                )
+            ));
+
+            logger.debug("Busca por intervalo {} - {}: encontradas {} notas",
+                dataInicio, dataFim, notas.size());
+
+        } catch (Exception e) {
+            logger.error("Erro ao buscar notas por intervalo de prazo", e);
+            ctx.status(500);
+            ctx.json(Map.of(
+                "success", false,
+                "message", "Erro ao buscar notas: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * POST /api/notas
      * Cria uma nova nota.
      */

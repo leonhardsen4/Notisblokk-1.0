@@ -235,3 +235,188 @@ Root path `/` redirects to `/login.html`
 **Dependencies not found:**
 - Run `mvn clean install` to download dependencies
 - Check internet connection for Maven Central access
+
+## Recent Improvements (December 2025)
+
+### PDF Export System
+
+**Individual PDF Export:**
+- Each note can be exported to PDF via button in the edit form
+- API endpoint: `GET /api/notas/{id}/pdf`
+- Uses iText library for professional PDF generation
+- Includes note metadata, formatted content, and branding
+
+**Bulk PDF Export:**
+- Multiple notes can be selected and exported in a single PDF report
+- Checkbox-based multi-selection system
+- API endpoint: `POST /api/notas/pdf/relatorio`
+- Generates consolidated report with all selected notes
+
+### User Interface Enhancements
+
+**Toast Notification System:**
+- Global toast notification system for user feedback
+- Four types: success (green), error (red), warning (yellow), info (blue)
+- Auto-dismiss after 4 seconds
+- Click to dismiss manually
+- Stacking support for multiple toasts
+- Function: `mostrarToast(tipo, titulo, mensagem)`
+
+**Loading Indicators:**
+- Global loading overlay with animated spinner
+- Context-specific messages ("Loading notes...", "Deleting note...", etc.)
+- Functions: `mostrarLoading(message)` and `ocultarLoading()`
+- Integrated in all async operations (11 total)
+
+**Visual Filters with Badges:**
+- Badge-based filters for Etiquetas and Status
+- Multi-selection capability
+- Active state highlighting
+- Dynamic counters showing quantity per category
+- Clear buttons for individual and all filters
+- Located in `index.html` lines 87-161
+
+**Date Range Filter:**
+- Filter notes by deadline (prazo final) date range
+- "From" and "To" date inputs
+- 5 preset buttons: Today, This Week, This Month, Next 7 Days, Next 30 Days
+- Integrates with existing filters
+- API endpoint: `GET /api/notas/intervalo?inicio={date}&fim={date}`
+
+**Keyboard Shortcuts:**
+- **Notes List (index.html):**
+  - `Ctrl+N` or `Alt+N`: New note
+  - `Esc`: Close modals
+  - `/`: Focus search field
+  - `Ctrl+L`: Clear all filters
+  - `Ctrl+A`: Open alerts modal
+  - `Ctrl+E`: Open tags modal
+  - `Ctrl+T`: Open status modal
+- **Note Form (form.html):**
+  - `Ctrl+S`: Save note
+  - `Ctrl+P`: Export PDF
+  - `Esc`: Cancel (with confirmation)
+
+**Note Preview Modal:**
+- Quick preview without leaving the list
+- Shows full note content with Quill rendering
+- Metadata display (tag, status, deadline)
+- "Edit" button for quick access
+- Accessible via eye icon in table
+
+### Performance Optimizations
+
+**Query Optimization:**
+- Eliminated N+1 query problem
+- Created `buscarTodasComRelacionamentos()` method in NotaRepository
+- Uses LEFT JOIN to fetch notes with tags and status in single query
+- Reduces database queries from potentially hundreds to one
+
+**Caching System:**
+- Thread-safe in-memory cache using `ConcurrentHashMap`
+- Implemented in `SimpleCache<K,V>` utility class
+- TTL-based expiration (5 minutes default)
+- Used by `EtiquetaService` and `StatusNotaService`
+- 3-level caching: full list, by ID, by name
+- Automatic invalidation on create/update/delete operations
+
+### Advanced Features
+
+**Expanded Search:**
+- Search in both title AND content
+- Case-insensitive search using SQL LOWER()
+- API endpoint: `GET /api/notas/buscar?q={term}`
+- Supports HTML content from Quill editor
+- Returns DTOs with full relationships
+
+**Bulk Actions:**
+- **Delete Multiple Notes:**
+  - Select multiple notes with checkboxes
+  - Confirmation modal listing all selected notes
+  - Parallel deletion using Promise.all
+  - Detailed feedback (success/error/partial counts)
+- **Change Status in Bulk:**
+  - Change status of multiple notes at once
+  - Dropdown to select new status
+  - Parallel updates via API PUT requests
+  - Preserves all other note fields
+  - Detailed feedback with status name
+
+### Code Quality
+
+**JSDoc Documentation:**
+- All JavaScript functions documented with JSDoc comments in Portuguese
+- Parameter types and return values specified
+- Usage examples provided
+- Located in `index.html` and `form.html`
+
+**JavaDoc Documentation:**
+- All Repository, Service, and Controller methods documented
+- Complete with @param, @return, and @throws tags
+- Portuguese descriptions
+- Includes implementation details
+
+**Error Handling:**
+- Try/catch blocks in all async operations
+- Individual error handling per item in bulk operations
+- Graceful fallbacks
+- Console logging for debugging
+- User-friendly error messages via toasts
+
+### Frontend Technology
+
+**Alpine.js Integration:**
+- Reactive data binding for dynamic UI
+- State management for modals, filters, selections
+- Event handling for user interactions
+- Located in `index.html` `notasApp()` function
+
+**Quill Editor:**
+- Rich text editor for note content
+- HTML output stored in database
+- Rendered properly in previews and PDFs
+
+**CSS Variables:**
+- Theme support (light/dark mode)
+- Consistent color palette via CSS custom properties
+- Responsive design with media queries
+- Located in `notas.css`
+
+### API Endpoints Added
+
+**Notes:**
+- `GET /api/notas/buscar?q={term}` - Search by text
+- `GET /api/notas/intervalo?inicio={date}&fim={date}` - Filter by date range
+- `GET /api/notas/{id}/pdf` - Export individual note to PDF
+- `POST /api/notas/pdf/relatorio` - Bulk PDF export
+
+**Services Created:**
+- `EtiquetaService` - Business logic for tags with caching
+- `StatusNotaService` - Business logic for status with caching
+- `PDFService` - PDF generation logic
+
+### File Structure
+
+**Key Files:**
+- `src/main/java/com/notisblokk/util/SimpleCache.java` - Thread-safe cache utility
+- `src/main/java/com/notisblokk/service/PDFService.java` - PDF generation
+- `src/main/java/com/notisblokk/service/EtiquetaService.java` - Tag management with cache
+- `src/main/java/com/notisblokk/service/StatusNotaService.java` - Status management with cache
+- `src/main/resources/templates/notas/index.html` - Enhanced notes list UI
+- `src/main/resources/templates/notas/form.html` - Note edit form with PDF export
+- `src/main/resources/public/css/notas.css` - Complete styling system
+
+### Testing Notes
+
+All features have been implemented and are ready for testing:
+- Test PDF generation with individual and bulk exports
+- Test toast notifications appear correctly
+- Test all keyboard shortcuts work as expected
+- Test filters combine properly (text search + tags + status + date range)
+- Test bulk actions handle errors gracefully
+- Test loading indicators show and hide correctly
+- Verify performance improvements with larger datasets
+- Test in both light and dark themes
+- Test responsive design on mobile devices
+
+For complete changelog, see `TAREFAS_MELHORIAS_ANOTACOES.md`

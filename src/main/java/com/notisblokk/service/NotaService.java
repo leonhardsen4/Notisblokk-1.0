@@ -68,13 +68,16 @@ public class NotaService {
     /**
      * Lista todas as notas do sistema como DTOs completos.
      *
+     * <p><b>OTIMIZADO:</b> Utiliza query com JOIN para evitar N+1 queries.
+     * Busca notas, etiquetas e status em uma única consulta ao banco.</p>
+     *
      * @return List<NotaDTO> lista de notas com etiquetas e status embutidos
      * @throws Exception se houver erro ao listar
      */
     public List<NotaDTO> listarTodas() throws Exception {
         try {
-            List<Nota> notas = notaRepository.buscarTodos();
-            return converterParaDTOs(notas);
+            // Usa método otimizado que faz JOIN e retorna DTOs diretamente
+            return notaRepository.buscarTodasComRelacionamentos();
 
         } catch (SQLException e) {
             logger.error("Erro ao listar notas", e);
@@ -132,6 +135,69 @@ public class NotaService {
         } catch (SQLException e) {
             logger.error("Erro ao listar notas por etiqueta {}", etiquetaId, e);
             throw new Exception("Erro ao listar notas: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Busca notas por texto no título ou conteúdo.
+     *
+     * <p>Busca case-insensitive que procura o termo fornecido tanto no título
+     * quanto no conteúdo das notas. Retorna DTOs completos com etiquetas e status.</p>
+     *
+     * @param termo termo de busca (pode conter espaços)
+     * @return List<NotaDTO> lista de notas que contêm o termo
+     * @throws Exception se houver erro ao buscar
+     */
+    public List<NotaDTO> buscarPorTexto(String termo) throws Exception {
+        try {
+            if (termo == null || termo.trim().isEmpty()) {
+                logger.debug("Termo de busca vazio, retornando lista vazia");
+                return new ArrayList<>();
+            }
+
+            return notaRepository.buscarPorTexto(termo.trim());
+
+        } catch (SQLException e) {
+            logger.error("Erro ao buscar notas por texto '{}'", termo, e);
+            throw new Exception("Erro ao buscar notas: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Busca notas por intervalo de prazo final.
+     *
+     * <p>Retorna notas cujo prazo final está entre as datas especificadas.
+     * Ambas as datas são inclusivas.</p>
+     *
+     * @param dataInicio data inicial do intervalo (formato: yyyy-MM-dd, dd/MM/yyyy ou dd-MM-yyyy)
+     * @param dataFim data final do intervalo (formato: yyyy-MM-dd, dd/MM/yyyy ou dd-MM-yyyy)
+     * @return List<NotaDTO> lista de notas no intervalo especificado
+     * @throws Exception se houver erro ao buscar ou formato de data inválido
+     */
+    public List<NotaDTO> buscarPorIntervaloPrazo(String dataInicio, String dataFim) throws Exception {
+        try {
+            if (dataInicio == null || dataInicio.trim().isEmpty()) {
+                throw new Exception("Data de início é obrigatória");
+            }
+
+            if (dataFim == null || dataFim.trim().isEmpty()) {
+                throw new Exception("Data de fim é obrigatória");
+            }
+
+            // Parse datas
+            LocalDate inicio = parsePrazoFinal(dataInicio);
+            LocalDate fim = parsePrazoFinal(dataFim);
+
+            // Validar que data de início não é posterior à data de fim
+            if (inicio.isAfter(fim)) {
+                throw new Exception("Data de início não pode ser posterior à data de fim");
+            }
+
+            return notaRepository.buscarPorIntervaloPrazo(inicio, fim);
+
+        } catch (SQLException e) {
+            logger.error("Erro ao buscar notas por intervalo de prazo: {} - {}", dataInicio, dataFim, e);
+            throw new Exception("Erro ao buscar notas: " + e.getMessage(), e);
         }
     }
 

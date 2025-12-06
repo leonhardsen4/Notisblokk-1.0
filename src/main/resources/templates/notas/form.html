@@ -243,6 +243,13 @@
                 notaId: notaData ? notaData.id : null,
 
                 /**
+                 * Inicializa o componente do formulário
+                 */
+                init() {
+                    this.setupKeyboardShortcuts();
+                },
+
+                /**
                  * Exporta a nota atual para PDF
                  * Só funciona ao editar uma nota existente
                  */
@@ -304,6 +311,56 @@
                         console.error('❌ Erro ao gerar PDF:', error);
                         alert(`Erro ao exportar PDF: ${error.message}`);
                     }
+                },
+
+                /**
+                 * Configura atalhos de teclado para o formulário.
+                 *
+                 * Atalhos disponíveis:
+                 * - Ctrl+S: Salvar nota
+                 * - Ctrl+P: Exportar PDF (apenas ao editar)
+                 * - Esc: Cancelar e voltar
+                 */
+                setupKeyboardShortcuts() {
+                    document.addEventListener('keydown', (e) => {
+                        // Ctrl+S: Salvar nota
+                        if (e.ctrlKey && e.key.toLowerCase() === 's') {
+                            e.preventDefault();
+                            console.log('⌨️ Atalho: Ctrl+S - Salvando nota');
+                            const form = document.getElementById('formNota');
+                            if (form) {
+                                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                            }
+                            return;
+                        }
+
+                        // Ctrl+P: Exportar PDF (apenas ao editar nota existente)
+                        if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+                            e.preventDefault();
+                            console.log('⌨️ Atalho: Ctrl+P - Exportar PDF');
+                            this.exportarPDF();
+                            return;
+                        }
+
+                        // Esc: Cancelar e voltar
+                        if (e.key === 'Escape') {
+                            // Ignorar se estiver focado no editor Quill (para permitir Esc fechar dropdowns do editor)
+                            if (e.target.closest('.ql-editor, .ql-toolbar')) {
+                                return;
+                            }
+                            console.log('⌨️ Atalho: ESC - Cancelar');
+                            if (confirm('Deseja cancelar e voltar? Alterações não salvas serão perdidas.')) {
+                                window.location.href = '/notas';
+                            }
+                            return;
+                        }
+                    });
+
+                    console.log('⌨️ Atalhos de teclado configurados (Formulário)');
+                    console.log('📋 Atalhos disponíveis:');
+                    console.log('   • Ctrl+S: Salvar nota');
+                    console.log('   • Ctrl+P: Exportar PDF');
+                    console.log('   • Esc: Cancelar e voltar');
                 }
             };
         }

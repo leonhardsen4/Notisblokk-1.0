@@ -1,7 +1,7 @@
 package com.notisblokk.controller;
 
 import com.notisblokk.model.StatusNota;
-import com.notisblokk.repository.StatusNotaRepository;
+import com.notisblokk.service.StatusNotaService;
 import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * Controller responsável pelo gerenciamento de status de notas.
@@ -26,31 +25,32 @@ import java.util.regex.Pattern;
  *   <li>DELETE /api/status/{id} - Deletar status</li>
  * </ul>
  *
+ * <p><b>OTIMIZADO:</b> Utiliza StatusNotaService com cache em memória.</p>
+ *
  * @author Notisblokk Team
- * @version 1.0
+ * @version 1.1
  * @since 2025-01-26
  */
 public class StatusNotaController {
 
     private static final Logger logger = LoggerFactory.getLogger(StatusNotaController.class);
-    private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("^#([0-9a-fA-F]{6})$");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-    private final StatusNotaRepository statusRepository;
+    private final StatusNotaService statusService;
 
     /**
      * Construtor padrão.
      */
     public StatusNotaController() {
-        this.statusRepository = new StatusNotaRepository();
+        this.statusService = new StatusNotaService();
     }
 
     /**
      * GET /api/status
-     * Lista todos os status, incluindo contador de notas.
+     * Lista todos os status, incluindo contador de notas (com cache).
      */
     public void listar(Context ctx) {
         try {
-            List<StatusNota> statusList = statusRepository.buscarTodos();
+            List<StatusNota> statusList = statusService.listarTodos();
 
             // Adicionar contador de notas para cada status
             List<Map<String, Object>> statusComContador = statusList.stream()
@@ -66,7 +66,7 @@ public class StatusNotaController {
                     }
 
                     try {
-                        long totalNotas = statusRepository.contarNotasPorStatus(status.getId());
+                        long totalNotas = statusService.contarNotasPorStatus(status.getId());
                         map.put("totalNotas", totalNotas);
                     } catch (Exception e) {
                         logger.error("Erro ao contar notas do status {}", status.getId(), e);
@@ -96,12 +96,12 @@ public class StatusNotaController {
 
     /**
      * GET /api/status/{id}
-     * Busca um status por ID.
+     * Busca um status por ID (com cache).
      */
     public void buscarPorId(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
-            Optional<StatusNota> statusOpt = statusRepository.buscarPorId(id);
+            Optional<StatusNota> statusOpt = statusService.buscarPorId(id);
 
             if (statusOpt.isEmpty()) {
                 ctx.status(404);
@@ -135,7 +135,7 @@ public class StatusNotaController {
 
     /**
      * POST /api/status
-     * Cria um novo status.
+     * Cria um novo status (invalida cache).
      */
     public void criar(Context ctx) {
         try {
@@ -144,45 +144,12 @@ public class StatusNotaController {
             String nome = (String) body.get("nome");
             String corHex = (String) body.get("corHex");
 
-            // Validações
-            if (nome == null || nome.trim().isEmpty()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Nome do status é obrigatório"
-                ));
-                return;
-            }
-
-            if (corHex == null || !HEX_COLOR_PATTERN.matcher(corHex).matches()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Cor em formato hexadecimal (#RRGGBB) é obrigatória"
-                ));
-                return;
-            }
-
-            // Verificar se já existe
-            if (statusRepository.buscarPorNome(nome).isPresent()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Já existe um status com este nome"
-                ));
-                return;
-            }
-
             // Obter sessão e usuário atual
             Long sessaoId = SessionUtil.getCurrentSessionId(ctx);
             Long usuarioId = SessionUtil.getCurrentUserId(ctx);
 
-            // Criar status
-            StatusNota status = new StatusNota();
-            status.setNome(nome.trim());
-            status.setCorHex(corHex.toUpperCase());
-
-            status = statusRepository.salvar(status, sessaoId, usuarioId);
+            // Criar via service (validações e cache são gerenciados lá)
+            StatusNota status = statusService.criar(nome, corHex, sessaoId, usuarioId);
 
             ctx.status(201);
             ctx.json(Map.of(
@@ -191,21 +158,26 @@ public class StatusNotaController {
                 "dados", status
             ));
 
-            logger.info("Status criado: {} por usuário {}", nome, usuarioId);
-
         } catch (Exception e) {
             logger.error("Erro ao criar status", e);
-            ctx.status(500);
+
+            // Determinar código de status HTTP baseado na mensagem de erro
+            int status = e.getMessage().contains("obrigatório") ||
+                         e.getMessage().contains("já existe") ||
+                         e.getMessage().contains("máximo") ||
+                         e.getMessage().contains("hexadecimal") ? 400 : 500;
+
+            ctx.status(status);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao criar status: " + e.getMessage()
+                "message", e.getMessage()
             ));
         }
     }
 
     /**
      * PUT /api/status/{id}
-     * Atualiza um status existente.
+     * Atualiza um status existente (invalida cache).
      */
     public void atualizar(Context ctx) {
         try {
@@ -216,61 +188,14 @@ public class StatusNotaController {
             String nome = (String) body.get("nome");
             String corHex = (String) body.get("corHex");
 
-            // Validações
-            if (nome == null || nome.trim().isEmpty()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Nome do status é obrigatório"
-                ));
-                return;
-            }
-
-            if (corHex == null || !HEX_COLOR_PATTERN.matcher(corHex).matches()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Cor em formato hexadecimal (#RRGGBB) é obrigatória"
-                ));
-                return;
-            }
-
-            // Buscar status existente
-            Optional<StatusNota> statusOpt = statusRepository.buscarPorId(id);
-            if (statusOpt.isEmpty()) {
-                ctx.status(404);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Status não encontrado"
-                ));
-                return;
-            }
-
-            StatusNota status = statusOpt.get();
-
-            // Verificar se o novo nome já existe em outro status
-            Optional<StatusNota> existente = statusRepository.buscarPorNome(nome);
-            if (existente.isPresent() && !existente.get().getId().equals(id)) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Já existe outro status com este nome"
-                ));
-                return;
-            }
-
-            // Atualizar
-            status.setNome(nome.trim());
-            status.setCorHex(corHex.toUpperCase());
-            statusRepository.atualizar(status);
+            // Atualizar via service (validações e cache são gerenciados lá)
+            StatusNota status = statusService.atualizar(id, nome, corHex);
 
             ctx.json(Map.of(
                 "success", true,
                 "message", "Status atualizado com sucesso",
                 "dados", status
             ));
-
-            logger.info("Status ID {} atualizado para: {}", id, nome);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -280,54 +205,38 @@ public class StatusNotaController {
             ));
         } catch (Exception e) {
             logger.error("Erro ao atualizar status", e);
-            ctx.status(500);
+
+            // Determinar código de status HTTP baseado na mensagem de erro
+            int status = e.getMessage().contains("não encontrado") ? 404 :
+                         (e.getMessage().contains("obrigatório") ||
+                          e.getMessage().contains("já existe") ||
+                          e.getMessage().contains("máximo") ||
+                          e.getMessage().contains("hexadecimal")) ? 400 : 500;
+
+            ctx.status(status);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao atualizar status: " + e.getMessage()
+                "message", e.getMessage()
             ));
         }
     }
 
     /**
      * DELETE /api/status/{id}
-     * Deleta um status.
+     * Deleta um status (invalida cache).
      * ATENÇÃO: Não será possível deletar se houver notas com esse status (RESTRICT).
      */
     public void deletar(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
 
-            // Verificar se status existe
-            Optional<StatusNota> statusOpt = statusRepository.buscarPorId(id);
-            if (statusOpt.isEmpty()) {
-                ctx.status(404);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Status não encontrado"
-                ));
-                return;
-            }
-
-            // Verificar se há notas com esse status
-            long totalNotas = statusRepository.contarNotasPorStatus(id);
-            if (totalNotas > 0) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", String.format("Não é possível deletar este status pois há %d nota(s) vinculada(s)", totalNotas)
-                ));
-                return;
-            }
-
-            // Deletar status
-            statusRepository.deletar(id);
+            // Deletar via service (validações e cache são gerenciados lá)
+            statusService.deletar(id);
 
             ctx.json(Map.of(
                 "success", true,
                 "message", "Status deletado com sucesso"
             ));
-
-            logger.warn("Status ID {} deletado", id);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -337,10 +246,15 @@ public class StatusNotaController {
             ));
         } catch (Exception e) {
             logger.error("Erro ao deletar status", e);
-            ctx.status(500);
+
+            // Determinar código de status HTTP baseado na mensagem de erro
+            int status = e.getMessage().contains("não encontrado") ? 404 :
+                         e.getMessage().contains("vinculada") ? 400 : 500;
+
+            ctx.status(status);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao deletar status: " + e.getMessage()
+                "message", e.getMessage()
             ));
         }
     }

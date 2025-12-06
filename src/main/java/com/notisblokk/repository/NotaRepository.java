@@ -146,6 +146,175 @@ public class NotaRepository {
     }
 
     /**
+     * Busca notas por texto no título ou conteúdo (case-insensitive).
+     *
+     * <p>Este método busca o termo fornecido tanto no título quanto no conteúdo das notas.
+     * A busca é case-insensitive usando LOWER() e retorna notas com relacionamentos completos.</p>
+     *
+     * @param termo termo de busca (será convertido para lowercase)
+     * @return List<NotaDTO> lista de notas que contêm o termo (vazia se não houver)
+     * @throws SQLException se houver erro ao acessar o banco
+     */
+    public List<com.notisblokk.model.NotaDTO> buscarPorTexto(String termo) throws SQLException {
+        if (termo == null || termo.trim().isEmpty()) {
+            logger.debug("Termo de busca vazio, retornando lista vazia");
+            return new ArrayList<>();
+        }
+
+        String sql = """
+            SELECT
+                n.id,
+                n.titulo,
+                n.conteudo,
+                n.prazo_final,
+                n.data_criacao,
+                n.data_atualizacao,
+                n.sessao_id,
+                n.usuario_id,
+                e.id as etiqueta_id,
+                e.nome as etiqueta_nome,
+                s.id as status_id,
+                s.nome as status_nome,
+                s.cor_hex as status_cor
+            FROM notas n
+            LEFT JOIN etiquetas e ON n.etiqueta_id = e.id
+            LEFT JOIN status_nota s ON n.status_id = s.id
+            WHERE LOWER(n.titulo) LIKE LOWER(?) OR LOWER(n.conteudo) LIKE LOWER(?)
+            ORDER BY n.prazo_final ASC, n.data_criacao DESC
+        """;
+
+        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+        String termoBusca = "%" + termo.trim() + "%";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, termoBusca);
+            pstmt.setString(2, termoBusca);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    notasDTO.add(mapResultSetToNotaDTOCompleto(rs));
+                }
+            }
+
+            logger.debug("Encontradas {} notas para o termo de busca '{}'", notasDTO.size(), termo);
+        }
+
+        return notasDTO;
+    }
+
+    /**
+     * Busca notas por intervalo de prazo final.
+     *
+     * <p>Retorna notas cujo prazo final está entre as datas especificadas (inclusive).
+     * Retorna DTOs completos com relacionamentos (etiquetas e status).</p>
+     *
+     * @param dataInicio data inicial do intervalo (inclusive)
+     * @param dataFim data final do intervalo (inclusive)
+     * @return List<NotaDTO> lista de notas no intervalo especificado
+     * @throws SQLException se houver erro ao acessar o banco
+     */
+    public List<com.notisblokk.model.NotaDTO> buscarPorIntervaloPrazo(LocalDate dataInicio, LocalDate dataFim)
+            throws SQLException {
+
+        if (dataInicio == null || dataFim == null) {
+            logger.debug("Data início ou fim é nula, retornando lista vazia");
+            return new ArrayList<>();
+        }
+
+        String sql = """
+            SELECT
+                n.id,
+                n.titulo,
+                n.conteudo,
+                n.prazo_final,
+                n.data_criacao,
+                n.data_atualizacao,
+                n.sessao_id,
+                n.usuario_id,
+                e.id as etiqueta_id,
+                e.nome as etiqueta_nome,
+                s.id as status_id,
+                s.nome as status_nome,
+                s.cor_hex as status_cor
+            FROM notas n
+            LEFT JOIN etiquetas e ON n.etiqueta_id = e.id
+            LEFT JOIN status_nota s ON n.status_id = s.id
+            WHERE n.prazo_final >= ? AND n.prazo_final <= ?
+            ORDER BY n.prazo_final ASC, n.data_criacao DESC
+        """;
+
+        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+        String dataInicioStr = dataInicio.format(DATE_FORMATTER);
+        String dataFimStr = dataFim.format(DATE_FORMATTER);
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, dataInicioStr);
+            pstmt.setString(2, dataFimStr);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    notasDTO.add(mapResultSetToNotaDTOCompleto(rs));
+                }
+            }
+
+            logger.debug("Encontradas {} notas entre {} e {}", notasDTO.size(), dataInicioStr, dataFimStr);
+        }
+
+        return notasDTO;
+    }
+
+    /**
+     * Busca todas as notas com seus relacionamentos (etiquetas e status) em uma única query.
+     *
+     * <p>Este método otimiza a performance ao usar LEFT JOIN para evitar o problema de N+1 queries.
+     * Retorna diretamente objetos NotaDTO com etiquetas e status já populados.</p>
+     *
+     * @return List<NotaDTO> lista de todas as notas com relacionamentos (vazia se não houver)
+     * @throws SQLException se houver erro ao acessar o banco
+     */
+    public List<com.notisblokk.model.NotaDTO> buscarTodasComRelacionamentos() throws SQLException {
+        String sql = """
+            SELECT
+                n.id,
+                n.titulo,
+                n.conteudo,
+                n.prazo_final,
+                n.data_criacao,
+                n.data_atualizacao,
+                n.sessao_id,
+                n.usuario_id,
+                e.id as etiqueta_id,
+                e.nome as etiqueta_nome,
+                s.id as status_id,
+                s.nome as status_nome,
+                s.cor_hex as status_cor
+            FROM notas n
+            LEFT JOIN etiquetas e ON n.etiqueta_id = e.id
+            LEFT JOIN status_nota s ON n.status_id = s.id
+            ORDER BY n.prazo_final ASC, n.data_criacao DESC
+        """;
+
+        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                notasDTO.add(mapResultSetToNotaDTOCompleto(rs));
+            }
+
+            logger.debug("Encontradas {} notas com relacionamentos (query otimizada)", notasDTO.size());
+        }
+
+        return notasDTO;
+    }
+
+    /**
      * Busca notas por usuário (para sistema de alertas).
      *
      * @param usuarioId ID do usuário
@@ -182,6 +351,87 @@ public class NotaRepository {
         }
 
         return notasDTO;
+    }
+
+    /**
+     * Mapeia ResultSet para NotaDTO com informações completas de etiqueta e status.
+     * Usado pelo método buscarTodasComRelacionamentos() que traz todos os campos.
+     *
+     * @param rs ResultSet com dados completos da query com JOINs
+     * @return NotaDTO objeto DTO completo com etiqueta e status
+     * @throws SQLException se houver erro ao ler o ResultSet
+     */
+    private com.notisblokk.model.NotaDTO mapResultSetToNotaDTOCompleto(ResultSet rs) throws SQLException {
+        com.notisblokk.model.NotaDTO dto = new com.notisblokk.model.NotaDTO();
+
+        // Dados da nota
+        dto.setId(rs.getLong("id"));
+        dto.setTitulo(rs.getString("titulo"));
+        dto.setConteudo(rs.getString("conteudo"));
+        dto.setSessaoId(rs.getLong("sessao_id"));
+        dto.setUsuarioId(rs.getLong("usuario_id"));
+
+        // Parse prazo_final (tentar formato brasileiro primeiro, depois ISO)
+        String prazoFinalStr = rs.getString("prazo_final");
+        if (prazoFinalStr != null && !prazoFinalStr.isEmpty()) {
+            try {
+                dto.setPrazoFinal(LocalDate.parse(prazoFinalStr, DATE_FORMATTER));
+            } catch (Exception e) {
+                try {
+                    dto.setPrazoFinal(LocalDate.parse(prazoFinalStr));
+                } catch (Exception ex) {
+                    logger.error("Erro ao parsear prazo_final: {}", prazoFinalStr);
+                }
+            }
+        }
+
+        // Parse datas de criação e atualização
+        String dataCriacaoStr = rs.getString("data_criacao");
+        if (dataCriacaoStr != null && !dataCriacaoStr.isEmpty()) {
+            try {
+                dto.setDataCriacao(LocalDateTime.parse(dataCriacaoStr, FORMATTER));
+            } catch (Exception e) {
+                try {
+                    dto.setDataCriacao(LocalDateTime.parse(dataCriacaoStr.replace(" ", "T")));
+                } catch (Exception ex) {
+                    logger.error("Erro ao parsear data_criacao: {}", dataCriacaoStr);
+                }
+            }
+        }
+
+        String dataAtualizacaoStr = rs.getString("data_atualizacao");
+        if (dataAtualizacaoStr != null && !dataAtualizacaoStr.isEmpty()) {
+            try {
+                dto.setDataAtualizacao(LocalDateTime.parse(dataAtualizacaoStr, FORMATTER));
+            } catch (Exception e) {
+                try {
+                    dto.setDataAtualizacao(LocalDateTime.parse(dataAtualizacaoStr.replace(" ", "T")));
+                } catch (Exception ex) {
+                    logger.error("Erro ao parsear data_atualizacao: {}", dataAtualizacaoStr);
+                }
+            }
+        }
+
+        // Etiqueta (pode ser NULL se LEFT JOIN não encontrou)
+        Long etiquetaId = rs.getLong("etiqueta_id");
+        if (!rs.wasNull()) {
+            com.notisblokk.model.Etiqueta etiqueta = new com.notisblokk.model.Etiqueta();
+            etiqueta.setId(etiquetaId);
+            etiqueta.setNome(rs.getString("etiqueta_nome"));
+            dto.setEtiqueta(etiqueta);
+        }
+
+        // Status (pode ser NULL se LEFT JOIN não encontrou)
+        Long statusId = rs.getLong("status_id");
+        if (!rs.wasNull()) {
+            com.notisblokk.model.StatusNota status = new com.notisblokk.model.StatusNota();
+            status.setId(statusId);
+            status.setNome(rs.getString("status_nome"));
+            status.setCorHex(rs.getString("status_cor"));
+            dto.setStatus(status);
+        }
+
+        return dto;
     }
 
     /**

@@ -36,7 +36,10 @@
                                 <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Prazo Vencido</p>
                                 <p style="font-size: 2rem; font-weight: 700; color: var(--color-danger-dark);" th:text="${notasVencidas}">0</p>
                             </div>
-                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--color-danger); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">!</div>
+                            <svg style="width: 48px; height: 48px; color: var(--color-danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11l4 4m0-4l-4 4"></path>
+                            </svg>
                         </div>
                         <p style="margin-top: 0.75rem; font-size: 0.875rem;">
                             <span th:if="${notasVencidas > 0}" style="color: var(--color-danger-dark);">Requer atenção imediata</span>

@@ -1,7 +1,7 @@
 package com.notisblokk.controller;
 
 import com.notisblokk.model.Etiqueta;
-import com.notisblokk.repository.EtiquetaRepository;
+import com.notisblokk.service.EtiquetaService;
 import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
@@ -24,29 +24,31 @@ import java.util.Optional;
  *   <li>DELETE /api/etiquetas/{id} - Deletar etiqueta</li>
  * </ul>
  *
+ * <p><b>OTIMIZADO:</b> Utiliza EtiquetaService com cache em memória.</p>
+ *
  * @author Notisblokk Team
- * @version 1.0
+ * @version 1.1
  * @since 2025-01-26
  */
 public class EtiquetaController {
 
     private static final Logger logger = LoggerFactory.getLogger(EtiquetaController.class);
-    private final EtiquetaRepository etiquetaRepository;
+    private final EtiquetaService etiquetaService;
 
     /**
      * Construtor padrão.
      */
     public EtiquetaController() {
-        this.etiquetaRepository = new EtiquetaRepository();
+        this.etiquetaService = new EtiquetaService();
     }
 
     /**
      * GET /api/etiquetas
-     * Lista todas as etiquetas, incluindo contador de notas.
+     * Lista todas as etiquetas, incluindo contador de notas (com cache).
      */
     public void listar(Context ctx) {
         try {
-            List<Etiqueta> etiquetas = etiquetaRepository.buscarTodos();
+            List<Etiqueta> etiquetas = etiquetaService.listarTodas();
 
             // Adicionar contador de notas para cada etiqueta
             List<Map<String, Object>> etiquetasComContador = etiquetas.stream()
@@ -57,7 +59,7 @@ public class EtiquetaController {
                     map.put("dataCriacao", etiqueta.getDataCriacao());
 
                     try {
-                        long totalNotas = etiquetaRepository.contarNotasPorEtiqueta(etiqueta.getId());
+                        long totalNotas = etiquetaService.contarNotasPorEtiqueta(etiqueta.getId());
                         map.put("totalNotas", totalNotas);
                     } catch (Exception e) {
                         logger.error("Erro ao contar notas da etiqueta {}", etiqueta.getId(), e);
@@ -87,12 +89,12 @@ public class EtiquetaController {
 
     /**
      * GET /api/etiquetas/{id}
-     * Busca uma etiqueta por ID.
+     * Busca uma etiqueta por ID (com cache).
      */
     public void buscarPorId(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
-            Optional<Etiqueta> etiquetaOpt = etiquetaRepository.buscarPorId(id);
+            Optional<Etiqueta> etiquetaOpt = etiquetaService.buscarPorId(id);
 
             if (etiquetaOpt.isEmpty()) {
                 ctx.status(404);
@@ -126,7 +128,7 @@ public class EtiquetaController {
 
     /**
      * POST /api/etiquetas
-     * Cria uma nova etiqueta.
+     * Cria uma nova etiqueta (invalida cache).
      */
     public void criar(Context ctx) {
         try {
@@ -134,35 +136,12 @@ public class EtiquetaController {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String nome = (String) body.get("nome");
 
-            // Validações
-            if (nome == null || nome.trim().isEmpty()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Nome da etiqueta é obrigatório"
-                ));
-                return;
-            }
-
-            // Verificar se já existe
-            if (etiquetaRepository.buscarPorNome(nome).isPresent()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Já existe uma etiqueta com este nome"
-                ));
-                return;
-            }
-
             // Obter sessão e usuário atual
             Long sessaoId = SessionUtil.getCurrentSessionId(ctx);
             Long usuarioId = SessionUtil.getCurrentUserId(ctx);
 
-            // Criar etiqueta
-            Etiqueta etiqueta = new Etiqueta();
-            etiqueta.setNome(nome.trim());
-
-            etiqueta = etiquetaRepository.salvar(etiqueta, sessaoId, usuarioId);
+            // Criar via service (validações e cache são gerenciados lá)
+            Etiqueta etiqueta = etiquetaService.criar(nome, sessaoId, usuarioId);
 
             ctx.status(201);
             ctx.json(Map.of(
@@ -171,21 +150,25 @@ public class EtiquetaController {
                 "dados", etiqueta
             ));
 
-            logger.info("Etiqueta criada: {} por usuário {}", nome, usuarioId);
-
         } catch (Exception e) {
             logger.error("Erro ao criar etiqueta", e);
-            ctx.status(500);
+
+            // Determinar código de status HTTP baseado na mensagem de erro
+            int status = e.getMessage().contains("obrigatório") ||
+                         e.getMessage().contains("já existe") ||
+                         e.getMessage().contains("máximo") ? 400 : 500;
+
+            ctx.status(status);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao criar etiqueta: " + e.getMessage()
+                "message", e.getMessage()
             ));
         }
     }
 
     /**
      * PUT /api/etiquetas/{id}
-     * Atualiza uma etiqueta existente.
+     * Atualiza uma etiqueta existente (invalida cache).
      */
     public void atualizar(Context ctx) {
         try {
@@ -195,51 +178,14 @@ public class EtiquetaController {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String nome = (String) body.get("nome");
 
-            // Validações
-            if (nome == null || nome.trim().isEmpty()) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Nome da etiqueta é obrigatório"
-                ));
-                return;
-            }
-
-            // Buscar etiqueta existente
-            Optional<Etiqueta> etiquetaOpt = etiquetaRepository.buscarPorId(id);
-            if (etiquetaOpt.isEmpty()) {
-                ctx.status(404);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Etiqueta não encontrada"
-                ));
-                return;
-            }
-
-            Etiqueta etiqueta = etiquetaOpt.get();
-
-            // Verificar se o novo nome já existe em outra etiqueta
-            Optional<Etiqueta> existente = etiquetaRepository.buscarPorNome(nome);
-            if (existente.isPresent() && !existente.get().getId().equals(id)) {
-                ctx.status(400);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Já existe outra etiqueta com este nome"
-                ));
-                return;
-            }
-
-            // Atualizar
-            etiqueta.setNome(nome.trim());
-            etiquetaRepository.atualizar(etiqueta);
+            // Atualizar via service (validações e cache são gerenciados lá)
+            Etiqueta etiqueta = etiquetaService.atualizar(id, nome);
 
             ctx.json(Map.of(
                 "success", true,
                 "message", "Etiqueta atualizada com sucesso",
                 "dados", etiqueta
             ));
-
-            logger.info("Etiqueta ID {} atualizada para: {}", id, nome);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -249,46 +195,37 @@ public class EtiquetaController {
             ));
         } catch (Exception e) {
             logger.error("Erro ao atualizar etiqueta", e);
-            ctx.status(500);
+
+            // Determinar código de status HTTP baseado na mensagem de erro
+            int status = e.getMessage().contains("não encontrada") ? 404 :
+                         (e.getMessage().contains("obrigatório") ||
+                          e.getMessage().contains("já existe") ||
+                          e.getMessage().contains("máximo")) ? 400 : 500;
+
+            ctx.status(status);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao atualizar etiqueta: " + e.getMessage()
+                "message", e.getMessage()
             ));
         }
     }
 
     /**
      * DELETE /api/etiquetas/{id}
-     * Deleta uma etiqueta.
+     * Deleta uma etiqueta (invalida cache).
      * ATENÇÃO: Cascata irá deletar todas as notas associadas!
      */
     public void deletar(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
 
-            // Verificar se etiqueta existe
-            Optional<Etiqueta> etiquetaOpt = etiquetaRepository.buscarPorId(id);
-            if (etiquetaOpt.isEmpty()) {
-                ctx.status(404);
-                ctx.json(Map.of(
-                    "success", false,
-                    "message", "Etiqueta não encontrada"
-                ));
-                return;
-            }
-
-            // Verificar quantas notas serão deletadas
-            long totalNotas = etiquetaRepository.contarNotasPorEtiqueta(id);
-
-            // Deletar etiqueta
-            etiquetaRepository.deletar(id);
+            // Deletar via service (retorna quantidade de notas deletadas)
+            long totalNotas = etiquetaService.deletar(id);
 
             ctx.json(Map.of(
                 "success", true,
                 "message", String.format("Etiqueta deletada com sucesso (%d nota(s) também foram deletadas)", totalNotas)
             ));
-
-            logger.warn("Etiqueta ID {} deletada (cascata: {} notas)", id, totalNotas);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -298,10 +235,14 @@ public class EtiquetaController {
             ));
         } catch (Exception e) {
             logger.error("Erro ao deletar etiqueta", e);
-            ctx.status(500);
+
+            // Determinar código de status HTTP baseado na mensagem de erro
+            int status = e.getMessage().contains("não encontrada") ? 404 : 500;
+
+            ctx.status(status);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao deletar etiqueta: " + e.getMessage()
+                "message", e.getMessage()
             ));
         }
     }
