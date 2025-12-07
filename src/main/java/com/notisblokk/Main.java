@@ -488,13 +488,17 @@ public class Main {
         app.get("/api/audiencias/conflitos", audienciaController::verificarConflitos);
         app.get("/api/audiencias/data/{data}", audienciaController::buscarPorData);
         app.get("/api/audiencias/vara/{varaId}", audienciaController::buscarPorVara);
+        app.get("/api/audiencias/buscar", audienciaController::buscarAvancada);
+        app.get("/api/audiencias/alertas/proximas", audienciaController::buscarAudienciasComAlertas);
         app.get("/api/audiencias", audienciaController::listar);
         app.get("/api/audiencias/{id}", audienciaController::buscarPorId);
         app.post("/api/audiencias", audienciaController::criar);
         app.put("/api/audiencias/{id}", audienciaController::atualizar);
         app.delete("/api/audiencias/{id}", audienciaController::deletar);
+        app.post("/api/audiencias/deletar-multiplas", audienciaController::deletarMultiplas);
+        app.put("/api/audiencias/mudar-status", audienciaController::mudarStatusEmMassa);
 
-        System.out.println("DEBUG_AUDIENCIAS: 36 rotas de audiências registradas com sucesso!");
+        System.out.println("DEBUG_AUDIENCIAS: 40 rotas de audiências registradas com sucesso!");
 
         // ========== SERVIR ARQUIVOS DE UPLOAD ==========
 

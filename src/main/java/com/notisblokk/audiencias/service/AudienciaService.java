@@ -410,4 +410,200 @@ public class AudienciaService {
 
         System.out.println("DEBUG_AUDIENCIAS: Todos os participantes foram salvos com sucesso");
     }
+
+    /**
+     * Calcula o nível de criticidade de uma audiência com base nos dias restantes.
+     *
+     * @param audiencia Audiência a ser analisada
+     * @return Nível de criticidade: CRITICO (0-3 dias), ALTO (4-7 dias), MEDIO (8-15 dias), BAIXO (>15 dias)
+     */
+    public String calcularCriticidade(Audiencia audiencia) {
+        if (audiencia == null || audiencia.getDataAudiencia() == null) {
+            return "BAIXO";
+        }
+
+        LocalDate hoje = LocalDate.now();
+        long diasRestantes = java.time.temporal.ChronoUnit.DAYS.between(hoje, audiencia.getDataAudiencia());
+
+        if (diasRestantes < 0) {
+            // Audiência já passou
+            return "BAIXO";
+        } else if (diasRestantes <= 3) {
+            return "CRITICO";
+        } else if (diasRestantes <= 7) {
+            return "ALTO";
+        } else if (diasRestantes <= 15) {
+            return "MEDIO";
+        } else {
+            return "BAIXO";
+        }
+    }
+
+    /**
+     * Lista informações ausentes/pendentes em uma audiência.
+     *
+     * @param audiencia Audiência a ser verificada
+     * @return Lista de strings descrevendo o que falta (ex: "Juiz", "Promotor", "Tipo")
+     * @throws SQLException Se houver erro ao buscar participantes
+     */
+    public List<String> listarInformacoesAusentes(Audiencia audiencia) throws SQLException {
+        List<String> ausentes = new java.util.ArrayList<>();
+
+        if (audiencia == null) {
+            return ausentes;
+        }
+
+        // Verificar campos obrigatórios/importantes
+        if (audiencia.getJuiz() == null) {
+            ausentes.add("Juiz");
+        }
+
+        if (audiencia.getPromotor() == null) {
+            ausentes.add("Promotor");
+        }
+
+        if (audiencia.getTipoAudiencia() == null) {
+            ausentes.add("Tipo de Audiência");
+        }
+
+        if (audiencia.getFormato() == null) {
+            ausentes.add("Formato");
+        }
+
+        // Verificar participantes
+        List<ParticipacaoAudiencia> participantes = participacaoRepository.buscarPorAudiencia(audiencia.getId());
+        if (participantes == null || participantes.isEmpty()) {
+            ausentes.add("Nenhum participante cadastrado");
+        } else {
+            // Contar participantes não intimados
+            long naoIntimados = participantes.stream()
+                .filter(p -> p.getIntimado() == null || !p.getIntimado())
+                .count();
+
+            if (naoIntimados > 0) {
+                ausentes.add(naoIntimados + " participante(s) não intimado(s)");
+            }
+        }
+
+        return ausentes;
+    }
+
+    /**
+     * Calcula quantos dias faltam para uma audiência.
+     *
+     * @param audiencia Audiência
+     * @return Número de dias restantes (negativo se já passou)
+     */
+    public long calcularDiasRestantes(Audiencia audiencia) {
+        if (audiencia == null || audiencia.getDataAudiencia() == null) {
+            return -1;
+        }
+
+        LocalDate hoje = LocalDate.now();
+        return java.time.temporal.ChronoUnit.DAYS.between(hoje, audiencia.getDataAudiencia());
+    }
+
+    /**
+     * Busca audiências com alertas nos próximos N dias.
+     * Retorna apenas audiências que têm alguma informação ausente.
+     *
+     * @param diasProximos Quantidade de dias para buscar (ex: 3, 7, 15)
+     * @return Lista de audiências com alertas
+     * @throws SQLException Se houver erro no banco
+     */
+    public List<Audiencia> buscarAudienciasComAlertas(int diasProximos) throws SQLException {
+        LocalDate hoje = LocalDate.now();
+        LocalDate dataLimite = hoje.plusDays(diasProximos);
+
+        // Buscar todas as audiências do período
+        List<Audiencia> todasAudiencias = audienciaRepository.buscarTodas();
+        List<Audiencia> comAlertas = new java.util.ArrayList<>();
+
+        for (Audiencia aud : todasAudiencias) {
+            if (aud.getDataAudiencia() == null) continue;
+
+            // Filtrar por data
+            if (aud.getDataAudiencia().isAfter(hoje.minusDays(1)) &&
+                aud.getDataAudiencia().isBefore(dataLimite.plusDays(1))) {
+
+                // Verificar se tem informações ausentes
+                List<String> ausentes = listarInformacoesAusentes(aud);
+                if (!ausentes.isEmpty()) {
+                    comAlertas.add(aud);
+                }
+            }
+        }
+
+        return comAlertas;
+    }
+
+    /**
+     * Busca audiências por múltiplos critérios (busca avançada).
+     * Pesquisa em: número do processo, vara, competência, juiz, promotor, tipo, status.
+     *
+     * @param termo Termo de busca
+     * @return Lista de audiências que correspondem ao termo
+     * @throws SQLException Se houver erro no banco
+     */
+    public List<Audiencia> buscarAvancada(String termo) throws SQLException {
+        if (termo == null || termo.trim().isEmpty()) {
+            return listarTodas();
+        }
+
+        String termoLower = termo.toLowerCase();
+        List<Audiencia> todas = listarTodas();
+        List<Audiencia> resultados = new java.util.ArrayList<>();
+
+        for (Audiencia aud : todas) {
+            boolean match = false;
+
+            // Buscar em número do processo
+            if (aud.getNumeroProcesso() != null &&
+                aud.getNumeroProcesso().toLowerCase().contains(termoLower)) {
+                match = true;
+            }
+
+            // Buscar em vara
+            if (aud.getVara() != null && aud.getVara().getNome() != null &&
+                aud.getVara().getNome().toLowerCase().contains(termoLower)) {
+                match = true;
+            }
+
+            // Buscar em competência
+            if (aud.getCompetencia() != null &&
+                aud.getCompetencia().getDescricao().toLowerCase().contains(termoLower)) {
+                match = true;
+            }
+
+            // Buscar em juiz
+            if (aud.getJuiz() != null && aud.getJuiz().getNome() != null &&
+                aud.getJuiz().getNome().toLowerCase().contains(termoLower)) {
+                match = true;
+            }
+
+            // Buscar em promotor
+            if (aud.getPromotor() != null && aud.getPromotor().getNome() != null &&
+                aud.getPromotor().getNome().toLowerCase().contains(termoLower)) {
+                match = true;
+            }
+
+            // Buscar em tipo
+            if (aud.getTipoAudiencia() != null &&
+                aud.getTipoAudiencia().getDescricao().toLowerCase().contains(termoLower)) {
+                match = true;
+            }
+
+            // Buscar em status
+            if (aud.getStatus() != null &&
+                aud.getStatus().name().toLowerCase().contains(termoLower)) {
+                match = true;
+            }
+
+            if (match) {
+                resultados.add(aud);
+            }
+        }
+
+        return resultados;
+    }
 }

@@ -409,4 +409,248 @@ public class AudienciaController {
             ));
         }
     }
+
+    /**
+     * Busca avançada de audiências.
+     * Pesquisa em: número do processo, vara, competência, juiz, promotor, tipo, status.
+     *
+     * GET /api/audiencias/buscar?q=termo
+     *
+     * @param ctx Contexto do Javalin com o parâmetro q (query)
+     */
+    public void buscarAvancada(Context ctx) {
+        try {
+            String termo = ctx.queryParam("q");
+
+            List<Audiencia> resultados = audienciaService.buscarAvancada(termo);
+
+            ctx.json(Map.of(
+                "success", true,
+                "dados", resultados,
+                "total", resultados.size()
+            ));
+
+        } catch (Exception e) {
+            logger.error("Erro ao buscar audiências", e);
+            ctx.status(500);
+            ctx.json(Map.of(
+                "success", false,
+                "message", "Erro ao buscar audiências: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Busca audiências com alertas nos próximos N dias.
+     * Retorna apenas audiências que têm informações ausentes.
+     *
+     * GET /api/audiencias/alertas/proximas?dias=7
+     *
+     * @param ctx Contexto do Javalin com o parâmetro dias
+     */
+    public void buscarAudienciasComAlertas(Context ctx) {
+        try {
+            String diasParam = ctx.queryParam("dias");
+            int dias = diasParam != null ? Integer.parseInt(diasParam) : 7;
+
+            List<Audiencia> audiencias = audienciaService.buscarAudienciasComAlertas(dias);
+
+            // Enriquecer com informações de alertas
+            List<Map<String, Object>> audienciasComAlertas = new java.util.ArrayList<>();
+            for (Audiencia aud : audiencias) {
+                String criticidade = audienciaService.calcularCriticidade(aud);
+                List<String> ausentes = audienciaService.listarInformacoesAusentes(aud);
+                long diasRestantes = audienciaService.calcularDiasRestantes(aud);
+
+                // Cores dos badges por criticidade
+                String corBadge = switch (criticidade) {
+                    case "CRITICO" -> "#EF4444";  // vermelho
+                    case "ALTO" -> "#F97316";     // laranja
+                    case "MEDIO" -> "#F59E0B";    // amarelo
+                    default -> "#10B981";         // verde
+                };
+
+                // Ícones por criticidade
+                String icone = switch (criticidade) {
+                    case "CRITICO" -> "🔴";
+                    case "ALTO" -> "🟠";
+                    case "MEDIO" -> "🟡";
+                    default -> "🟢";
+                };
+
+                Map<String, Object> audComAlerta = new java.util.HashMap<>();
+                audComAlerta.put("id", aud.getId());
+                audComAlerta.put("numeroProcesso", aud.getNumeroProcesso());
+                audComAlerta.put("dataAudiencia", aud.getDataAudiencia());
+                audComAlerta.put("horarioInicio", aud.getHorarioInicio());
+                audComAlerta.put("vara", aud.getVara() != null ? aud.getVara().getNome() : null);
+                audComAlerta.put("competencia", aud.getCompetencia() != null ? aud.getCompetencia().getDescricao() : null);
+                audComAlerta.put("juiz", aud.getJuiz() != null ? aud.getJuiz().getNome() : null);
+                audComAlerta.put("promotor", aud.getPromotor() != null ? aud.getPromotor().getNome() : null);
+                audComAlerta.put("tipoAudiencia", aud.getTipoAudiencia() != null ? aud.getTipoAudiencia().getDescricao() : null);
+                audComAlerta.put("diasRestantes", diasRestantes);
+                audComAlerta.put("informacoesAusentes", ausentes);
+                audComAlerta.put("nivelCriticidade", criticidade);
+                audComAlerta.put("corBadge", corBadge);
+                audComAlerta.put("iconeCriticidade", icone);
+
+                audienciasComAlertas.add(audComAlerta);
+            }
+
+            ctx.json(Map.of(
+                "success", true,
+                "dados", audienciasComAlertas,
+                "total", audienciasComAlertas.size()
+            ));
+
+        } catch (Exception e) {
+            logger.error("Erro ao buscar audiências com alertas", e);
+            ctx.status(500);
+            ctx.json(Map.of(
+                "success", false,
+                "message", "Erro ao buscar audiências com alertas: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Deleta múltiplas audiências de uma vez (ação em massa).
+     *
+     * POST /api/audiencias/deletar-multiplas
+     * Body: { "ids": [1, 2, 3] }
+     *
+     * @param ctx Contexto do Javalin com a lista de IDs no body
+     */
+    public void deletarMultiplas(Context ctx) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            @SuppressWarnings("unchecked")
+            List<Number> ids = (List<Number>) body.get("ids");
+
+            if (ids == null || ids.isEmpty()) {
+                ctx.status(400);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Nenhum ID fornecido"
+                ));
+                return;
+            }
+
+            int deletados = 0;
+            int erros = 0;
+            List<String> mensagensErro = new java.util.ArrayList<>();
+
+            for (Number idNum : ids) {
+                try {
+                    Long id = idNum.longValue();
+                    audienciaService.deletar(id);
+                    deletados++;
+                } catch (Exception e) {
+                    erros++;
+                    mensagensErro.add("Erro ao deletar ID " + idNum + ": " + e.getMessage());
+                }
+            }
+
+            ctx.json(Map.of(
+                "success", erros == 0,
+                "deletados", deletados,
+                "erros", erros,
+                "mensagensErro", mensagensErro,
+                "message", deletados + " audiência(s) deletada(s) com sucesso" +
+                          (erros > 0 ? ", " + erros + " erro(s)" : "")
+            ));
+
+        } catch (Exception e) {
+            logger.error("Erro ao deletar múltiplas audiências", e);
+            ctx.status(500);
+            ctx.json(Map.of(
+                "success", false,
+                "message", "Erro ao deletar audiências: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Muda o status de múltiplas audiências de uma vez (ação em massa).
+     *
+     * PUT /api/audiencias/mudar-status
+     * Body: { "ids": [1, 2, 3], "novoStatus": "REALIZADA" }
+     *
+     * @param ctx Contexto do Javalin com a lista de IDs e novo status no body
+     */
+    public void mudarStatusEmMassa(Context ctx) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            @SuppressWarnings("unchecked")
+            List<Number> ids = (List<Number>) body.get("ids");
+            String novoStatusStr = (String) body.get("novoStatus");
+
+            if (ids == null || ids.isEmpty()) {
+                ctx.status(400);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Nenhum ID fornecido"
+                ));
+                return;
+            }
+
+            if (novoStatusStr == null || novoStatusStr.isEmpty()) {
+                ctx.status(400);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Novo status não fornecido"
+                ));
+                return;
+            }
+
+            // Validar enum
+            StatusAudiencia novoStatus;
+            try {
+                novoStatus = StatusAudiencia.valueOf(novoStatusStr);
+            } catch (IllegalArgumentException e) {
+                ctx.status(400);
+                ctx.json(Map.of(
+                    "success", false,
+                    "message", "Status inválido: " + novoStatusStr
+                ));
+                return;
+            }
+
+            int atualizados = 0;
+            int erros = 0;
+            List<String> mensagensErro = new java.util.ArrayList<>();
+
+            for (Number idNum : ids) {
+                try {
+                    Long id = idNum.longValue();
+                    Audiencia aud = audienciaService.buscarPorId(id).orElseThrow();
+                    aud.setStatus(novoStatus);
+                    audienciaService.atualizar(id, aud);
+                    atualizados++;
+                } catch (Exception e) {
+                    erros++;
+                    mensagensErro.add("Erro ao atualizar ID " + idNum + ": " + e.getMessage());
+                }
+            }
+
+            ctx.json(Map.of(
+                "success", erros == 0,
+                "atualizados", atualizados,
+                "erros", erros,
+                "mensagensErro", mensagensErro,
+                "message", atualizados + " audiência(s) atualizada(s) para " + novoStatus.name() +
+                          (erros > 0 ? ", " + erros + " erro(s)" : "")
+            ));
+
+        } catch (Exception e) {
+            logger.error("Erro ao mudar status em massa", e);
+            ctx.status(500);
+            ctx.json(Map.of(
+                "success", false,
+                "message", "Erro ao mudar status: " + e.getMessage()
+            ));
+        }
+    }
 }
