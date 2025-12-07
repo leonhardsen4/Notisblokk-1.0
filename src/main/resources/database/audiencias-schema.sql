@@ -273,9 +273,175 @@ BEGIN
 END;
 
 -- ============================================================================
+-- TABELA: PROCESSO (NOVA - ENTIDADE CENTRAL)
+-- Descrição: Processo judicial, entidade central que agrega audiências
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS processo (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    numero_processo TEXT NOT NULL UNIQUE,
+    competencia TEXT NOT NULL,         -- Enum: Competencia
+    artigo TEXT,
+    vara_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'EM_ANDAMENTO',  -- Enum: StatusProcesso
+    observacoes TEXT,
+
+    -- Auditoria
+    criado_em TEXT DEFAULT (datetime('now', 'localtime')),
+    atualizado_em TEXT DEFAULT (datetime('now', 'localtime')),
+
+    -- Foreign Keys
+    FOREIGN KEY (vara_id) REFERENCES vara(id) ON DELETE RESTRICT,
+
+    -- Validações
+    CONSTRAINT chk_processo_numero CHECK (length(trim(numero_processo)) > 0)
+);
+
+-- ============================================================================
+-- TABELA: PROCESSO_PARTICIPANTE
+-- Descrição: Participantes vinculados ao processo (não à audiência individual)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS processo_participante (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    processo_id INTEGER NOT NULL,
+    pessoa_id INTEGER NOT NULL,
+    tipo_participacao TEXT NOT NULL,   -- Enum: TipoParticipacao
+    observacoes TEXT,
+    criado_em TEXT DEFAULT (datetime('now', 'localtime')),
+
+    -- Foreign Keys
+    FOREIGN KEY (processo_id) REFERENCES processo(id) ON DELETE CASCADE,
+    FOREIGN KEY (pessoa_id) REFERENCES pessoa(id) ON DELETE CASCADE,
+
+    -- Prevenir duplicatas
+    UNIQUE(processo_id, pessoa_id, tipo_participacao)
+);
+
+-- ============================================================================
+-- TABELA: AUDIENCIA_PARTICIPANTE
+-- Descrição: Participantes do processo selecionados para audiência específica
+--            com controle de intimação e oitiva
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS audiencia_participante (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    audiencia_id INTEGER NOT NULL,
+    processo_participante_id INTEGER NOT NULL,
+
+    -- Status de controle
+    status_intimacao TEXT NOT NULL DEFAULT 'NAO_INTIMADA',  -- Enum: StatusIntimacao
+    status_oitiva TEXT NOT NULL DEFAULT 'AGUARDANDO',       -- Enum: StatusOitiva
+
+    -- Informações sobre desistência
+    observacoes_desistencia TEXT,      -- Ex: "Desistência da Defesa", "Desistência do MP"
+
+    -- Informações sobre oitiva anterior
+    data_oitiva_anterior TEXT,         -- Formato: dd/MM/yyyy
+    observacoes_oitiva TEXT,           -- Detalhes sobre oitiva anterior
+
+    -- Presença e observações
+    presente INTEGER DEFAULT 0,
+    observacoes TEXT,
+
+    -- Auditoria
+    criado_em TEXT DEFAULT (datetime('now', 'localtime')),
+    atualizado_em TEXT DEFAULT (datetime('now', 'localtime')),
+
+    -- Foreign Keys
+    FOREIGN KEY (audiencia_id) REFERENCES audiencia(id) ON DELETE CASCADE,
+    FOREIGN KEY (processo_participante_id) REFERENCES processo_participante(id) ON DELETE CASCADE,
+
+    -- Prevenir duplicatas
+    UNIQUE(audiencia_id, processo_participante_id),
+
+    -- Validações
+    CONSTRAINT chk_aud_part_presente CHECK (presente IN (0, 1))
+);
+
+-- ============================================================================
+-- MIGRAÇÃO: Adicionar processo_id à tabela AUDIENCIA
+-- Remover campos que agora pertencem ao Processo
+-- ============================================================================
+-- IMPORTANTE: Esta migração será aplicada apenas uma vez
+-- Tabela audiencia agora referencia processo ao invés de duplicar dados
+
+-- Adicionar coluna processo_id (temporariamente NULL para compatibilidade)
+ALTER TABLE audiencia ADD COLUMN processo_id INTEGER;
+
+-- Criar índice para processo_id
+CREATE INDEX IF NOT EXISTS idx_audiencia_processo_id ON audiencia(processo_id);
+
+-- ============================================================================
+-- MIGRAÇÃO: Modificar REPRESENTACAO_ADVOGADO para referenciar PROCESSO
+-- ============================================================================
+-- Advogados representam clientes no processo todo, não em audiências individuais
+
+-- Criar nova tabela com estrutura correta
+CREATE TABLE IF NOT EXISTS representacao_advogado_new (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    processo_id INTEGER NOT NULL,
+    advogado_id INTEGER NOT NULL,
+    cliente_id INTEGER NOT NULL,       -- Pessoa sendo representada
+    tipo TEXT NOT NULL,                -- Enum: TipoRepresentacao
+
+    -- Foreign Keys
+    FOREIGN KEY (processo_id) REFERENCES processo(id) ON DELETE CASCADE,
+    FOREIGN KEY (advogado_id) REFERENCES advogado(id) ON DELETE RESTRICT,
+    FOREIGN KEY (cliente_id) REFERENCES pessoa(id) ON DELETE RESTRICT
+);
+
+-- Copiar dados existentes (se houver) - será feito em migração futura
+-- Por enquanto, deixar tabela nova vazia
+
+-- ============================================================================
+-- ÍNDICES PARA AS NOVAS TABELAS
+-- ============================================================================
+
+-- Índices da tabela PROCESSO
+CREATE INDEX IF NOT EXISTS idx_processo_numero ON processo(numero_processo);
+CREATE INDEX IF NOT EXISTS idx_processo_vara ON processo(vara_id);
+CREATE INDEX IF NOT EXISTS idx_processo_status ON processo(status);
+
+-- Índices da tabela PROCESSO_PARTICIPANTE
+CREATE INDEX IF NOT EXISTS idx_proc_part_processo ON processo_participante(processo_id);
+CREATE INDEX IF NOT EXISTS idx_proc_part_pessoa ON processo_participante(pessoa_id);
+
+-- Índices da tabela AUDIENCIA_PARTICIPANTE
+CREATE INDEX IF NOT EXISTS idx_aud_part_audiencia ON audiencia_participante(audiencia_id);
+CREATE INDEX IF NOT EXISTS idx_aud_part_intimacao ON audiencia_participante(status_intimacao);
+CREATE INDEX IF NOT EXISTS idx_aud_part_oitiva ON audiencia_participante(status_oitiva);
+
+-- Índices da nova tabela REPRESENTACAO_ADVOGADO
+CREATE INDEX IF NOT EXISTS idx_repr_new_processo ON representacao_advogado_new(processo_id);
+CREATE INDEX IF NOT EXISTS idx_repr_new_advogado ON representacao_advogado_new(advogado_id);
+CREATE INDEX IF NOT EXISTS idx_repr_new_cliente ON representacao_advogado_new(cliente_id);
+
+-- ============================================================================
+-- TRIGGERS PARA AUDITORIA DAS NOVAS TABELAS
+-- ============================================================================
+
+-- Trigger para atualizar campo 'atualizado_em' em processo
+CREATE TRIGGER IF NOT EXISTS trg_processo_atualizacao
+AFTER UPDATE ON processo
+FOR EACH ROW
+BEGIN
+    UPDATE processo
+    SET atualizado_em = datetime('now', 'localtime')
+    WHERE id = NEW.id;
+END;
+
+-- Trigger para atualizar campo 'atualizado_em' em audiencia_participante
+CREATE TRIGGER IF NOT EXISTS trg_aud_part_atualizacao
+AFTER UPDATE ON audiencia_participante
+FOR EACH ROW
+BEGIN
+    UPDATE audiencia_participante
+    SET atualizado_em = datetime('now', 'localtime')
+    WHERE id = NEW.id;
+END;
+
+-- ============================================================================
 -- FIM DO SCHEMA
 -- ============================================================================
--- Total de tabelas criadas: 8
--- Total de índices criados: 18
--- Total de triggers criados: 1
+-- Total de tabelas criadas: 11 (8 antigas + 3 novas)
+-- Total de índices criados: 28 (18 antigos + 10 novos)
+-- Total de triggers criados: 3 (1 antigo + 2 novos)
 -- ============================================================================
