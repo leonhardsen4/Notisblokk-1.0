@@ -9,7 +9,7 @@
             <h1 class="mb-4" style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);">Dashboard</h1>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-3 mb-4">
+            <div class="grid grid-cols-4 mb-4">
                 <!-- Total Anotações -->
                 <div class="card">
                     <div class="card-body">
@@ -61,6 +61,23 @@
                         <p style="margin-top: 0.75rem; font-size: 0.875rem;">
                             <span th:if="${notasUrgentes > 0}" style="color: var(--color-warning-dark);">Prazo próximo do vencimento</span>
                             <span th:if="${notasUrgentes == 0}" style="color: var(--color-text-secondary);">Nenhuma anotação urgente</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Audiências com Pendências -->
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Audiências Pendentes</p>
+                                <p style="font-size: 2rem; font-weight: 700; color: #DC2626;" th:text="${totalAudienciasComAlertas}">0</p>
+                            </div>
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: #DC2626; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">🔔</div>
+                        </div>
+                        <p style="margin-top: 0.75rem; font-size: 0.875rem;">
+                            <span th:if="${totalAudienciasComAlertas > 0}" style="color: #DC2626;">Informações ausentes</span>
+                            <span th:if="${totalAudienciasComAlertas == 0}" style="color: var(--color-text-secondary);">Tudo em ordem</span>
                         </p>
                     </div>
                 </div>
@@ -122,8 +139,72 @@
                 </div>
             </div>
 
+            <!-- Alertas de Audiências com Pendências -->
+            <div th:if="${audienciasAlerta != null && audienciasAlerta.size() > 0}" class="card mb-4">
+                <div class="card-header" style="background-color: rgba(220, 38, 38, 0.05); border-bottom: 2px solid #DC2626;">
+                    <h3 class="card-title" style="color: #DC2626; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        Audiências com Informações Pendentes
+                    </h3>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive">
+                        <table class="table" style="margin: 0;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%;"></th>
+                                    <th style="width: 30%;">Processo</th>
+                                    <th style="width: 15%;">Data</th>
+                                    <th style="width: 20%;">Vara</th>
+                                    <th style="width: 20%;">Pendências</th>
+                                    <th style="width: 10%;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="aud : ${audienciasAlerta}"
+                                    th:class="'alerta-row alerta-' + ${aud.nivelCriticidade.toLowerCase()}">
+                                    <td style="text-align: center; font-size: 1.2em;" th:text="${aud.icone}">🔴</td>
+                                    <td>
+                                        <strong th:text="${aud.numeroProcesso}" style="color: var(--color-text-primary);">Processo</strong>
+                                    </td>
+                                    <td>
+                                        <span th:text="${#temporals.format(aud.dataAudiencia, 'dd/MM/yyyy')}" style="font-size: 0.9375rem;">00/00/0000</span>
+                                        <br>
+                                        <span style="font-size: 0.8125rem; color: var(--color-text-secondary);">
+                                            Em <span th:text="${aud.diasRestantes}">0</span> dia(s)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${aud.vara}" style="font-size: 0.9375rem;">Vara</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-danger" th:text="${aud.qtdAusentes + ' pendência(s)'}">0 pendências</span>
+                                        <br>
+                                        <span style="font-size: 0.8125rem; color: #DC2626; margin-top: 0.25rem; display: block;" th:text="${aud.informacoesAusentes}">
+                                            Informações ausentes
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a th:href="${'/audiencias/editar/' + aud.id}" class="btn btn-sm btn-primary" title="Editar audiência">
+                                            Editar →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div th:if="${totalAudienciasComAlertas > audienciasAlerta.size()}" style="padding: 1rem; text-align: center; background-color: #F9FAFB; border-top: 1px solid #E5E7EB;">
+                        <a href="/audiencias" style="color: var(--color-primary); text-decoration: none; font-weight: 600;">
+                            Ver todas as <span th:text="${totalAudienciasComAlertas}">0</span> audiências com pendências →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Mensagem quando não há alertas -->
-            <div th:if="${notasAlerta.size() == 0}" class="card">
+            <div th:if="${notasAlerta.size() == 0 && (audienciasAlerta == null || audienciasAlerta.size() == 0)}" class="card">
                 <div class="card-body" style="text-align: center; padding: 3rem;">
                     <svg style="width: 64px; height: 64px; margin-bottom: 1rem; color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
