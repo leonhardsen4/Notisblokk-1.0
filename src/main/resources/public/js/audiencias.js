@@ -14,13 +14,25 @@ function audienciasApp() {
         varas: [],
         juizes: [],
         promotores: [],
+        alertas: [],
+        alertasPorCriticidade: {
+            CRITICO: [],
+            ALTO: [],
+            MEDIO: []
+        },
+
+        // Seleção múltipla
+        audienciasSelecionadas: [],
+        todasSelecionadas: false,
 
         // Modais
         modalCadastros: false,
         modalDetalhes: false,
         modalPauta: false,
         modalHorariosLivres: false,
+        modalAlertas: false,
         abaAtivaCadastro: 'varas',
+        abaAtivaAlertas: '3',
 
         // Controle de colunas
         mostrarControlesColunas: false,
@@ -72,6 +84,7 @@ function audienciasApp() {
                 await this.carregarPromotores();
                 await this.carregarAudiencias();
                 await this.carregarPautaDia();
+                await this.carregarAlertas(7); // Carregar alertas dos próximos 7 dias
 
                 console.log('DEBUG_AUDIENCIAS: Aplicação inicializada com sucesso');
             } catch (error) {
@@ -282,10 +295,26 @@ function audienciasApp() {
         /**
          * Pesquisar com debounce
          */
-        pesquisarAudiencias() {
+        async pesquisarAudiencias() {
             clearTimeout(this.pesquisaTimeout);
-            this.pesquisaTimeout = setTimeout(() => {
-                this.processarAudiencias();
+            this.pesquisaTimeout = setTimeout(async () => {
+                // Se houver termo de pesquisa, usar busca avançada
+                if (this.termoPesquisa.trim()) {
+                    try {
+                        const res = await fetch(`/api/audiencias/buscar?q=${encodeURIComponent(this.termoPesquisa)}`);
+                        const data = await res.json();
+                        if (data.success) {
+                            this.audiencias = data.dados || [];
+                            this.processarAudiencias();
+                        }
+                    } catch (error) {
+                        console.error('Erro na busca avançada:', error);
+                        this.mostrarErro('Erro ao buscar audiências');
+                    }
+                } else {
+                    // Sem termo de pesquisa, recarregar todas
+                    await this.carregarAudiencias();
+                }
             }, 300);
         },
 
@@ -1640,6 +1669,180 @@ function audienciasApp() {
             } catch (error) {
                 console.error('DEBUG_AUDIENCIAS: Erro ao imprimir audiência:', error);
                 this.mostrarErro('Erro ao gerar PDF: ' + error.message);
+            }
+        },
+
+        /**
+         * Carregar alertas de audiências com pendências
+         */
+        async carregarAlertas(dias) {
+            try {
+                const res = await fetch(`/api/audiencias/alertas/proximas?dias=${dias}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    this.alertas = data.dados || [];
+
+                    // Agrupar por criticidade
+                    this.alertasPorCriticidade = {
+                        CRITICO: this.alertas.filter(a => a.nivelCriticidade === 'CRITICO'),
+                        ALTO: this.alertas.filter(a => a.nivelCriticidade === 'ALTO'),
+                        MEDIO: this.alertas.filter(a => a.nivelCriticidade === 'MEDIO')
+                    };
+
+                    console.log(`Alertas carregados: ${this.alertas.length} total`);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar alertas:', error);
+            }
+        },
+
+        /**
+         * Alternar seleção de audiência
+         */
+        toggleSelecaoAudiencia(audienciaId) {
+            const index = this.audienciasSelecionadas.indexOf(audienciaId);
+            if (index > -1) {
+                this.audienciasSelecionadas.splice(index, 1);
+            } else {
+                this.audienciasSelecionadas.push(audienciaId);
+            }
+            this.atualizarSelecaoTodas();
+        },
+
+        /**
+         * Selecionar/Deselecionar todas
+         */
+        toggleSelecionarTodas() {
+            if (this.todasSelecionadas) {
+                this.audienciasSelecionadas = [];
+                this.todasSelecionadas = false;
+            } else {
+                this.audienciasSelecionadas = this.audienciasProcessadas.map(a => a.id);
+                this.todasSelecionadas = true;
+            }
+        },
+
+        /**
+         * Atualizar estado de "todas selecionadas"
+         */
+        atualizarSelecaoTodas() {
+            this.todasSelecionadas = this.audienciasProcessadas.length > 0 &&
+                                      this.audienciasSelecionadas.length === this.audienciasProcessadas.length;
+        },
+
+        /**
+         * Limpar seleção
+         */
+        limparSelecao() {
+            this.audienciasSelecionadas = [];
+            this.todasSelecionadas = false;
+        },
+
+        /**
+         * Deletar múltiplas audiências
+         */
+        async deletarSelecionadas() {
+            if (this.audienciasSelecionadas.length === 0) {
+                this.mostrarErro('Nenhuma audiência selecionada');
+                return;
+            }
+
+            const confirmacao = confirm(`Deseja realmente deletar ${this.audienciasSelecionadas.length} audiência(s) selecionada(s)?`);
+            if (!confirmacao) return;
+
+            try {
+                const res = await fetch('/api/audiencias/deletar-multiplas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: this.audienciasSelecionadas })
+                });
+
+                const data = await res.json();
+
+                if (data.success || data.deletados > 0) {
+                    this.mostrarSucesso(`${data.deletados} audiência(s) deletada(s) com sucesso`);
+                    if (data.erros > 0) {
+                        this.mostrarErro(`${data.erros} erro(s) ao deletar`);
+                    }
+                    await this.carregarAudiencias();
+                    this.limparSelecao();
+                } else {
+                    this.mostrarErro(data.message || 'Erro ao deletar audiências');
+                }
+            } catch (error) {
+                console.error('Erro ao deletar audiências:', error);
+                this.mostrarErro('Erro ao deletar audiências');
+            }
+        },
+
+        /**
+         * Mudar status de múltiplas audiências
+         */
+        async mudarStatusSelecionadas(novoStatus) {
+            if (this.audienciasSelecionadas.length === 0) {
+                this.mostrarErro('Nenhuma audiência selecionada');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/audiencias/mudar-status', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ids: this.audienciasSelecionadas,
+                        novoStatus: novoStatus
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success || data.atualizados > 0) {
+                    this.mostrarSucesso(`${data.atualizados} audiência(s) atualizada(s) para ${novoStatus}`);
+                    if (data.erros > 0) {
+                        this.mostrarErro(`${data.erros} erro(s) ao atualizar`);
+                    }
+                    await this.carregarAudiencias();
+                    this.limparSelecao();
+                } else {
+                    this.mostrarErro(data.message || 'Erro ao mudar status');
+                }
+            } catch (error) {
+                console.error('Erro ao mudar status:', error);
+                this.mostrarErro('Erro ao mudar status');
+            }
+        },
+
+        /**
+         * Abrir modal de alertas
+         */
+        abrirModalAlertas() {
+            this.modalAlertas = true;
+        },
+
+        /**
+         * Fechar modal de alertas
+         */
+        fecharModalAlertas() {
+            this.modalAlertas = false;
+        },
+
+        /**
+         * Atualizar alertas ao trocar de aba
+         */
+        async trocarAbaAlertas(dias) {
+            this.abaAtivaAlertas = dias.toString();
+            await this.carregarAlertas(dias);
+        },
+
+        /**
+         * Ir para audiência a partir do alerta
+         */
+        irParaAudiencia(audienciaId) {
+            this.fecharModalAlertas();
+            const audiencia = this.audiencias.find(a => a.id === audienciaId);
+            if (audiencia) {
+                this.visualizarAudiencia(audiencia);
             }
         }
     }
