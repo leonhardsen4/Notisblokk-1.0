@@ -18,6 +18,9 @@
                     <button @click="abrirModalPauta()" class="btn btn-sm" :class="pautaDia.length > 0 ? 'btn-success' : 'btn-secondary'">
                         📅 Pauta (<span x-text="pautaDia.length"></span>)
                     </button>
+                    <button @click="abrirModalAlertas()" class="btn btn-sm" :class="alertas.length > 0 ? 'btn-danger' : 'btn-secondary'">
+                        🔔 Alertas (<span x-text="alertas.length"></span>)
+                    </button>
                     <button @click="abrirModalHorariosLivres()" class="btn btn-success btn-sm">
                         🕐 Horários Livres
                     </button>
@@ -33,6 +36,24 @@
                 </div>
             </div>
 
+            <!-- Barra de Ações em Massa -->
+            <div x-show="audienciasSelecionadas.length > 0" class="card mb-2" style="background-color: #EFF6FF; border-left: 4px solid #3B82F6;">
+                <div class="card-body-compact">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <strong x-text="audienciasSelecionadas.length + ' audiência(s) selecionada(s)'"></strong>
+                        <button @click="limparSelecao()" class="btn btn-sm btn-secondary">Limpar Seleção</button>
+                        <select @change="mudarStatusSelecionadas($event.target.value); $event.target.value = ''" class="form-control-compact" style="max-width: 200px;">
+                            <option value="">Mudar Status...</option>
+                            <option value="DESIGNADA">Designada</option>
+                            <option value="REALIZADA">Realizada</option>
+                            <option value="CANCELADA">Cancelada</option>
+                            <option value="REDESIGNADA">Redesignada</option>
+                        </select>
+                        <button @click="deletarSelecionadas()" class="btn btn-sm btn-danger">🗑️ Deletar Selecionadas</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filtros e Pesquisa Unificados -->
             <div class="card mb-2">
                 <div class="card-body-compact">
@@ -41,7 +62,7 @@
                             type="text"
                             x-model="termoPesquisa"
                             @input="pesquisarAudiencias()"
-                            placeholder="🔍 Pesquisar..."
+                            placeholder="🔍 Buscar por processo, vara, competência, juiz, promotor, tipo..."
                             class="form-control-compact search-compact"
                         >
                         <input
@@ -106,6 +127,10 @@
                     <table class="audiencias-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" :checked="todasSelecionadas" @change="toggleSelecionarTodas()" title="Selecionar todas">
+                                </th>
+                                <th style="width: 60px;">Alertas</th>
                                 <th x-show="colunasVisiveis.processo" @click="ordenarPor('numeroProcesso')" class="sortable">
                                     Processo <span x-text="getSortIcon('numeroProcesso')"></span>
                                 </th>
@@ -130,6 +155,16 @@
                         <tbody>
                             <template x-for="audiencia in audienciasProcessadas" :key="audiencia.id">
                                 <tr :class="getRowClass(audiencia)">
+                                    <td>
+                                        <input type="checkbox" :checked="audienciasSelecionadas.includes(audiencia.id)" @change="toggleSelecaoAudiencia(audiencia.id)">
+                                    </td>
+                                    <td>
+                                        <template x-if="alertas.find(a => a.id === audiencia.id)">
+                                            <span :title="'Falta: ' + alertas.find(a => a.id === audiencia.id)?.informacoesAusentes.join(', ')"
+                                                  x-text="alertas.find(a => a.id === audiencia.id)?.iconeCriticidade"
+                                                  style="font-size: 1.2em; cursor: help;"></span>
+                                        </template>
+                                    </td>
                                     <td x-show="colunasVisiveis.processo">
                                         <strong x-text="audiencia.numeroProcesso"></strong>
                                     </td>
@@ -556,6 +591,70 @@
                     </div>
                     <div class="modal-footer">
                         <button @click="fecharModalHorariosLivres()" class="btn btn-secondary">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Alertas -->
+            <div class="modal-overlay" :class="{ active: modalAlertas }">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2 class="modal-title">🔔 Audiências com Pendências</h2>
+                        <button @click="fecharModalAlertas()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Abas por período -->
+                        <div class="cadastros-tabs">
+                            <button @click="trocarAbaAlertas(3)" :class="{'active': abaAtivaAlertas === '3'}" class="tab-button">
+                                Próximos 3 dias (<span x-text="alertasPorCriticidade.CRITICO.length"></span>)
+                            </button>
+                            <button @click="trocarAbaAlertas(7)" :class="{'active': abaAtivaAlertas === '7'}" class="tab-button">
+                                Próximos 7 dias (<span x-text="alertasPorCriticidade.ALTO.length"></span>)
+                            </button>
+                            <button @click="trocarAbaAlertas(15)" :class="{'active': abaAtivaAlertas === '15'}" class="tab-button">
+                                Próximos 15 dias (<span x-text="alertasPorCriticidade.MEDIO.length"></span>)
+                            </button>
+                        </div>
+
+                        <!-- Lista de alertas -->
+                        <div x-show="alertas.length > 0" class="mt-3">
+                            <div class="pauta-lista">
+                                <template x-for="alerta in alertas" :key="alerta.id">
+                                    <div class="pauta-item" style="border-left: 4px solid;" :style="'border-left-color: ' + alerta.corBadge">
+                                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                            <span x-text="alerta.iconeCriticidade" style="font-size: 1.5em;"></span>
+                                            <div style="flex: 1;">
+                                                <div class="pauta-processo"><strong x-text="alerta.numeroProcesso"></strong></div>
+                                                <div class="pauta-vara" x-text="'Audiência em ' + alerta.diasRestantes + ' dia(s)'"></div>
+                                                <div class="pauta-tipo">
+                                                    <span class="badge badge-sm" x-text="alerta.vara"></span>
+                                                    <span class="badge badge-sm" x-text="alerta.competencia"></span>
+                                                </div>
+                                                <div class="mt-2" style="color: #DC2626; font-size: 0.9em;">
+                                                    <strong>Falta:</strong>
+                                                    <template x-for="(info, idx) in alerta.informacoesAusentes" :key="idx">
+                                                        <span>
+                                                            <span x-text="info"></span><template x-if="idx < alerta.informacoesAusentes.length - 1">, </template>
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <div class="pauta-acoes">
+                                                <button @click="irParaAudiencia(alerta.id)" class="btn btn-xs btn-info">Ver Detalhes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div x-show="alertas.length === 0" class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <p>Nenhuma audiência com pendências no período selecionado</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="fecharModalAlertas()" class="btn btn-secondary">Fechar</button>
                     </div>
                 </div>
             </div>
