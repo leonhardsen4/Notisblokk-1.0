@@ -313,6 +313,11 @@ public class Main {
         app.get("/audiencias/advogados", audienciasViewController::advogados);
         app.get("/audiencias/pessoas", audienciasViewController::pessoas);
 
+        // Processos (Views)
+        ProcessosViewController processosViewController = new ProcessosViewController();
+        app.get("/processos", processosViewController::index);
+        app.get("/processos/{id}", processosViewController::detalhes);
+
         // ========== ROTAS ADMINISTRATIVAS (APENAS ADMIN) ==========
 
         // Usuários
