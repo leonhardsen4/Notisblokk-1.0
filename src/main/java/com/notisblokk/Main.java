@@ -289,6 +289,12 @@ public class Main {
         app.before("/api/audiencias", AuthMiddleware.require());
         app.before("/api/audiencias/*", AuthMiddleware.require());
 
+        // Middleware para rotas de processos (requer autenticação)
+        app.before("/processos", AuthMiddleware.require());
+        app.before("/processos/*", AuthMiddleware.require());
+        app.before("/api/processos", AuthMiddleware.require());
+        app.before("/api/processos/*", AuthMiddleware.require());
+
         // Dashboard
         app.get("/dashboard", dashboardController::index);
 
@@ -443,6 +449,17 @@ public class Main {
         app.post("/api/audiencias/pessoas", pessoaController::criar);
         app.put("/api/audiencias/pessoas/{id}", pessoaController::atualizar);
         app.delete("/api/audiencias/pessoas/{id}", pessoaController::deletar);
+
+        // Processos
+        ProcessoController processoController = new ProcessoController();
+        app.get("/api/processos", processoController::listar);
+        app.get("/api/processos/{id}", processoController::buscarPorId);
+        app.post("/api/processos", processoController::criar);
+        app.put("/api/processos/{id}", processoController::atualizar);
+        app.delete("/api/processos/{id}", processoController::deletar);
+        app.get("/api/processos/{id}/participantes", processoController::listarParticipantes);
+        app.post("/api/processos/{id}/participantes", processoController::adicionarParticipante);
+        app.delete("/api/processos/{id}/participantes/{participanteId}", processoController::removerParticipante);
 
         // Participações
         app.get("/api/audiencias/participacoes/audiencia/{audienciaId}", participacaoController::listarPorAudiencia);
