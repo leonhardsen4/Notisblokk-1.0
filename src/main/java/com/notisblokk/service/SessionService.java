@@ -1,7 +1,9 @@
 package com.notisblokk.service;
 
 import com.notisblokk.model.Session;
+import com.notisblokk.model.User;
 import com.notisblokk.repository.SessionRepository;
+import com.notisblokk.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -303,12 +305,24 @@ public class SessionService {
      * Valida e gerencia o limite de sessões simultâneas antes de criar nova sessão.
      * Se o limite for atingido, encerra a sessão mais antiga automaticamente.
      *
+     * <p>Administradores não possuem limite de sessões simultâneas.</p>
+     *
      * @param userId ID do usuário
      * @return boolean true se pode criar nova sessão, false caso contrário
      * @throws Exception se houver erro ao validar
      */
     public boolean validarLimiteDeSessoes(Long userId) throws Exception {
         try {
+            // Verificar se o usuário é administrador
+            // Administradores não têm limite de sessões
+            UserRepository userRepository = new UserRepository();
+            Optional<User> userOpt = userRepository.buscarPorId(userId);
+
+            if (userOpt.isPresent() && userOpt.get().isAdmin()) {
+                logger.info("Usuário ID {} é administrador - sem limite de sessões", userId);
+                return true; // Administrador pode criar quantas sessões quiser
+            }
+
             long sessoesAtivas = sessionRepository.contarAtivasPorUsuario(userId);
 
             if (sessoesAtivas >= MAX_SESSIONS_PER_USER) {

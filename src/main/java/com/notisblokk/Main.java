@@ -4,18 +4,13 @@ import com.notisblokk.config.AppConfig;
 import com.notisblokk.config.DatabaseConfig;
 import com.notisblokk.config.ThymeleafConfig;
 import com.notisblokk.controller.*;
-import com.notisblokk.audiencias.controller.*;
 import com.notisblokk.scheduler.QuartzSchedulerManager;
 import com.notisblokk.middleware.AdminMiddleware;
 import com.notisblokk.middleware.AuthMiddleware;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.notisblokk.audiencias.util.*;
 import com.notisblokk.util.SessionUtil;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
@@ -142,16 +137,6 @@ public class Main {
             objectMapper.registerModule(new JavaTimeModule());
             objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-            // Registrar conversores personalizados para formato brasileiro (dd/MM/yyyy)
-            SimpleModule brazilianDateModule = new SimpleModule("BrazilianDateModule");
-            brazilianDateModule.addSerializer(LocalDate.class, new BrazilianLocalDateSerializer());
-            brazilianDateModule.addDeserializer(LocalDate.class, new BrazilianLocalDateDeserializer());
-            brazilianDateModule.addSerializer(LocalTime.class, new BrazilianLocalTimeSerializer());
-            brazilianDateModule.addDeserializer(LocalTime.class, new BrazilianLocalTimeDeserializer());
-            objectMapper.registerModule(brazilianDateModule);
-
-            logger.info("Conversores de data brasileiros registrados (dd/MM/yyyy e HH:mm)");
-
             config.jsonMapper(new JavalinJackson(objectMapper, true));
 
             // Habilitar logs de requisições
@@ -192,18 +177,6 @@ public class Main {
         ConfiguracoesController configuracoesController = new ConfiguracoesController();
         BackupController backupController = new BackupController();
         AnexoController anexoController = new AnexoController();
-
-        // Controllers do módulo de Audiências
-        AudienciasViewController audienciasViewController = new AudienciasViewController();
-        VaraController varaController = new VaraController();
-        JuizController juizController = new JuizController();
-        PromotorController promotorController = new PromotorController();
-        AdvogadoController advogadoController = new AdvogadoController();
-        PessoaController pessoaController = new PessoaController();
-        ParticipacaoAudienciaController participacaoController = new ParticipacaoAudienciaController();
-        AudienciaController audienciaController = new AudienciaController();
-        PautaController pautaController = new PautaController();
-        HorariosLivresController horariosLivresController = new HorariosLivresController();
 
         // ========== ROTAS PÚBLICAS ==========
 
@@ -283,12 +256,6 @@ public class Main {
         app.before("/uploads/*", AuthMiddleware.require());
         app.before("/api/theme", AuthMiddleware.require());
 
-        // Middleware para rotas de audiências (requer autenticação)
-        app.before("/audiencias", AuthMiddleware.require());
-        app.before("/audiencias/*", AuthMiddleware.require());
-        app.before("/api/audiencias", AuthMiddleware.require());
-        app.before("/api/audiencias/*", AuthMiddleware.require());
-
         // Dashboard
         app.get("/dashboard", dashboardController::index);
 
@@ -299,13 +266,6 @@ public class Main {
         app.get("/notas", notasViewController::index);
         app.get("/notas/nova", notasViewController::novaNota);
         app.get("/notas/editar/{id}", notasViewController::editarNota);
-
-        // Audiências (Views)
-        app.get("/audiencias", audienciasViewController::index);
-        app.get("/audiencias/nova", audienciasViewController::novaAudiencia);
-        app.get("/audiencias/editar/{id}", audienciasViewController::editarAudiencia);
-        app.get("/audiencias/advogados", audienciasViewController::advogados);
-        app.get("/audiencias/pessoas", audienciasViewController::pessoas);
 
         // ========== ROTAS ADMINISTRATIVAS (APENAS ADMIN) ==========
 
@@ -397,82 +357,6 @@ public class Main {
         app.get("/api/anexos/{id}/download", anexoController::download);
         app.get("/api/anexos/{id}/visualizar", anexoController::visualizar);
         app.delete("/api/anexos/{id}", anexoController::remover);
-
-        // ========== API DE AUDIÊNCIAS (AUTENTICAÇÃO NECESSÁRIA) ==========
-
-        System.out.println("DEBUG_AUDIENCIAS: Registrando rotas do módulo de audiências...");
-
-        // Varas
-        app.get("/api/audiencias/varas", varaController::listar);
-        app.get("/api/audiencias/varas/{id}", varaController::buscarPorId);
-        app.get("/api/audiencias/varas/buscar", varaController::buscarPorNome);
-        app.post("/api/audiencias/varas", varaController::criar);
-        app.put("/api/audiencias/varas/{id}", varaController::atualizar);
-        app.delete("/api/audiencias/varas/{id}", varaController::deletar);
-
-        // Juízes
-        app.get("/api/audiencias/juizes", juizController::listar);
-        app.get("/api/audiencias/juizes/{id}", juizController::buscarPorId);
-        app.get("/api/audiencias/juizes/buscar", juizController::buscarPorNome);
-        app.post("/api/audiencias/juizes", juizController::criar);
-        app.put("/api/audiencias/juizes/{id}", juizController::atualizar);
-        app.delete("/api/audiencias/juizes/{id}", juizController::deletar);
-
-        // Promotores
-        app.get("/api/audiencias/promotores", promotorController::listar);
-        app.get("/api/audiencias/promotores/{id}", promotorController::buscarPorId);
-        app.get("/api/audiencias/promotores/buscar", promotorController::buscarPorNome);
-        app.post("/api/audiencias/promotores", promotorController::criar);
-        app.put("/api/audiencias/promotores/{id}", promotorController::atualizar);
-        app.delete("/api/audiencias/promotores/{id}", promotorController::deletar);
-
-        // Advogados
-        app.get("/api/audiencias/advogados", advogadoController::listar);
-        app.get("/api/audiencias/advogados/{id}", advogadoController::buscarPorId);
-        app.get("/api/audiencias/advogados/buscar", advogadoController::buscarPorNome);
-        app.get("/api/audiencias/advogados/buscar-oab", advogadoController::buscarPorOAB);
-        app.post("/api/audiencias/advogados", advogadoController::criar);
-        app.put("/api/audiencias/advogados/{id}", advogadoController::atualizar);
-        app.delete("/api/audiencias/advogados/{id}", advogadoController::deletar);
-
-        // Pessoas
-        app.get("/api/audiencias/pessoas", pessoaController::listar);
-        app.get("/api/audiencias/pessoas/{id}", pessoaController::buscarPorId);
-        app.get("/api/audiencias/pessoas/buscar", pessoaController::buscarPorNome);
-        app.get("/api/audiencias/pessoas/buscar-cpf", pessoaController::buscarPorCPF);
-        app.post("/api/audiencias/pessoas", pessoaController::criar);
-        app.put("/api/audiencias/pessoas/{id}", pessoaController::atualizar);
-        app.delete("/api/audiencias/pessoas/{id}", pessoaController::deletar);
-
-        // Participações
-        app.get("/api/audiencias/participacoes/audiencia/{audienciaId}", participacaoController::listarPorAudiencia);
-        app.get("/api/audiencias/participacoes/pessoa/{pessoaId}", participacaoController::listarPorPessoa);
-        app.get("/api/audiencias/participacoes/{id}", participacaoController::buscarPorId);
-        app.post("/api/audiencias/participacoes", participacaoController::criar);
-        app.put("/api/audiencias/participacoes/{id}", participacaoController::atualizar);
-        app.delete("/api/audiencias/participacoes/{id}", participacaoController::deletar);
-
-        // Pauta do dia (rotas mais específicas primeiro)
-        app.get("/api/audiencias/pauta/{data}/vara/{varaId}", pautaController::pautaPorDataEVara);
-        app.get("/api/audiencias/pauta/vara/{varaId}", pautaController::pautaDeHojePorVara);
-        app.get("/api/audiencias/pauta/{data}", pautaController::pautaPorData);
-        app.get("/api/audiencias/pauta", pautaController::pautaDeHoje);
-
-        // Horários Livres
-        app.post("/api/audiencias/horarios-livres", horariosLivresController::buscarHorariosLivres);
-        app.get("/api/audiencias/horarios-livres/rapido", horariosLivresController::buscarHorariosLivresRapido);
-
-        // Audiências (rotas específicas antes da genérica com {id})
-        app.get("/api/audiencias/conflitos", audienciaController::verificarConflitos);
-        app.get("/api/audiencias/data/{data}", audienciaController::buscarPorData);
-        app.get("/api/audiencias/vara/{varaId}", audienciaController::buscarPorVara);
-        app.get("/api/audiencias", audienciaController::listar);
-        app.get("/api/audiencias/{id}", audienciaController::buscarPorId);
-        app.post("/api/audiencias", audienciaController::criar);
-        app.put("/api/audiencias/{id}", audienciaController::atualizar);
-        app.delete("/api/audiencias/{id}", audienciaController::deletar);
-
-        System.out.println("DEBUG_AUDIENCIAS: 36 rotas de audiências registradas com sucesso!");
 
         // ========== SERVIR ARQUIVOS DE UPLOAD ==========
 
