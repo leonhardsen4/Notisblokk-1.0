@@ -107,6 +107,17 @@
     display: flex !important;
 }
 
+/* Container do conteúdo do modal */
+.modal {
+    background-color: var(--color-surface);
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-xl);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
 .modal-large {
     max-width: 600px;
 }

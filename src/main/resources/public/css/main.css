@@ -590,11 +590,15 @@ select option {
     right: 0;
     bottom: 0;
     background-color: var(--overlay);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     padding: 1rem;
+}
+
+.modal-overlay.active {
+    display: flex;
 }
 
 .modal-content {
