@@ -2,13 +2,12 @@ package com.notisblokk.controller;
 
 import com.notisblokk.model.NotaDTO;
 import com.notisblokk.service.NotaService;
-import com.notisblokk.audiencias.model.Audiencia;
-import com.notisblokk.audiencias.service.AudienciaService;
 import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -37,14 +36,12 @@ public class DashboardController {
 
     private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
     private final NotaService notaService;
-    private final AudienciaService audienciaService;
 
     /**
      * Construtor padrão.
      */
     public DashboardController() {
         this.notaService = new NotaService();
-        this.audienciaService = new AudienciaService();
     }
 
     /**
@@ -133,52 +130,6 @@ public class DashboardController {
             model.put("notasVencidas", notasVencidas.size());
             model.put("notasUrgentes", notasUrgentes.size());
             model.put("notasAlerta", notasAlerta);
-
-            // Buscar audiências com alertas (próximos 7 dias)
-            try {
-                List<Audiencia> audienciasComAlertas = audienciaService.buscarAudienciasComAlertas(7);
-
-                // Transformar em maps para o template
-                List<Map<String, Object>> audienciasAlerta = audienciasComAlertas.stream()
-                    .limit(10) // Mostrar até 10 audiências
-                    .map(aud -> {
-                        Map<String, Object> alertaMap = new HashMap<>();
-                        alertaMap.put("id", aud.getId());
-                        alertaMap.put("numeroProcesso", aud.getNumeroProcesso());
-                        alertaMap.put("dataAudiencia", aud.getDataAudiencia());
-                        alertaMap.put("vara", aud.getVara() != null ? aud.getVara().getNome() : "N/A");
-
-                        long diasRestantes = audienciaService.calcularDiasRestantes(aud);
-                        alertaMap.put("diasRestantes", diasRestantes);
-
-                        String criticidade = audienciaService.calcularCriticidade(aud);
-                        alertaMap.put("nivelCriticidade", criticidade);
-
-                        // Icone por criticidade
-                        String icone = switch (criticidade) {
-                            case "CRITICO" -> "🔴";
-                            case "ALTO" -> "🟠";
-                            case "MEDIO" -> "🟡";
-                            default -> "🟢";
-                        };
-                        alertaMap.put("icone", icone);
-
-                        // Informações ausentes
-                        List<String> ausentes = audienciaService.listarInformacoesAusentes(aud);
-                        alertaMap.put("informacoesAusentes", String.join(", ", ausentes));
-                        alertaMap.put("qtdAusentes", ausentes.size());
-
-                        return alertaMap;
-                    })
-                    .collect(Collectors.toList());
-
-                model.put("audienciasAlerta", audienciasAlerta);
-                model.put("totalAudienciasComAlertas", audienciasComAlertas.size());
-            } catch (Exception e) {
-                logger.error("Erro ao buscar audiências com alertas", e);
-                model.put("audienciasAlerta", List.of());
-                model.put("totalAudienciasComAlertas", 0);
-            }
 
             // Status do sistema
             model.put("sistemaStatus", "Operacional");
