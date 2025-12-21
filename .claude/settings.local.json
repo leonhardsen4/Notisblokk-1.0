@@ -4,7 +4,8 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git -C \"C:\\Users\\leonh\\Notisblokk-1.0\" status)",
-      "Bash(git -C \"C:\\Users\\leonh\\Notisblokk-1.0\" diff --stat)"
+      "Bash(git -C \"C:\\Users\\leonh\\Notisblokk-1.0\" diff --stat)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
