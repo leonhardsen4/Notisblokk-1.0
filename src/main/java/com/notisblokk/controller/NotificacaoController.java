@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  * Controller responsável por notificações e alertas.
  *
- * <p>Gerencia os endpoints REST para obter alertas sobre notas pendentes:</p>
+ * <p>Gerencia os endpoints REST para obter alertas sobre tarefas pendentes:</p>
  * <ul>
  *   <li>GET /api/notificacoes/alertas - Listar alertas ordenados por urgência</li>
  * </ul>
@@ -40,14 +40,14 @@ public class NotificacaoController {
 
     /**
      * GET /api/notificacoes/alertas
-     * Gera e retorna alertas sobre notas pendentes, ordenados por urgência.
+     * Gera e retorna alertas sobre tarefas pendentes, ordenados por urgência.
      *
      * <p>Os alertas incluem informações sobre:</p>
      * <ul>
-     *   <li>Notas atrasadas (CRÍTICO)</li>
-     *   <li>Notas vencendo em 0-1 dia (URGENTE)</li>
-     *   <li>Notas vencendo em 2-3 dias (ATENÇÃO)</li>
-     *   <li>Notas vencendo em 4-5 dias (AVISO)</li>
+     *   <li>Tarefas atrasadas (CRÍTICO)</li>
+     *   <li>Tarefas vencendo em 0-1 dia (URGENTE)</li>
+     *   <li>Tarefas vencendo em 2-3 dias (ATENÇÃO)</li>
+     *   <li>Tarefas vencendo em 4-5 dias (AVISO)</li>
      * </ul>
      */
     public void gerarAlertas(Context ctx) {

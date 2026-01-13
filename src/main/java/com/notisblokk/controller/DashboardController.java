@@ -1,7 +1,7 @@
 package com.notisblokk.controller;
 
-import com.notisblokk.model.NotaDTO;
-import com.notisblokk.service.NotaService;
+import com.notisblokk.model.TarefaDTO;
+import com.notisblokk.service.TarefaService;
 import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
@@ -22,10 +22,10 @@ import java.util.stream.Collectors;
  *
  * <p><b>Estatísticas exibidas:</b></p>
  * <ul>
- *   <li>Total de anotações</li>
- *   <li>Anotações com prazo vencido</li>
- *   <li>Anotações urgentes (próximas do vencimento)</li>
- *   <li>Lista de anotações vencidas ou próximas do vencimento</li>
+ *   <li>Total de tarefas</li>
+ *   <li>Tarefas com prazo vencido</li>
+ *   <li>Tarefas urgentes (próximas do vencimento)</li>
+ *   <li>Lista de tarefas vencidas ou próximas do vencimento</li>
  * </ul>
  *
  * @author Notisblokk Team
@@ -35,13 +35,13 @@ import java.util.stream.Collectors;
 public class DashboardController {
 
     private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
-    private final NotaService notaService;
+    private final TarefaService tarefaService;
 
     /**
      * Construtor padrão.
      */
     public DashboardController() {
-        this.notaService = new NotaService();
+        this.tarefaService = new TarefaService();
     }
 
     /**
@@ -58,46 +58,46 @@ public class DashboardController {
             // Título
             model.put("title", "Dashboard - Notisblokk");
 
-            // Buscar todas as notas
-            List<NotaDTO> todasNotas = notaService.listarTodas();
+            // Buscar todas as tarefas
+            List<TarefaDTO> todasTarefas = tarefaService.listarTodas();
             LocalDate hoje = LocalDate.now();
 
-            // Calcular estatísticas de notas
-            long totalNotas = todasNotas.size();
+            // Calcular estatísticas de tarefas
+            long totalTarefas = todasTarefas.size();
 
-            // Notas vencidas (prazo já passou) - excluindo resolvidas/canceladas
-            List<NotaDTO> notasVencidas = todasNotas.stream()
-                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
-                .filter(nota -> nota.getPrazoFinal() != null && nota.getPrazoFinal().isBefore(hoje))
+            // Tarefas vencidas (prazo já passou) - excluindo resolvidas/canceladas
+            List<TarefaDTO> tarefasVencidas = todasTarefas.stream()
+                .filter(tarefa -> !isTarefaResolvida(tarefa)) // Excluir resolvidas/canceladas
+                .filter(tarefa -> tarefa.getPrazoFinal() != null && tarefa.getPrazoFinal().isBefore(hoje))
                 .collect(Collectors.toList());
 
-            // Notas urgentes (vencendo nos próximos 7 dias) - excluindo resolvidas/canceladas
-            List<NotaDTO> notasUrgentes = todasNotas.stream()
-                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
-                .filter(nota -> {
-                    if (nota.getPrazoFinal() == null) return false;
-                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+            // Tarefas urgentes (vencendo nos próximos 7 dias) - excluindo resolvidas/canceladas
+            List<TarefaDTO> tarefasUrgentes = todasTarefas.stream()
+                .filter(tarefa -> !isTarefaResolvida(tarefa)) // Excluir resolvidas/canceladas
+                .filter(tarefa -> {
+                    if (tarefa.getPrazoFinal() == null) return false;
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, tarefa.getPrazoFinal());
                     return diasRestantes >= 0 && diasRestantes <= 7;
                 })
                 .collect(Collectors.toList());
 
-            // Notas vencidas ou urgentes (para exibir na lista) - excluindo resolvidas/canceladas
-            List<Map<String, Object>> notasAlerta = todasNotas.stream()
-                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
-                .filter(nota -> {
-                    if (nota.getPrazoFinal() == null) return false;
-                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+            // Tarefas vencidas ou urgentes (para exibir na lista) - excluindo resolvidas/canceladas
+            List<Map<String, Object>> tarefasAlerta = todasTarefas.stream()
+                .filter(tarefa -> !isTarefaResolvida(tarefa)) // Excluir resolvidas/canceladas
+                .filter(tarefa -> {
+                    if (tarefa.getPrazoFinal() == null) return false;
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, tarefa.getPrazoFinal());
                     return diasRestantes <= 7; // Vencidas ou vencendo em até 7 dias
                 })
                 .sorted((a, b) -> a.getPrazoFinal().compareTo(b.getPrazoFinal()))
-                .limit(10) // Mostrar até 10 notas
-                .map(nota -> {
+                .limit(10) // Mostrar até 10 tarefas
+                .map(tarefa -> {
                     Map<String, Object> alertaMap = new HashMap<>();
-                    alertaMap.put("id", nota.getId());
-                    alertaMap.put("titulo", nota.getTitulo());
-                    alertaMap.put("prazoFinal", nota.getPrazoFinal().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                    alertaMap.put("id", tarefa.getId());
+                    alertaMap.put("titulo", tarefa.getTitulo());
+                    alertaMap.put("prazoFinal", tarefa.getPrazoFinal().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
 
-                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, tarefa.getPrazoFinal());
                     alertaMap.put("diasRestantes", diasRestantes);
 
                     String statusTexto;
@@ -119,17 +119,17 @@ public class DashboardController {
 
                     alertaMap.put("statusTexto", statusTexto);
                     alertaMap.put("nivel", nivel);
-                    alertaMap.put("etiqueta", nota.getEtiqueta() != null ? nota.getEtiqueta().getNome() : "Sem etiqueta");
-                    alertaMap.put("status", nota.getStatus() != null ? nota.getStatus().getNome() : "Sem status");
+                    alertaMap.put("etiqueta", tarefa.getEtiqueta() != null ? tarefa.getEtiqueta().getNome() : "Sem etiqueta");
+                    alertaMap.put("status", tarefa.getStatus() != null ? tarefa.getStatus().getNome() : "Sem status");
 
                     return alertaMap;
                 })
                 .collect(Collectors.toList());
 
-            model.put("totalNotas", totalNotas);
-            model.put("notasVencidas", notasVencidas.size());
-            model.put("notasUrgentes", notasUrgentes.size());
-            model.put("notasAlerta", notasAlerta);
+            model.put("totalNotas", totalTarefas);
+            model.put("notasVencidas", tarefasVencidas.size());
+            model.put("notasUrgentes", tarefasUrgentes.size());
+            model.put("notasAlerta", tarefasAlerta);
 
             // Status do sistema
             model.put("sistemaStatus", "Operacional");
@@ -154,27 +154,27 @@ public class DashboardController {
      */
     public void getStats(Context ctx) {
         try {
-            List<NotaDTO> todasNotas = notaService.listarTodas();
+            List<TarefaDTO> todasTarefas = tarefaService.listarTodas();
             LocalDate hoje = LocalDate.now();
 
-            long totalNotas = todasNotas.size();
-            long notasVencidas = todasNotas.stream()
-                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
-                .filter(nota -> nota.getPrazoFinal() != null && nota.getPrazoFinal().isBefore(hoje))
+            long totalTarefas = todasTarefas.size();
+            long tarefasVencidas = todasTarefas.stream()
+                .filter(tarefa -> !isTarefaResolvida(tarefa)) // Excluir resolvidas/canceladas
+                .filter(tarefa -> tarefa.getPrazoFinal() != null && tarefa.getPrazoFinal().isBefore(hoje))
                 .count();
-            long notasUrgentes = todasNotas.stream()
-                .filter(nota -> !isNotaResolvida(nota)) // Excluir resolvidas/canceladas
-                .filter(nota -> {
-                    if (nota.getPrazoFinal() == null) return false;
-                    long diasRestantes = ChronoUnit.DAYS.between(hoje, nota.getPrazoFinal());
+            long tarefasUrgentes = todasTarefas.stream()
+                .filter(tarefa -> !isTarefaResolvida(tarefa)) // Excluir resolvidas/canceladas
+                .filter(tarefa -> {
+                    if (tarefa.getPrazoFinal() == null) return false;
+                    long diasRestantes = ChronoUnit.DAYS.between(hoje, tarefa.getPrazoFinal());
                     return diasRestantes >= 0 && diasRestantes <= 7;
                 })
                 .count();
 
             Map<String, Object> stats = new HashMap<>();
-            stats.put("totalNotas", totalNotas);
-            stats.put("notasVencidas", notasVencidas);
-            stats.put("notasUrgentes", notasUrgentes);
+            stats.put("totalNotas", totalTarefas);
+            stats.put("notasVencidas", tarefasVencidas);
+            stats.put("notasUrgentes", tarefasUrgentes);
 
             ctx.json(stats);
 
@@ -189,19 +189,19 @@ public class DashboardController {
     }
 
     /**
-     * Verifica se uma nota está resolvida ou cancelada.
+     * Verifica se uma tarefa está resolvida ou cancelada.
      *
-     * <p>Notas com esses status não devem aparecer em alertas de prazo,
+     * <p>Tarefas com esses status não devem aparecer em alertas de prazo,
      * pois já foram concluídas de alguma forma.</p>
      *
-     * @param nota nota a ser verificada
-     * @return true se a nota está resolvida ou cancelada, false caso contrário
+     * @param tarefa tarefa a ser verificada
+     * @return true se a tarefa está resolvida ou cancelada, false caso contrário
      */
-    private boolean isNotaResolvida(NotaDTO nota) {
-        if (nota.getStatus() == null || nota.getStatus().getNome() == null) {
+    private boolean isTarefaResolvida(TarefaDTO tarefa) {
+        if (tarefa.getStatus() == null || tarefa.getStatus().getNome() == null) {
             return false;
         }
-        String statusNome = nota.getStatus().getNome().toLowerCase();
+        String statusNome = tarefa.getStatus().getNome().toLowerCase();
         return statusNome.contains("resolvid") || statusNome.contains("cancelad");
     }
 }

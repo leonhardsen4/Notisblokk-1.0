@@ -12,11 +12,11 @@ import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.notisblokk.config.AppConfig;
 import com.notisblokk.model.Etiqueta;
-import com.notisblokk.model.Nota;
-import com.notisblokk.model.StatusNota;
-import com.notisblokk.repository.NotaRepository;
+import com.notisblokk.model.Tarefa;
+import com.notisblokk.model.StatusTarefa;
+import com.notisblokk.repository.TarefaRepository;
 import com.notisblokk.repository.EtiquetaRepository;
-import com.notisblokk.repository.StatusNotaRepository;
+import com.notisblokk.repository.StatusTarefaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,13 +27,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Serviço de geração de PDF para notas.
+ * Serviço de geração de PDF para tarefas.
  *
  * <p>Responsável por:</p>
  * <ul>
- *   <li>Gerar PDF de uma nota individual</li>
- *   <li>Gerar PDF com lista de notas</li>
- *   <li>Formatar conteúdo HTML das notas</li>
+ *   <li>Gerar PDF de uma tarefa individual</li>
+ *   <li>Gerar PDF com lista de tarefas</li>
+ *   <li>Formatar conteúdo HTML das tarefas</li>
  * </ul>
  *
  * @author Notisblokk Team
@@ -46,39 +46,39 @@ public class PDFService {
     private static final ZoneId BRAZIL_ZONE = ZoneId.of("America/Sao_Paulo");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    private final NotaRepository notaRepository;
+    private final TarefaRepository tarefaRepository;
     private final EtiquetaRepository etiquetaRepository;
-    private final StatusNotaRepository statusRepository;
+    private final StatusTarefaRepository statusRepository;
 
     public PDFService() {
-        this.notaRepository = new NotaRepository();
+        this.tarefaRepository = new TarefaRepository();
         this.etiquetaRepository = new EtiquetaRepository();
-        this.statusRepository = new StatusNotaRepository();
+        this.statusRepository = new StatusTarefaRepository();
     }
 
     /**
-     * Gera PDF de uma nota específica.
+     * Gera PDF de uma tarefa específica.
      *
-     * @param notaId ID da nota
+     * @param tarefaId ID da tarefa
      * @return byte array do PDF gerado
      * @throws Exception se houver erro ao gerar PDF
      */
-    public byte[] gerarPDFNota(Long notaId) throws Exception {
-        logger.info("Gerando PDF para nota ID: {}", notaId);
+    public byte[] gerarPDFNota(Long tarefaId) throws Exception {
+        logger.info("Gerando PDF para tarefa ID: {}", tarefaId);
 
-        var notaOpt = notaRepository.buscarPorId(notaId);
-        if (notaOpt.isEmpty()) {
-            throw new Exception("Nota não encontrada: " + notaId);
+        var tarefaOpt = tarefaRepository.buscarPorId(tarefaId);
+        if (tarefaOpt.isEmpty()) {
+            throw new Exception("Tarefa não encontrada: " + tarefaId);
         }
 
-        Nota nota = notaOpt.get();
+        Tarefa tarefa = tarefaOpt.get();
 
         // Buscar etiqueta e status
-        Etiqueta etiqueta = nota.getEtiquetaId() != null
-            ? etiquetaRepository.buscarPorId(nota.getEtiquetaId()).orElse(null)
+        Etiqueta etiqueta = tarefa.getEtiquetaId() != null
+            ? etiquetaRepository.buscarPorId(tarefa.getEtiquetaId()).orElse(null)
             : null;
-        StatusNota status = nota.getStatusId() != null
-            ? statusRepository.buscarPorId(nota.getStatusId()).orElse(null)
+        StatusTarefa status = tarefa.getStatusId() != null
+            ? statusRepository.buscarPorId(tarefa.getStatusId()).orElse(null)
             : null;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -88,110 +88,104 @@ public class PDFService {
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf);
 
-            // Título do documento
-            Paragraph header = new Paragraph(AppConfig.getAppName())
-                .setFontSize(20)
+            // Título da tarefa como cabeçalho principal
+            document.add(new Paragraph(tarefa.getTitulo())
+                .setFontSize(18)
                 .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(5);
-            document.add(header);
+                .setFontColor(new DeviceRgb(51, 65, 85))
+                .setMarginBottom(12));
 
-            Paragraph subtitle = new Paragraph("Nota Detalhada")
-                .setFontSize(14)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(20);
-            document.add(subtitle);
-
-            // Informações da nota
-            Table infoTable = new Table(UnitValue.createPercentArray(new float[]{30, 70}))
+            // Quadro de informações compacto (5 colunas)
+            Table infoTable = new Table(UnitValue.createPercentArray(new float[]{20, 20, 20, 20, 20}))
                 .useAllAvailableWidth()
                 .setMarginBottom(15);
 
-            // Título
-            infoTable.addCell(createLabelCell("Título:"));
-            infoTable.addCell(createValueCell(nota.getTitulo()));
+            // Headers compactos
+            infoTable.addCell(createCompactHeaderCell("Etiqueta"));
+            infoTable.addCell(createCompactHeaderCell("Status"));
+            infoTable.addCell(createCompactHeaderCell("Criado em"));
+            infoTable.addCell(createCompactHeaderCell("Atualizado em"));
+            infoTable.addCell(createCompactHeaderCell("Prazo Final"));
 
-            // Etiqueta
-            infoTable.addCell(createLabelCell("Etiqueta:"));
-            infoTable.addCell(createValueCell(etiqueta != null ? etiqueta.getNome() : "N/A"));
+            // Valores
+            infoTable.addCell(createCompactValueCell(etiqueta != null ? etiqueta.getNome() : "N/A"));
 
-            // Status
-            infoTable.addCell(createLabelCell("Status:"));
-            Cell statusCell = createValueCell(status != null ? status.getNome() : "N/A");
+            Cell statusCell = createCompactValueCell(status != null ? status.getNome() : "N/A");
             if (status != null && status.getCorHex() != null) {
                 DeviceRgb color = hexToRgb(status.getCorHex());
                 statusCell.setBackgroundColor(color);
                 statusCell.setFontColor(getContrastColor(color));
+                statusCell.setBold();
             }
             infoTable.addCell(statusCell);
 
-            // Prazo Final
-            infoTable.addCell(createLabelCell("Prazo Final:"));
-            String prazoFinal = nota.getPrazoFinal() != null
-                ? nota.getPrazoFinal().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            String dataCriacao = tarefa.getDataCriacao() != null
+                ? tarefa.getDataCriacao().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 : "N/A";
-            infoTable.addCell(createValueCell(prazoFinal));
+            infoTable.addCell(createCompactValueCell(dataCriacao));
 
-            // Data de Criação
-            infoTable.addCell(createLabelCell("Data de Criação:"));
-            String dataCriacao = nota.getDataCriacao() != null
-                ? nota.getDataCriacao().format(FORMATTER)
+            String dataAtualizacao = tarefa.getDataAtualizacao() != null
+                ? tarefa.getDataAtualizacao().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 : "N/A";
-            infoTable.addCell(createValueCell(dataCriacao));
+            infoTable.addCell(createCompactValueCell(dataAtualizacao));
 
-            // Data de Atualização
-            infoTable.addCell(createLabelCell("Última Atualização:"));
-            String dataAtualizacao = nota.getDataAtualizacao() != null
-                ? nota.getDataAtualizacao().format(FORMATTER)
+            String prazoFinal = tarefa.getPrazoFinal() != null
+                ? tarefa.getPrazoFinal().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 : "N/A";
-            infoTable.addCell(createValueCell(dataAtualizacao));
+            infoTable.addCell(createCompactValueCell(prazoFinal));
 
             document.add(infoTable);
 
-            // Conteúdo
-            document.add(new Paragraph("Conteúdo:")
-                .setBold()
-                .setFontSize(12)
-                .setMarginTop(10)
-                .setMarginBottom(5));
+            // Linha divisória sutil
+            document.add(new Paragraph("\u00A0")
+                .setMarginTop(0)
+                .setMarginBottom(10)
+                .setBorderBottom(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(226, 232, 240), 1)));
 
-            String conteudo = nota.getConteudo() != null && !nota.getConteudo().isEmpty()
-                ? stripHtml(nota.getConteudo())
+            // Conteúdo direto (sem título)
+            String conteudo = tarefa.getConteudo() != null && !tarefa.getConteudo().isEmpty()
+                ? stripHtml(tarefa.getConteudo())
                 : "Sem conteúdo";
 
             document.add(new Paragraph(conteudo)
                 .setFontSize(10)
-                .setMarginBottom(20));
+                .setMarginBottom(25)
+                .setTextAlignment(TextAlignment.JUSTIFIED));
 
-            // Rodapé
-            String rodape = String.format("Gerado em %s",
-                LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER));
+            // Rodapé discreto
+            document.add(new Paragraph("\u00A0")
+                .setMarginTop(15)
+                .setMarginBottom(5)
+                .setBorderTop(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(226, 232, 240), 0.5f)));
+
+            String rodape = String.format("Gerado em %s | %s",
+                LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER),
+                AppConfig.getAppName());
             document.add(new Paragraph(rodape)
-                .setFontSize(8)
+                .setFontSize(7)
                 .setTextAlignment(TextAlignment.CENTER)
-                .setFontColor(ColorConstants.GRAY)
-                .setMarginTop(30));
+                .setFontColor(new DeviceRgb(148, 163, 184)));
 
             document.close();
-            logger.info("PDF gerado com sucesso para nota ID: {}", notaId);
+            logger.info("PDF gerado com sucesso para tarefa ID: {}", tarefaId);
 
             return baos.toByteArray();
 
         } catch (Exception e) {
-            logger.error("Erro ao gerar PDF para nota ID: {}", notaId, e);
+            logger.error("Erro ao gerar PDF para tarefa ID: {}", tarefaId, e);
             throw new Exception("Erro ao gerar PDF: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Gera PDF com lista de notas (relatório).
+     * Gera PDF com lista de tarefas (relatório).
      *
-     * @param notas lista de notas
+     * @param tarefas lista de tarefas
      * @return byte array do PDF gerado
      * @throws Exception se houver erro ao gerar PDF
      */
-    public byte[] gerarPDFRelatorio(List<Nota> notas) throws Exception {
-        logger.info("Gerando PDF com relatório de {} notas", notas.size());
+    public byte[] gerarPDFRelatorio(List<Tarefa> tarefas) throws Exception {
+        logger.info("Gerando PDF com relatório de {} tarefas", tarefas.size());
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -200,33 +194,67 @@ public class PDFService {
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf);
 
-            // Título
-            Paragraph header = new Paragraph(AppConfig.getAppName())
-                .setFontSize(20)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(5);
-            document.add(header);
-
-            Paragraph subtitle = new Paragraph("Relatório de Notas")
-                .setFontSize(14)
-                .setTextAlignment(TextAlignment.CENTER)
+            // Cabeçalho com fundo colorido
+            Table headerTable = new Table(UnitValue.createPercentArray(1))
+                .useAllAvailableWidth()
+                .setBackgroundColor(new DeviceRgb(74, 144, 226))
                 .setMarginBottom(20);
-            document.add(subtitle);
 
-            // Informações do relatório
-            document.add(new Paragraph(String.format("Total de notas: %d", notas.size()))
-                .setFontSize(10)
-                .setMarginBottom(3));
+            Cell headerCell = new Cell()
+                .add(new Paragraph(AppConfig.getAppName())
+                    .setFontSize(24)
+                    .setBold()
+                    .setFontColor(ColorConstants.WHITE)
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setMarginBottom(3))
+                .add(new Paragraph("Relatório de Tarefas")
+                    .setFontSize(14)
+                    .setFontColor(ColorConstants.WHITE)
+                    .setTextAlignment(TextAlignment.CENTER))
+                .setPadding(15)
+                .setBorder(null);
 
-            document.add(new Paragraph(String.format("Gerado em: %s",
-                LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER)))
-                .setFontSize(10)
-                .setMarginBottom(15));
+            headerTable.addCell(headerCell);
+            document.add(headerTable);
 
-            // Tabela de notas
+            // Informações do relatório em caixa destacada
+            Table infoBox = new Table(UnitValue.createPercentArray(2))
+                .useAllAvailableWidth()
+                .setMarginBottom(20)
+                .setBackgroundColor(new DeviceRgb(241, 245, 249));
+
+            infoBox.addCell(new Cell()
+                .add(new Paragraph("Total de tarefas:")
+                    .setBold()
+                    .setFontSize(10))
+                .setBorder(null)
+                .setPadding(8));
+
+            infoBox.addCell(new Cell()
+                .add(new Paragraph(String.valueOf(tarefas.size()))
+                    .setFontSize(10))
+                .setBorder(null)
+                .setPadding(8));
+
+            infoBox.addCell(new Cell()
+                .add(new Paragraph("Data de geração:")
+                    .setBold()
+                    .setFontSize(10))
+                .setBorder(null)
+                .setPadding(8));
+
+            infoBox.addCell(new Cell()
+                .add(new Paragraph(LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER))
+                    .setFontSize(10))
+                .setBorder(null)
+                .setPadding(8));
+
+            document.add(infoBox);
+
+            // Tabela de tarefas com bordas
             Table table = new Table(UnitValue.createPercentArray(new float[]{35, 20, 20, 25}))
-                .useAllAvailableWidth();
+                .useAllAvailableWidth()
+                .setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(200, 200, 200), 1));
 
             // Cabeçalho da tabela
             table.addHeaderCell(createHeaderCell("Título"));
@@ -235,16 +263,16 @@ public class PDFService {
             table.addHeaderCell(createHeaderCell("Prazo Final"));
 
             // Linhas
-            for (Nota nota : notas) {
+            for (Tarefa tarefa : tarefas) {
                 // Buscar etiqueta e status
-                Etiqueta etiqueta = nota.getEtiquetaId() != null
-                    ? etiquetaRepository.buscarPorId(nota.getEtiquetaId()).orElse(null)
+                Etiqueta etiqueta = tarefa.getEtiquetaId() != null
+                    ? etiquetaRepository.buscarPorId(tarefa.getEtiquetaId()).orElse(null)
                     : null;
-                StatusNota status = nota.getStatusId() != null
-                    ? statusRepository.buscarPorId(nota.getStatusId()).orElse(null)
+                StatusTarefa status = tarefa.getStatusId() != null
+                    ? statusRepository.buscarPorId(tarefa.getStatusId()).orElse(null)
                     : null;
 
-                table.addCell(createTableCell(nota.getTitulo()));
+                table.addCell(createTableCell(tarefa.getTitulo()));
                 table.addCell(createTableCell(etiqueta != null ? etiqueta.getNome() : "N/A"));
 
                 Cell statusCell = createTableCell(status != null ? status.getNome() : "N/A");
@@ -255,8 +283,8 @@ public class PDFService {
                 }
                 table.addCell(statusCell);
 
-                String prazo = nota.getPrazoFinal() != null
-                    ? nota.getPrazoFinal().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                String prazo = tarefa.getPrazoFinal() != null
+                    ? tarefa.getPrazoFinal().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                     : "N/A";
                 table.addCell(createTableCell(prazo));
             }
@@ -281,7 +309,9 @@ public class PDFService {
         return new Cell()
             .add(new Paragraph(text).setBold())
             .setFontSize(10)
-            .setPadding(5);
+            .setPadding(8)
+            .setBackgroundColor(new DeviceRgb(241, 245, 249))
+            .setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(226, 232, 240), 0.5f));
     }
 
     /**
@@ -291,7 +321,8 @@ public class PDFService {
         return new Cell()
             .add(new Paragraph(text))
             .setFontSize(10)
-            .setPadding(5);
+            .setPadding(8)
+            .setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(226, 232, 240), 0.5f));
     }
 
     /**
@@ -300,11 +331,38 @@ public class PDFService {
     private Cell createHeaderCell(String text) {
         return new Cell()
             .add(new Paragraph(text).setBold())
-            .setBackgroundColor(new DeviceRgb(74, 144, 226))
+            .setBackgroundColor(new DeviceRgb(51, 65, 85))
             .setFontColor(ColorConstants.WHITE)
             .setFontSize(10)
+            .setPadding(10)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(30, 41, 59), 1));
+    }
+
+    /**
+     * Cria célula de cabeçalho compacta para quadro de informações.
+     */
+    private Cell createCompactHeaderCell(String text) {
+        return new Cell()
+            .add(new Paragraph(text).setBold())
+            .setBackgroundColor(new DeviceRgb(241, 245, 249))
+            .setFontColor(new DeviceRgb(71, 85, 105))
+            .setFontSize(8)
             .setPadding(5)
-            .setTextAlignment(TextAlignment.CENTER);
+            .setTextAlignment(TextAlignment.CENTER)
+            .setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(226, 232, 240), 0.5f));
+    }
+
+    /**
+     * Cria célula de valor compacta para quadro de informações.
+     */
+    private Cell createCompactValueCell(String text) {
+        return new Cell()
+            .add(new Paragraph(text))
+            .setFontSize(9)
+            .setPadding(5)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(226, 232, 240), 0.5f));
     }
 
     /**
@@ -314,7 +372,8 @@ public class PDFService {
         return new Cell()
             .add(new Paragraph(text))
             .setFontSize(9)
-            .setPadding(5);
+            .setPadding(8)
+            .setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(226, 232, 240), 0.5f));
     }
 
     /**

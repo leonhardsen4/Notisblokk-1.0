@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project Overview
 
-Notisblokk is a Java web application built with Javalin 6.1.3, SQLite, and BCrypt. It's a note management system with user authentication, tags (etiquetas), status tracking, and notification alerts.
+Notisblokk is a Java web application built with Javalin 6.1.3, SQLite, and BCrypt. It's a task management system with user authentication, tags (etiquetas), status tracking, and notification alerts.
 
 **Tech Stack:**
 - Java 21
@@ -111,14 +111,14 @@ The system has 5 main entities:
 
 1. **Usuario** - User accounts with BCrypt-hashed passwords
 2. **Etiqueta** - Tags/labels for organizing notes
-3. **StatusNota** - Status types with hex colors (Pendente, Em Andamento, Resolvido, etc.)
-4. **Nota** - Main entity: notes with title, content, deadline (prazoFinal), linked to etiqueta and status
-5. **NotaDTO** - Data transfer object that combines Nota with embedded Etiqueta and StatusNota objects
+3. **StatusTarefa** - Status types with hex colors (Pendente, Em Andamento, Resolvido, etc.)
+4. **Tarefa** - Main entity: tasks with title, content, deadline (prazoFinal), linked to etiqueta and status
+5. **TarefaDTO** - Data transfer object that combines Nota with embedded Etiqueta and StatusTarefa objects
 
 ### Key Architectural Patterns
 
 **DTO Pattern:**
-- `NotaDTO` enriches `Nota` with full etiqueta and status objects instead of just IDs
+- `TarefaDTO` enriches `Nota` with full etiqueta and status objects instead of just IDs
 - Controllers return DTOs, not raw entities
 - Services handle DTO conversion
 
@@ -129,7 +129,7 @@ The system has 5 main entities:
 
 **Service Layer:**
 - Services coordinate between multiple repositories
-- Example: `NotaService.listarTodas()` queries notas, etiquetas, and status, then builds DTOs
+- Example: `TarefaService.listarTodas()` queries notas, etiquetas, and status, then builds DTOs
 
 **Authentication:**
 - Token-based session management
@@ -242,14 +242,14 @@ Root path `/` redirects to `/login.html`
 
 **Individual PDF Export:**
 - Each note can be exported to PDF via button in the edit form
-- API endpoint: `GET /api/notas/{id}/pdf`
+- API endpoint: `GET /api/tarefas/{id}/pdf`
 - Uses iText library for professional PDF generation
 - Includes note metadata, formatted content, and branding
 
 **Bulk PDF Export:**
 - Multiple notes can be selected and exported in a single PDF report
 - Checkbox-based multi-selection system
-- API endpoint: `POST /api/notas/pdf/relatorio`
+- API endpoint: `POST /api/tarefas/pdf/relatorio`
 - Generates consolidated report with all selected notes
 
 ### User Interface Enhancements
@@ -281,7 +281,7 @@ Root path `/` redirects to `/login.html`
 - "From" and "To" date inputs
 - 5 preset buttons: Today, This Week, This Month, Next 7 Days, Next 30 Days
 - Integrates with existing filters
-- API endpoint: `GET /api/notas/intervalo?inicio={date}&fim={date}`
+- API endpoint: `GET /api/tarefas/intervalo?inicio={date}&fim={date}`
 
 **Keyboard Shortcuts:**
 - **Notes List (index.html):**
@@ -308,7 +308,7 @@ Root path `/` redirects to `/login.html`
 
 **Query Optimization:**
 - Eliminated N+1 query problem
-- Created `buscarTodasComRelacionamentos()` method in NotaRepository
+- Created `buscarTodasComRelacionamentos()` method in TarefaRepository
 - Uses LEFT JOIN to fetch notes with tags and status in single query
 - Reduces database queries from potentially hundreds to one
 
@@ -316,7 +316,7 @@ Root path `/` redirects to `/login.html`
 - Thread-safe in-memory cache using `ConcurrentHashMap`
 - Implemented in `SimpleCache<K,V>` utility class
 - TTL-based expiration (5 minutes default)
-- Used by `EtiquetaService` and `StatusNotaService`
+- Used by `EtiquetaService` and `StatusTarefaService`
 - 3-level caching: full list, by ID, by name
 - Automatic invalidation on create/update/delete operations
 
@@ -325,7 +325,7 @@ Root path `/` redirects to `/login.html`
 **Expanded Search:**
 - Search in both title AND content
 - Case-insensitive search using SQL LOWER()
-- API endpoint: `GET /api/notas/buscar?q={term}`
+- API endpoint: `GET /api/tarefas/buscar?q={term}`
 - Supports HTML content from Quill editor
 - Returns DTOs with full relationships
 
@@ -385,14 +385,14 @@ Root path `/` redirects to `/login.html`
 ### API Endpoints Added
 
 **Notes:**
-- `GET /api/notas/buscar?q={term}` - Search by text
-- `GET /api/notas/intervalo?inicio={date}&fim={date}` - Filter by date range
-- `GET /api/notas/{id}/pdf` - Export individual note to PDF
-- `POST /api/notas/pdf/relatorio` - Bulk PDF export
+- `GET /api/tarefas/buscar?q={term}` - Search by text
+- `GET /api/tarefas/intervalo?inicio={date}&fim={date}` - Filter by date range
+- `GET /api/tarefas/{id}/pdf` - Export individual note to PDF
+- `POST /api/tarefas/pdf/relatorio` - Bulk PDF export
 
 **Services Created:**
 - `EtiquetaService` - Business logic for tags with caching
-- `StatusNotaService` - Business logic for status with caching
+- `StatusTarefaService` - Business logic for status with caching
 - `PDFService` - PDF generation logic
 
 ### File Structure
@@ -401,10 +401,10 @@ Root path `/` redirects to `/login.html`
 - `src/main/java/com/notisblokk/util/SimpleCache.java` - Thread-safe cache utility
 - `src/main/java/com/notisblokk/service/PDFService.java` - PDF generation
 - `src/main/java/com/notisblokk/service/EtiquetaService.java` - Tag management with cache
-- `src/main/java/com/notisblokk/service/StatusNotaService.java` - Status management with cache
-- `src/main/resources/templates/notas/index.html` - Enhanced notes list UI
-- `src/main/resources/templates/notas/form.html` - Note edit form with PDF export
-- `src/main/resources/public/css/notas.css` - Complete styling system
+- `src/main/java/com/notisblokk/service/StatusTarefaService.java` - Status management with cache
+- `src/main/resources/templates/tarefas/index.html` - Enhanced notes list UI
+- `src/main/resources/templates/tarefas/form.html` - Note edit form with PDF export
+- `src/main/resources/public/css/tarefas.css` - Complete styling system
 
 ### Testing Notes
 

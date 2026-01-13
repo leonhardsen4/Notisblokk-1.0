@@ -1,7 +1,7 @@
 package com.notisblokk.repository;
 
 import com.notisblokk.config.DatabaseConfig;
-import com.notisblokk.model.StatusNota;
+import com.notisblokk.model.StatusTarefa;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,37 +18,37 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repositório responsável pelo acesso a dados de status de notas.
+ * Repositório responsável pelo acesso a dados de status de tarefas.
  *
- * <p>Implementa operações CRUD (Create, Read, Update, Delete) para a entidade StatusNota,
+ * <p>Implementa operações CRUD (Create, Read, Update, Delete) para a entidade StatusTarefa,
  * utilizando PreparedStatements para prevenir SQL injection.</p>
  *
  * @author Notisblokk Team
  * @version 1.0
  * @since 2025-01-26
  */
-public class StatusNotaRepository {
+public class StatusTarefaRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(StatusNotaRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(StatusTarefaRepository.class);
     private static final ZoneId BRAZIL_ZONE = ZoneId.of("America/Sao_Paulo");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     /**
-     * Busca todos os status de notas do sistema, ordenados alfabeticamente.
+     * Busca todos os status de tarefas do sistema, ordenados alfabeticamente.
      *
-     * @return List<StatusNota> lista de todos os status (vazia se não houver)
+     * @return List<StatusTarefa> lista de todos os status (vazia se não houver)
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<StatusNota> buscarTodos() throws SQLException {
-        String sql = "SELECT * FROM status_nota ORDER BY nome ASC";
-        List<StatusNota> statusList = new ArrayList<>();
+    public List<StatusTarefa> buscarTodos() throws SQLException {
+        String sql = "SELECT * FROM status_tarefa ORDER BY nome ASC";
+        List<StatusTarefa> statusList = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                statusList.add(mapResultSetToStatusNota(rs));
+                statusList.add(mapResultSetToStatusTarefa(rs));
             }
 
             logger.debug("Encontrados {} status", statusList.size());
@@ -61,11 +61,11 @@ public class StatusNotaRepository {
      * Busca um status por ID.
      *
      * @param id ID do status
-     * @return Optional<StatusNota> status encontrado ou Optional.empty()
+     * @return Optional<StatusTarefa> status encontrado ou Optional.empty()
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public Optional<StatusNota> buscarPorId(Long id) throws SQLException {
-        String sql = "SELECT * FROM status_nota WHERE id = ?";
+    public Optional<StatusTarefa> buscarPorId(Long id) throws SQLException {
+        String sql = "SELECT * FROM status_tarefa WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -74,7 +74,7 @@ public class StatusNotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    StatusNota status = mapResultSetToStatusNota(rs);
+                    StatusTarefa status = mapResultSetToStatusTarefa(rs);
                     logger.debug("Status encontrado: {}", status.getNome());
                     return Optional.of(status);
                 }
@@ -89,11 +89,11 @@ public class StatusNotaRepository {
      * Busca um status por nome.
      *
      * @param nome nome do status
-     * @return Optional<StatusNota> status encontrado ou Optional.empty()
+     * @return Optional<StatusTarefa> status encontrado ou Optional.empty()
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public Optional<StatusNota> buscarPorNome(String nome) throws SQLException {
-        String sql = "SELECT * FROM status_nota WHERE nome = ?";
+    public Optional<StatusTarefa> buscarPorNome(String nome) throws SQLException {
+        String sql = "SELECT * FROM status_tarefa WHERE nome = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -102,7 +102,7 @@ public class StatusNotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    StatusNota status = mapResultSetToStatusNota(rs);
+                    StatusTarefa status = mapResultSetToStatusTarefa(rs);
                     logger.debug("Status encontrado: {}", status.getNome());
                     return Optional.of(status);
                 }
@@ -119,12 +119,12 @@ public class StatusNotaRepository {
      * @param status status a ser salvo (sem ID)
      * @param sessaoId ID da sessão atual
      * @param usuarioId ID do usuário atual
-     * @return StatusNota status salvo com ID gerado
+     * @return StatusTarefa status salvo com ID gerado
      * @throws SQLException se houver erro ao salvar
      */
-    public StatusNota salvar(StatusNota status, Long sessaoId, Long usuarioId) throws SQLException {
+    public StatusTarefa salvar(StatusTarefa status, Long sessaoId, Long usuarioId) throws SQLException {
         String sql = """
-            INSERT INTO status_nota (nome, cor_hex, data_criacao, sessao_id, usuario_id)
+            INSERT INTO status_tarefa (nome, cor_hex, data_criacao, sessao_id, usuario_id)
             VALUES (?, ?, ?, ?, ?)
         """;
 
@@ -171,8 +171,8 @@ public class StatusNotaRepository {
      * @param status status a ser atualizado (com ID)
      * @throws SQLException se houver erro ao atualizar
      */
-    public void atualizar(StatusNota status) throws SQLException {
-        String sql = "UPDATE status_nota SET nome = ?, cor_hex = ? WHERE id = ?";
+    public void atualizar(StatusTarefa status) throws SQLException {
+        String sql = "UPDATE status_tarefa SET nome = ?, cor_hex = ? WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -193,13 +193,13 @@ public class StatusNotaRepository {
 
     /**
      * Remove um status do banco de dados.
-     * ATENÇÃO: Não será possível deletar se houver notas com esse status (RESTRICT).
+     * ATENÇÃO: Não será possível deletar se houver tarefas com esse status (RESTRICT).
      *
      * @param id ID do status a ser removido
-     * @throws SQLException se houver erro ao deletar ou se houver notas com esse status
+     * @throws SQLException se houver erro ao deletar ou se houver tarefas com esse status
      */
     public void deletar(Long id) throws SQLException {
-        String sql = "DELETE FROM status_nota WHERE id = ?";
+        String sql = "DELETE FROM status_tarefa WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -216,14 +216,14 @@ public class StatusNotaRepository {
     }
 
     /**
-     * Conta quantas notas estão associadas a um status.
+     * Conta quantas tarefas estão associadas a um status.
      *
      * @param statusId ID do status
-     * @return long número de notas associadas
+     * @return long número de tarefas associadas
      * @throws SQLException se houver erro ao contar
      */
-    public long contarNotasPorStatus(Long statusId) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM notas WHERE status_id = ?";
+    public long contarTarefasPorStatus(Long statusId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM tarefas WHERE status_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -240,14 +240,14 @@ public class StatusNotaRepository {
     }
 
     /**
-     * Mapeia um ResultSet para um objeto StatusNota.
+     * Mapeia um ResultSet para um objeto StatusTarefa.
      *
      * @param rs ResultSet posicionado na linha a ser mapeada
-     * @return StatusNota objeto mapeado
+     * @return StatusTarefa objeto mapeado
      * @throws SQLException se houver erro ao ler o ResultSet
      */
-    private StatusNota mapResultSetToStatusNota(ResultSet rs) throws SQLException {
-        StatusNota status = new StatusNota();
+    private StatusTarefa mapResultSetToStatusTarefa(ResultSet rs) throws SQLException {
+        StatusTarefa status = new StatusTarefa();
         status.setId(rs.getLong("id"));
         status.setNome(rs.getString("nome"));
         status.setCorHex(rs.getString("cor_hex"));

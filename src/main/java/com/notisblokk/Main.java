@@ -169,14 +169,20 @@ public class Main {
         UserController userController = new UserController();
         SessionController sessionController = new SessionController();
         EtiquetaController etiquetaController = new EtiquetaController();
-        StatusNotaController statusController = new StatusNotaController();
-        NotaController notaController = new NotaController();
+        StatusTarefaController statusTarefaController = new StatusTarefaController();
+        TarefaController tarefaController = new TarefaController();
         NotificacaoController notificacaoController = new NotificacaoController();
-        NotasViewController notasViewController = new NotasViewController();
+        TarefasViewController tarefasViewController = new TarefasViewController();
         PerfilController perfilController = new PerfilController();
         ConfiguracoesController configuracoesController = new ConfiguracoesController();
         BackupController backupController = new BackupController();
         AnexoController anexoController = new AnexoController();
+
+        // Ferramentas (Calculadora e Bloco de Notas)
+        CalculadoraController calculadoraController = new CalculadoraController();
+        CalculadoraViewController calculadoraViewController = new CalculadoraViewController();
+        BlocoNotaController blocoNotaController = new BlocoNotaController();
+        BlocoNotaViewController blocoNotaViewController = new BlocoNotaViewController();
 
         // ========== ROTAS PÚBLICAS ==========
 
@@ -214,8 +220,8 @@ public class Main {
 
         /*
         // DESABILITADO: Rota de debug expõe dados do banco sem autenticação
-        app.get("/api/status/debug", ctx -> { ... });
-        app.get("/api/notas/debug", ctx -> { ... });
+        app.get("/api/status-tarefa/debug", ctx -> { ... });
+        app.get("/api/tarefas/debug", ctx -> { ... });
         */
 
         // ========== ROTAS PROTEGIDAS (AUTENTICAÇÃO NECESSÁRIA) ==========
@@ -232,15 +238,15 @@ public class Main {
         app.before("/api/sessions/*", AuthMiddleware.require());
         app.before("/api/sessions/*", AdminMiddleware.require());
 
-        // Middleware para rotas de anotações (requer autenticação)
-        app.before("/notas", AuthMiddleware.require());
-        app.before("/notas/*", AuthMiddleware.require());
+        // Middleware para rotas de tarefas (requer autenticação)
+        app.before("/tarefas", AuthMiddleware.require());
+        app.before("/tarefas/*", AuthMiddleware.require());
         app.before("/api/etiquetas", AuthMiddleware.require());
         app.before("/api/etiquetas/*", AuthMiddleware.require());
-        app.before("/api/status", AuthMiddleware.require());
-        app.before("/api/status/*", AuthMiddleware.require());
-        app.before("/api/notas", AuthMiddleware.require());
-        app.before("/api/notas/*", AuthMiddleware.require());
+        app.before("/api/status-tarefa", AuthMiddleware.require());
+        app.before("/api/status-tarefa/*", AuthMiddleware.require());
+        app.before("/api/tarefas", AuthMiddleware.require());
+        app.before("/api/tarefas/*", AuthMiddleware.require());
         app.before("/api/notificacoes/*", AuthMiddleware.require());
         app.before("/perfil", AuthMiddleware.require());
         app.before("/perfil/*", AuthMiddleware.require());
@@ -256,16 +262,24 @@ public class Main {
         app.before("/uploads/*", AuthMiddleware.require());
         app.before("/api/theme", AuthMiddleware.require());
 
+        // Middleware para ferramentas (requer autenticação)
+        app.before("/calculadora", AuthMiddleware.require());
+        app.before("/calculadora/*", AuthMiddleware.require());
+        app.before("/api/calculadora/*", AuthMiddleware.require());
+        app.before("/bloco-notas", AuthMiddleware.require());
+        app.before("/bloco-notas/*", AuthMiddleware.require());
+        app.before("/api/bloco-notas/*", AuthMiddleware.require());
+
         // Dashboard
         app.get("/dashboard", dashboardController::index);
 
         // API - Dashboard Stats (AJAX)
         app.get("/api/dashboard/stats", dashboardController::getStats);
 
-        // Anotações (Views)
-        app.get("/notas", notasViewController::index);
-        app.get("/notas/nova", notasViewController::novaNota);
-        app.get("/notas/editar/{id}", notasViewController::editarNota);
+        // Tarefas (Views)
+        app.get("/tarefas", tarefasViewController::index);
+        app.get("/tarefas/nova", tarefasViewController::novaTarefa);
+        app.get("/tarefas/editar/{id}", tarefasViewController::editarTarefa);
 
         // ========== ROTAS ADMINISTRATIVAS (APENAS ADMIN) ==========
 
@@ -288,7 +302,7 @@ public class Main {
         app.get("/api/sessions/stats", sessionController::obterEstatisticas);
         app.post("/api/sessions/{id}/encerrar", sessionController::encerrar);
 
-        // ========== API DE ANOTAÇÕES (AUTENTICAÇÃO NECESSÁRIA) ==========
+        // ========== API DE TAREFAS (AUTENTICAÇÃO NECESSÁRIA) ==========
 
         // Etiquetas
         app.get("/api/etiquetas", etiquetaController::listar);
@@ -297,31 +311,51 @@ public class Main {
         app.put("/api/etiquetas/{id}", etiquetaController::atualizar);
         app.delete("/api/etiquetas/{id}", etiquetaController::deletar);
 
-        // Status
-        app.get("/api/status", statusController::listar);
-        app.get("/api/status/{id}", statusController::buscarPorId);
-        app.post("/api/status", statusController::criar);
-        app.put("/api/status/{id}", statusController::atualizar);
-        app.delete("/api/status/{id}", statusController::deletar);
+        // Status de Tarefas
+        app.get("/api/status-tarefa", statusTarefaController::listar);
+        app.get("/api/status-tarefa/{id}", statusTarefaController::buscarPorId);
+        app.post("/api/status-tarefa", statusTarefaController::criar);
+        app.put("/api/status-tarefa/{id}", statusTarefaController::atualizar);
+        app.delete("/api/status-tarefa/{id}", statusTarefaController::deletar);
 
-        // Notas
-        app.get("/api/notas", notaController::listar); // Suporta paginação via query params
-        app.get("/api/notas/paginado", notaController::listarPaginado); // Endpoint dedicado para paginação
-        app.get("/api/notas/buscar", notaController::buscarPorTexto); // Busca por texto (query param: q)
-        app.get("/api/notas/intervalo", notaController::buscarPorIntervaloPrazo); // Busca por intervalo de datas (query params: inicio, fim)
-        app.get("/api/notas/{id}", notaController::buscarPorId);
-        app.get("/api/notas/etiqueta/{etiquetaId}", notaController::buscarPorEtiqueta);
-        app.post("/api/notas", notaController::criar);
-        app.put("/api/notas/{id}", notaController::atualizar);
-        app.delete("/api/notas/{id}", notaController::deletar);
+        // Tarefas
+        app.get("/api/tarefas", tarefaController::listar); // Suporta paginação via query params
+        app.get("/api/tarefas/paginado", tarefaController::listarPaginado); // Endpoint dedicado para paginação
+        app.get("/api/tarefas/buscar", tarefaController::buscarPorTexto); // Busca por texto (query param: q)
+        app.get("/api/tarefas/intervalo", tarefaController::buscarPorIntervaloPrazo); // Busca por intervalo de datas (query params: inicio, fim)
+        app.get("/api/tarefas/{id}", tarefaController::buscarPorId);
+        app.get("/api/tarefas/etiqueta/{etiquetaId}", tarefaController::buscarPorEtiqueta);
+        app.post("/api/tarefas", tarefaController::criar);
+        app.put("/api/tarefas/{id}", tarefaController::atualizar);
+        app.delete("/api/tarefas/{id}", tarefaController::deletar);
 
-        // PDF de Notas
-        app.get("/api/notas/{id}/pdf", notaController::gerarPDF);
-        app.post("/api/notas/pdf/relatorio", notaController::gerarPDFRelatorio);
+        // PDF de Tarefas
+        app.get("/api/tarefas/{id}/pdf", tarefaController::gerarPDF);
+        app.post("/api/tarefas/pdf/relatorio", tarefaController::gerarPDFRelatorio);
 
         // Notificações
         app.get("/api/notificacoes/alertas", notificacaoController::gerarAlertas);
         app.get("/api/notificacoes/estatisticas", notificacaoController::obterEstatisticas);
+
+        // ========== FERRAMENTAS (CALCULADORA E BLOCO DE NOTAS) ==========
+
+        // Calculadora - Views
+        app.get("/calculadora", calculadoraViewController::index);
+
+        // Calculadora - API
+        app.get("/api/calculadora/historico", calculadoraController::obterHistorico);
+        app.post("/api/calculadora/calcular", calculadoraController::calcular);
+        app.delete("/api/calculadora/historico", calculadoraController::limparHistorico);
+        app.delete("/api/calculadora/historico/{id}", calculadoraController::deletarItem);
+
+        // Bloco de Notas - Views
+        app.get("/bloco-notas", blocoNotaViewController::index);
+
+        // Bloco de Notas - API
+        app.get("/api/bloco-notas", blocoNotaController::obter);
+        app.post("/api/bloco-notas/salvar", blocoNotaController::salvar);
+        app.get("/api/bloco-notas/exportar/txt", blocoNotaController::exportarTxt);
+        app.get("/api/bloco-notas/exportar/md", blocoNotaController::exportarMarkdown);
 
         // ========== PERFIL DO USUÁRIO ==========
 
@@ -352,8 +386,8 @@ public class Main {
         app.get("/api/backup/download/{id}", backupController::downloadBackup);
 
         // Anexos
-        app.post("/api/notas/{notaId}/anexos", anexoController::upload);
-        app.get("/api/notas/{notaId}/anexos", anexoController::listar);
+        app.post("/api/tarefas/{tarefaId}/anexos", anexoController::upload);
+        app.get("/api/tarefas/{tarefaId}/anexos", anexoController::listar);
         app.get("/api/anexos/{id}/download", anexoController::download);
         app.get("/api/anexos/{id}/visualizar", anexoController::visualizar);
         app.delete("/api/anexos/{id}", anexoController::remover);

@@ -14,12 +14,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller responsável pelo gerenciamento de anexos em notas.
+ * Controller responsável pelo gerenciamento de anexos em tarefas.
  *
  * <p>Gerencia:</p>
  * <ul>
- *   <li>Upload de arquivos anexados a notas</li>
- *   <li>Listagem de anexos de uma nota</li>
+ *   <li>Upload de arquivos anexados a tarefas</li>
+ *   <li>Listagem de anexos de uma tarefa</li>
  *   <li>Download de anexos</li>
  *   <li>Remoção de anexos</li>
  * </ul>
@@ -38,12 +38,12 @@ public class AnexoController {
     }
 
     /**
-     * POST /api/notas/{notaId}/anexos
-     * Faz upload de um anexo para uma nota.
+     * POST /api/tarefas/{tarefaId}/anexos
+     * Faz upload de um anexo para uma tarefa.
      */
     public void upload(Context ctx) {
         try {
-            Long notaId = Long.parseLong(ctx.pathParam("notaId"));
+            Long tarefaId = Long.parseLong(ctx.pathParam("tarefaId"));
             User currentUser = SessionUtil.getCurrentUser(ctx);
             UploadedFile file = ctx.uploadedFile("arquivo");
 
@@ -57,13 +57,13 @@ public class AnexoController {
 
             // Upload do arquivo
             FileUploadService.AnexoInfo anexo = fileUploadService.uploadArquivo(
-                notaId,
+                tarefaId,
                 file.filename(),
                 file.content(),
                 currentUser.getId()
             );
 
-            logger.info("Anexo criado para nota {}: {}", notaId, file.filename());
+            logger.info("Anexo criado para tarefa {}: {}", tarefaId, file.filename());
 
             ctx.json(Map.of(
                 "success", true,
@@ -74,7 +74,7 @@ public class AnexoController {
         } catch (NumberFormatException e) {
             ctx.json(Map.of(
                 "success", false,
-                "message", "ID de nota inválido"
+                "message", "ID de tarefa inválido"
             ));
         } catch (Exception e) {
             logger.error("Erro ao fazer upload de anexo", e);
@@ -86,14 +86,14 @@ public class AnexoController {
     }
 
     /**
-     * GET /api/notas/{notaId}/anexos
-     * Lista todos os anexos de uma nota.
+     * GET /api/tarefas/{tarefaId}/anexos
+     * Lista todos os anexos de uma tarefa.
      */
     public void listar(Context ctx) {
         try {
-            Long notaId = Long.parseLong(ctx.pathParam("notaId"));
+            Long tarefaId = Long.parseLong(ctx.pathParam("tarefaId"));
 
-            List<FileUploadService.AnexoInfo> anexos = fileUploadService.listarAnexos(notaId);
+            List<FileUploadService.AnexoInfo> anexos = fileUploadService.listarAnexos(tarefaId);
 
             ctx.json(Map.of(
                 "success", true,
@@ -103,7 +103,7 @@ public class AnexoController {
         } catch (NumberFormatException e) {
             ctx.json(Map.of(
                 "success", false,
-                "message", "ID de nota inválido"
+                "message", "ID de tarefa inválido"
             ));
         } catch (Exception e) {
             logger.error("Erro ao listar anexos", e);

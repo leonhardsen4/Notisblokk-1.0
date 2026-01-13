@@ -16,7 +16,7 @@ import java.util.Properties;
  * <ul>
  *   <li>Enviar email de confirmação de cadastro</li>
  *   <li>Enviar email de recuperação de senha</li>
- *   <li>Enviar alertas de prazos de notas</li>
+ *   <li>Enviar alertas de prazos de tarefas</li>
  *   <li>Enviar avisos de expiração de senha</li>
  * </ul>
  *
@@ -214,11 +214,11 @@ public class EmailService {
     }
 
     /**
-     * Envia email de alerta de prazo de nota.
+     * Envia email de alerta de prazo de tarefa.
      *
      * @param email email do usuário
      * @param nomeUsuario nome do usuário
-     * @param tituloNota título da nota
+     * @param tituloNota título da tarefa
      * @param prazoFinal prazo final formatado (dd/MM/yyyy)
      * @param diasRestantes quantos dias faltam
      * @throws Exception se houver erro no envio
@@ -229,7 +229,7 @@ public class EmailService {
         String cor;
 
         if (diasRestantes < 0) {
-            urgencia = "CRÍTICO - Nota Atrasada";
+            urgencia = "CRÍTICO - Tarefa Atrasada";
             cor = "#DC2626";
         } else if (diasRestantes == 0) {
             urgencia = "CRÍTICO - Vence HOJE";
@@ -248,9 +248,9 @@ public class EmailService {
         String subject = String.format("[%s] Alerta: %s", urgencia, tituloNota);
 
         String mensagem = diasRestantes < 0
-            ? String.format("Esta nota está atrasada há %d dia(s)!", Math.abs(diasRestantes))
+            ? String.format("Esta tarefa está atrasada há %d dia(s)!", Math.abs(diasRestantes))
             : diasRestantes == 0
-            ? "Esta nota vence HOJE!"
+            ? "Esta tarefa vence HOJE!"
             : String.format("Faltam apenas %d dia(s) para o prazo!", diasRestantes);
 
         String body = String.format("""
@@ -282,8 +282,8 @@ public class EmailService {
                             <p><strong>Nível de urgência:</strong> %s</p>
                         </div>
                         <p style="text-align: center;">
-                            <a href="http://localhost:%d/notas" class="button">
-                                Ver Nota
+                            <a href="http://localhost:%d/tarefas" class="button">
+                                Ver Tarefa
                             </a>
                         </p>
                     </div>

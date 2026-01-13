@@ -1,7 +1,7 @@
 package com.notisblokk.controller;
 
-import com.notisblokk.model.StatusNota;
-import com.notisblokk.service.StatusNotaService;
+import com.notisblokk.model.StatusTarefa;
+import com.notisblokk.service.StatusTarefaService;
 import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
@@ -14,45 +14,45 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Controller responsável pelo gerenciamento de status de notas.
+ * Controller responsável pelo gerenciamento de status de tarefas.
  *
  * <p>Gerencia os endpoints REST para operações CRUD de status:</p>
  * <ul>
- *   <li>GET /api/status - Listar todos os status</li>
- *   <li>GET /api/status/{id} - Buscar status por ID</li>
- *   <li>POST /api/status - Criar novo status</li>
- *   <li>PUT /api/status/{id} - Atualizar status</li>
- *   <li>DELETE /api/status/{id} - Deletar status</li>
+ *   <li>GET /api/status-tarefa - Listar todos os status</li>
+ *   <li>GET /api/status-tarefa/{id} - Buscar status por ID</li>
+ *   <li>POST /api/status-tarefa - Criar novo status</li>
+ *   <li>PUT /api/status-tarefa/{id} - Atualizar status</li>
+ *   <li>DELETE /api/status-tarefa/{id} - Deletar status</li>
  * </ul>
  *
- * <p><b>OTIMIZADO:</b> Utiliza StatusNotaService com cache em memória.</p>
+ * <p><b>OTIMIZADO:</b> Utiliza StatusTarefaService com cache em memória.</p>
  *
  * @author Notisblokk Team
  * @version 1.1
  * @since 2025-01-26
  */
-public class StatusNotaController {
+public class StatusTarefaController {
 
-    private static final Logger logger = LoggerFactory.getLogger(StatusNotaController.class);
+    private static final Logger logger = LoggerFactory.getLogger(StatusTarefaController.class);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-    private final StatusNotaService statusService;
+    private final StatusTarefaService statusService;
 
     /**
      * Construtor padrão.
      */
-    public StatusNotaController() {
-        this.statusService = new StatusNotaService();
+    public StatusTarefaController() {
+        this.statusService = new StatusTarefaService();
     }
 
     /**
-     * GET /api/status
-     * Lista todos os status, incluindo contador de notas (com cache).
+     * GET /api/status-tarefa
+     * Lista todos os status, incluindo contador de tarefas (com cache).
      */
     public void listar(Context ctx) {
         try {
-            List<StatusNota> statusList = statusService.listarTodos();
+            List<StatusTarefa> statusList = statusService.listarTodos();
 
-            // Adicionar contador de notas para cada status
+            // Adicionar contador de tarefas para cada status
             List<Map<String, Object>> statusComContador = statusList.stream()
                 .map(status -> {
                     Map<String, Object> map = new HashMap<>();
@@ -66,11 +66,11 @@ public class StatusNotaController {
                     }
 
                     try {
-                        long totalNotas = statusService.contarNotasPorStatus(status.getId());
-                        map.put("totalNotas", totalNotas);
+                        long totalTarefas = statusService.contarTarefasPorStatus(status.getId());
+                        map.put("totalTarefas", totalTarefas);
                     } catch (Exception e) {
-                        logger.error("Erro ao contar notas do status {}", status.getId(), e);
-                        map.put("totalNotas", 0);
+                        logger.error("Erro ao contar tarefas do status {}", status.getId(), e);
+                        map.put("totalTarefas", 0);
                     }
 
                     return map;
@@ -95,13 +95,13 @@ public class StatusNotaController {
     }
 
     /**
-     * GET /api/status/{id}
+     * GET /api/status-tarefa/{id}
      * Busca um status por ID (com cache).
      */
     public void buscarPorId(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
-            Optional<StatusNota> statusOpt = statusService.buscarPorId(id);
+            Optional<StatusTarefa> statusOpt = statusService.buscarPorId(id);
 
             if (statusOpt.isEmpty()) {
                 ctx.status(404);
@@ -134,7 +134,7 @@ public class StatusNotaController {
     }
 
     /**
-     * POST /api/status
+     * POST /api/status-tarefa
      * Cria um novo status (invalida cache).
      */
     public void criar(Context ctx) {
@@ -149,7 +149,7 @@ public class StatusNotaController {
             Long usuarioId = SessionUtil.getCurrentUserId(ctx);
 
             // Criar via service (validações e cache são gerenciados lá)
-            StatusNota status = statusService.criar(nome, corHex, sessaoId, usuarioId);
+            StatusTarefa status = statusService.criar(nome, corHex, sessaoId, usuarioId);
 
             ctx.status(201);
             ctx.json(Map.of(
@@ -176,7 +176,7 @@ public class StatusNotaController {
     }
 
     /**
-     * PUT /api/status/{id}
+     * PUT /api/status-tarefa/{id}
      * Atualiza um status existente (invalida cache).
      */
     public void atualizar(Context ctx) {
@@ -189,7 +189,7 @@ public class StatusNotaController {
             String corHex = (String) body.get("corHex");
 
             // Atualizar via service (validações e cache são gerenciados lá)
-            StatusNota status = statusService.atualizar(id, nome, corHex);
+            StatusTarefa status = statusService.atualizar(id, nome, corHex);
 
             ctx.json(Map.of(
                 "success", true,
@@ -222,9 +222,9 @@ public class StatusNotaController {
     }
 
     /**
-     * DELETE /api/status/{id}
+     * DELETE /api/status-tarefa/{id}
      * Deleta um status (invalida cache).
-     * ATENÇÃO: Não será possível deletar se houver notas com esse status (RESTRICT).
+     * ATENÇÃO: Não será possível deletar se houver tarefas com esse status (RESTRICT).
      */
     public void deletar(Context ctx) {
         try {

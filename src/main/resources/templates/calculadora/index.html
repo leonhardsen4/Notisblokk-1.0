@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${title}">Calculadora - Notisblokk</title>
+    <link rel="stylesheet" href="/css/calculadora.css">
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content" x-data="calculadoraApp()" x-init="init()">
+            <h1 class="page-title">Calculadora</h1>
+
+            <!-- Loading Overlay -->
+            <div x-show="carregandoInicial" class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Carregando calculadora...</p>
+            </div>
+
+            <!-- Container Principal: Calculadora + Histórico -->
+            <div class="calculadora-container">
+
+                <!-- Painel Esquerdo: Calculadora -->
+                <div class="calculadora-panel">
+                    <div class="calc-card">
+                        <!-- Display -->
+                        <div class="calc-display">
+                            <div class="calc-expression" x-show="expressao" x-text="expressao"></div>
+                            <div class="calc-result" x-text="display || '0'"></div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="calc-buttons">
+                            <!-- Linha 1: Funções Especiais -->
+                            <button class="btn-function" @click="limpar()">C</button>
+                            <button class="btn-function" @click="limparEntrada()">CE</button>
+                            <button class="btn-function" @click="apagarUltimo()">⌫</button>
+                            <button class="btn-operator" @click="digitarOperador('/')">÷</button>
+
+                            <!-- Linha 2: 7, 8, 9, × -->
+                            <button class="btn-number" @click="digitarNumero('7')">7</button>
+                            <button class="btn-number" @click="digitarNumero('8')">8</button>
+                            <button class="btn-number" @click="digitarNumero('9')">9</button>
+                            <button class="btn-operator" @click="digitarOperador('*')">×</button>
+
+                            <!-- Linha 3: 4, 5, 6, - -->
+                            <button class="btn-number" @click="digitarNumero('4')">4</button>
+                            <button class="btn-number" @click="digitarNumero('5')">5</button>
+                            <button class="btn-number" @click="digitarNumero('6')">6</button>
+                            <button class="btn-operator" @click="digitarOperador('-')">−</button>
+
+                            <!-- Linha 4: 1, 2, 3, + -->
+                            <button class="btn-number" @click="digitarNumero('1')">1</button>
+                            <button class="btn-number" @click="digitarNumero('2')">2</button>
+                            <button class="btn-number" @click="digitarNumero('3')">3</button>
+                            <button class="btn-operator" @click="digitarOperador('+')">+</button>
+
+                            <!-- Linha 5: %, √, x², = (span 2 rows) -->
+                            <button class="btn-advanced" @click="porcentagem()">%</button>
+                            <button class="btn-advanced" @click="raizQuadrada()">√</button>
+                            <button class="btn-advanced" @click="quadrado()">x²</button>
+                            <button class="btn-equals btn-equals-large" @click="calcularResultado()">=</button>
+
+                            <!-- Linha 6: +/-, 0, . -->
+                            <button class="btn-function" @click="inverterSinal()">+/−</button>
+                            <button class="btn-number" @click="digitarNumero('0')">0</button>
+                            <button class="btn-number" @click="digitarPonto()">.</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel Direito: Histórico -->
+                <div class="historico-panel">
+                    <div class="historico-card">
+                        <div class="historico-header">
+                            <h3>Histórico</h3>
+                            <button
+                                class="btn-limpar-historico"
+                                @click="limparHistorico()"
+                                :disabled="historico.length === 0">
+                                🗑️ Limpar
+                            </button>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div x-show="carregandoHistorico" class="historico-loading">
+                            <div class="spinner"></div>
+                            <p>Carregando histórico...</p>
+                        </div>
+
+                        <!-- Lista de Histórico -->
+                        <div x-show="!carregandoHistorico" class="historico-lista">
+                            <!-- Empty State -->
+                            <div x-show="historico.length === 0" class="historico-empty">
+                                <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                <p>Nenhum cálculo realizado</p>
+                            </div>
+
+                            <!-- Lista de Itens -->
+                            <template x-for="item in historico" :key="item.id">
+                                <div class="historico-item">
+                                    <div class="historico-item-content">
+                                        <div class="historico-expressao" x-text="item.expressao"></div>
+                                        <div class="historico-resultado" x-text="'= ' + formatarNumero(item.resultado)"></div>
+                                        <div class="historico-meta">
+                                            <span class="historico-tipo" x-text="item.tipoOperacao"></span>
+                                            <span class="historico-data" x-text="item.dataCriacao"></span>
+                                        </div>
+                                    </div>
+                                    <div class="historico-item-actions">
+                                        <button
+                                            class="btn-reutilizar"
+                                            @click="reutilizarCalculo(item)"
+                                            title="Reutilizar este cálculo">
+                                            ↻
+                                        </button>
+                                        <button
+                                            class="btn-deletar-item"
+                                            @click="deletarItemHistorico(item.id)"
+                                            title="Deletar este item">
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <script>
+        /**
+         * Aplicação Alpine.js da Calculadora
+         */
+        function calculadoraApp() {
+            return {
+                display: '0',
+                expressao: '',
+                operando1: null,
+                operador: null,
+                aguardandoNovoNumero: false,
+                historico: [],
+                carregandoHistorico: false,
+                carregandoInicial: false,
+
+                /**
+                 * Inicialização
+                 */
+                async init() {
+                    this.carregandoInicial = true;
+                    try {
+                        await this.carregarHistorico();
+                    } finally {
+                        this.carregandoInicial = false;
+                    }
+                },
+
+                /**
+                 * Carrega histórico do servidor
+                 */
+                async carregarHistorico() {
+                    this.carregandoHistorico = true;
+                    try {
+                        const res = await fetch('/api/calculadora/historico');
+                        const data = await res.json();
+
+                        if (data.success) {
+                            this.historico = data.dados || [];
+                        } else {
+                            console.error('Erro ao carregar histórico:', data.message);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar histórico:', error);
+                    } finally {
+                        this.carregandoHistorico = false;
+                    }
+                },
+
+                /**
+                 * Digita um número no display
+                 */
+                digitarNumero(num) {
+                    if (this.aguardandoNovoNumero) {
+                        this.display = num;
+                        this.aguardandoNovoNumero = false;
+                    } else {
+                        this.display = this.display === '0' ? num : this.display + num;
+                    }
+                },
+
+                /**
+                 * Digita um ponto decimal
+                 */
+                digitarPonto() {
+                    if (this.aguardandoNovoNumero) {
+                        this.display = '0.';
+                        this.aguardandoNovoNumero = false;
+                    } else if (!this.display.includes('.')) {
+                        this.display += '.';
+                    }
+                },
+
+                /**
+                 * Digita um operador
+                 */
+                digitarOperador(op) {
+                    if (this.operando1 !== null && this.operador && !this.aguardandoNovoNumero) {
+                        // Calcular resultado parcial
+                        this.calcularResultado();
+                    }
+
+                    this.operando1 = parseFloat(this.display);
+                    this.operador = op;
+                    this.expressao = this.display + ' ' + this.getOperadorSimbolo(op);
+                    this.aguardandoNovoNumero = true;
+                },
+
+                /**
+                 * Calcula o resultado final
+                 */
+                async calcularResultado() {
+                    if (this.operador === null) return;
+
+                    const numero2 = parseFloat(this.display);
+                    const expressaoCompleta = this.operando1 + this.operador + numero2;
+
+                    try {
+                        const res = await fetch('/api/calculadora/calcular', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ expressao: expressaoCompleta })
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            this.display = String(data.dados.resultado);
+                            this.expressao = '';
+                            this.operando1 = null;
+                            this.operador = null;
+                            this.aguardandoNovoNumero = true;
+
+                            // Adicionar ao histórico local
+                            this.historico.unshift(data.dados);
+
+                            // Limitar histórico a 100 itens
+                            if (this.historico.length > 100) {
+                                this.historico = this.historico.slice(0, 100);
+                            }
+                        } else {
+                            alert('Erro: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao calcular:', error);
+                        alert('Erro ao realizar cálculo');
+                    }
+                },
+
+                /**
+                 * Limpa tudo (C)
+                 */
+                limpar() {
+                    this.display = '0';
+                    this.expressao = '';
+                    this.operando1 = null;
+                    this.operador = null;
+                    this.aguardandoNovoNumero = false;
+                },
+
+                /**
+                 * Limpa apenas entrada atual (CE)
+                 */
+                limparEntrada() {
+                    this.display = '0';
+                    this.aguardandoNovoNumero = false;
+                },
+
+                /**
+                 * Apaga último dígito (Backspace)
+                 */
+                apagarUltimo() {
+                    if (this.display.length > 1) {
+                        this.display = this.display.slice(0, -1);
+                    } else {
+                        this.display = '0';
+                    }
+                },
+
+                /**
+                 * Inverte o sinal (+/-)
+                 */
+                inverterSinal() {
+                    if (this.display !== '0') {
+                        this.display = this.display.startsWith('-')
+                            ? this.display.substring(1)
+                            : '-' + this.display;
+                    }
+                },
+
+                /**
+                 * Calcula porcentagem
+                 */
+                async porcentagem() {
+                    if (this.operando1 !== null && this.operador) {
+                        // a% de b
+                        const expressao = this.operando1 + '%' + this.display;
+                        await this.calcularExpressao(expressao);
+                    }
+                },
+
+                /**
+                 * Calcula raiz quadrada
+                 */
+                async raizQuadrada() {
+                    const expressao = 'sqrt(' + this.display + ')';
+                    await this.calcularExpressao(expressao);
+                },
+
+                /**
+                 * Calcula quadrado (x²)
+                 */
+                async quadrado() {
+                    const expressao = this.display + '^2';
+                    await this.calcularExpressao(expressao);
+                },
+
+                /**
+                 * Executa cálculo de expressão especial
+                 */
+                async calcularExpressao(expressao) {
+                    try {
+                        const res = await fetch('/api/calculadora/calcular', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ expressao })
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            this.display = String(data.dados.resultado);
+                            this.expressao = '';
+                            this.operando1 = null;
+                            this.operador = null;
+                            this.aguardandoNovoNumero = true;
+
+                            // Adicionar ao histórico
+                            this.historico.unshift(data.dados);
+                            if (this.historico.length > 100) {
+                                this.historico = this.historico.slice(0, 100);
+                            }
+                        } else {
+                            alert('Erro: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao calcular:', error);
+                        alert('Erro ao realizar cálculo');
+                    }
+                },
+
+                /**
+                 * Limpa todo o histórico
+                 */
+                async limparHistorico() {
+                    if (!confirm('Deseja realmente limpar todo o histórico de cálculos?')) {
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch('/api/calculadora/historico', {
+                            method: 'DELETE'
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            this.historico = [];
+                            alert('Histórico limpo com sucesso!');
+                        } else {
+                            alert('Erro: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao limpar histórico:', error);
+                        alert('Erro ao limpar histórico');
+                    }
+                },
+
+                /**
+                 * Deleta um item específico do histórico
+                 */
+                async deletarItemHistorico(id) {
+                    try {
+                        const res = await fetch(`/api/calculadora/historico/${id}`, {
+                            method: 'DELETE'
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            // Remover da lista local
+                            this.historico = this.historico.filter(item => item.id !== id);
+                        } else {
+                            alert('Erro: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao deletar item:', error);
+                        alert('Erro ao deletar item');
+                    }
+                },
+
+                /**
+                 * Reutiliza um cálculo do histórico
+                 */
+                reutilizarCalculo(item) {
+                    this.display = String(item.resultado);
+                    this.expressao = '';
+                    this.operando1 = null;
+                    this.operador = null;
+                    this.aguardandoNovoNumero = true;
+                },
+
+                /**
+                 * Retorna símbolo visual do operador
+                 */
+                getOperadorSimbolo(op) {
+                    const simbolos = {
+                        '+': '+',
+                        '-': '−',
+                        '*': '×',
+                        '/': '÷'
+                    };
+                    return simbolos[op] || op;
+                },
+
+                /**
+                 * Formata número para exibição
+                 */
+                formatarNumero(num) {
+                    if (typeof num === 'number') {
+                        // Limitar casas decimais para não quebrar layout
+                        return num.toFixed(6).replace(/\.?0+$/, '');
+                    }
+                    return num;
+                }
+            };
+        }
+    </script>
+</body>
+</html>

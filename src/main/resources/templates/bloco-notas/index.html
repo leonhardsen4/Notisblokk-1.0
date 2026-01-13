@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${title}">Bloco de Notas - Notisblokk</title>
+    <link rel="stylesheet" href="/css/bloco-notas.css">
+    <!-- Marked.js v9.1.6 for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+</head>
+<body>
+    <th:block th:replace="~{layout/base :: base(~{::main-content})}">
+        <div th:fragment="main-content" x-data="blocoNotasApp()" x-init="init()">
+            <h1 class="page-title">Bloco de Notas</h1>
+
+            <!-- Loading Overlay -->
+            <div x-show="carregando" class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Carregando bloco de notas...</p>
+            </div>
+
+            <!-- Container Principal -->
+            <div class="bloco-notas-container">
+                <div class="bloco-notas-card">
+
+                    <!-- Toolbar Principal -->
+                    <div class="toolbar">
+                        <div class="toolbar-left">
+                            <button
+                                class="btn-toggle-mode"
+                                @click="togglePreview()"
+                                :class="modoPreview ? 'preview-active' : 'edit-active'">
+                                <span x-show="!modoPreview">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                    Visualizar
+                                </span>
+                                <span x-show="modoPreview">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    Editar
+                                </span>
+                            </button>
+                        </div>
+
+                        <div class="toolbar-right">
+                            <button class="btn-export" @click.prevent="exportarTxt">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Exportar TXT
+                            </button>
+                            <button class="btn-export btn-export-md" @click.prevent="exportarMd">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                Exportar MD
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Markdown Toolbar (apenas em modo edição) -->
+                    <div class="markdown-toolbar" x-show="!modoPreview">
+                        <button class="md-btn" @click="inserirMarkdown('# ')" title="Título 1">
+                            <strong>H1</strong>
+                        </button>
+                        <button class="md-btn" @click="inserirMarkdown('## ')" title="Título 2">
+                            <strong>H2</strong>
+                        </button>
+                        <div class="toolbar-separator"></div>
+                        <button class="md-btn" @click="inserirMarkdown('**', '**')" title="Negrito">
+                            <strong>B</strong>
+                        </button>
+                        <button class="md-btn" @click="inserirMarkdown('*', '*')" title="Itálico">
+                            <em>I</em>
+                        </button>
+                        <div class="toolbar-separator"></div>
+                        <button class="md-btn" @click="inserirMarkdown('- ')" title="Lista">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                        <button class="md-btn" @click="inserirMarkdown('`', '`')" title="Código inline">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                            </svg>
+                        </button>
+                        <button class="md-btn" @click="inserirMarkdown('[', '](url)')" title="Link">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Editor (modo edição) -->
+                    <textarea
+                        x-ref="editor"
+                        x-show="!modoPreview"
+                        x-model="conteudo"
+                        @input.debounce.2000ms="salvarAutomaticamente()"
+                        @input="renderizarPreview()"
+                        class="editor-textarea"
+                        placeholder="Digite seu texto em Markdown...
+Exemplos:
+# Título 1
+## Título 2
+**Negrito** ou *Itálico*
+- Lista
+- Item 2
+`código`">
+                    </textarea>
+
+                    <!-- Preview (modo visualização) -->
+                    <div
+                        x-show="modoPreview"
+                        x-html="conteudoHtml"
+                        class="preview-area">
+                    </div>
+
+                    <!-- Status Bar -->
+                    <div class="status-bar">
+                        <div class="status-left">
+                            <span x-show="salvando" class="status-saving">
+                                <span class="spinner-mini"></span>
+                                Salvando...
+                            </span>
+                            <span x-show="!salvando && ultimoSalvamento" class="status-saved">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Salvo em <span x-text="ultimoSalvamento"></span>
+                            </span>
+                        </div>
+                        <div class="status-right">
+                            <span class="status-mode" x-text="modoPreview ? 'Modo: Visualização' : 'Modo: Edição'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Exportação -->
+            <div class="modal-overlay"
+                 :class="{ 'modal-visible': mostrarModalExportacao }"
+                 @click.self="fecharModalExportacao">
+                <div class="modal-container" @click.stop>
+                    <div class="modal-header">
+                        <h3>Exportar Documento</h3>
+                        <button class="modal-close" @click="fecharModalExportacao">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="nomeArquivo">Nome do arquivo:</label>
+                            <input
+                                type="text"
+                                id="nomeArquivo"
+                                x-model="nomeArquivo"
+                                class="form-input"
+                                placeholder="meu-documento"
+                                @keyup.enter="confirmarExportacao">
+                        </div>
+                        <div class="form-group">
+                            <label for="formatoExportacao">Formato:</label>
+                            <select id="formatoExportacao" x-model="formatoExportacao" class="form-select">
+                                <option value="txt">Texto (.txt)</option>
+                                <option value="md">Markdown (.md)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" @click="fecharModalExportacao">Cancelar</button>
+                        <button class="btn-primary" @click="confirmarExportacao">Exportar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <script>
+        /**
+         * Aplicação Alpine.js do Bloco de Notas
+         */
+        function blocoNotasApp() {
+            return {
+                conteudo: '',
+                conteudoHtml: '',
+                modoPreview: false,
+                salvando: false,
+                ultimoSalvamento: null,
+                mostrarModalExportacao: false,
+                nomeArquivo: 'documento',
+                formatoExportacao: 'txt',
+                carregando: false,
+
+                /**
+                 * Inicialização
+                 */
+                async init() {
+                    this.carregando = true;
+                    console.log('Inicializando Bloco de Notas...');
+
+                    try {
+                        // Verificar Marked.js
+                        if (typeof marked === 'undefined') {
+                            console.error('ERRO: Marked.js não foi carregado!');
+                            alert('Erro ao carregar biblioteca Markdown. Recarregue a página.');
+                            return;
+                        }
+
+                        console.log('Marked.js detectado:', marked);
+
+                        // Carregar documento
+                        await this.carregarDocumento();
+                    } finally {
+                        this.carregando = false;
+                    }
+                },
+
+                /**
+                 * Carrega documento do servidor
+                 */
+                async carregarDocumento() {
+                    console.log('Carregando documento...');
+                    try {
+                        const res = await fetch('/api/bloco-notas');
+                        const data = await res.json();
+
+                        console.log('Resposta da API:', data);
+
+                        if (data.success) {
+                            this.conteudo = data.dados.conteudoMarkdown || '';
+                            console.log('Conteúdo carregado:', this.conteudo.substring(0, 50));
+                            this.renderizarPreview();
+                        } else {
+                            console.error('Erro ao carregar documento:', data.message);
+                            alert('Erro ao carregar documento: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar documento:', error);
+                        alert('Erro ao carregar documento. Verifique a conexão.');
+                    }
+                },
+
+                /**
+                 * Salva automaticamente
+                 */
+                async salvarAutomaticamente() {
+                    this.salvando = true;
+                    console.log('Salvando documento...');
+
+                    try {
+                        const res = await fetch('/api/bloco-notas/salvar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ conteudo: this.conteudo })
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            const agora = new Date();
+                            this.ultimoSalvamento = agora.toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                            });
+                            console.log('Documento salvo com sucesso!');
+                        } else {
+                            console.error('Erro ao salvar:', data.message);
+                            alert('Erro ao salvar: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao salvar:', error);
+                        alert('Erro ao salvar documento');
+                    } finally {
+                        this.salvando = false;
+                    }
+                },
+
+                /**
+                 * Alterna entre edição e preview
+                 */
+                togglePreview() {
+                    this.modoPreview = !this.modoPreview;
+                    console.log('Modo preview:', this.modoPreview);
+                    if (this.modoPreview) {
+                        this.renderizarPreview();
+                    }
+                },
+
+                /**
+                 * Renderiza Markdown como HTML
+                 */
+                renderizarPreview() {
+                    console.log('Renderizando preview...');
+
+                    if (!this.conteudo || this.conteudo.trim() === '') {
+                        this.conteudoHtml = '<p style="color: #999; font-style: italic;">Nenhum conteúdo ainda...</p>';
+                        return;
+                    }
+
+                    try {
+                        // Marked.js v9+ usa marked.parse()
+                        if (typeof marked !== 'undefined') {
+                            this.conteudoHtml = marked.parse(this.conteudo, {
+                                breaks: true,
+                                gfm: true
+                            });
+                            console.log('Preview renderizado com sucesso');
+                        } else {
+                            throw new Error('Marked.js não está disponível');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao renderizar Markdown:', error);
+                        this.conteudoHtml = '<p style="color: red;">Erro ao renderizar Markdown: ' + error.message + '</p>';
+                    }
+                },
+
+                /**
+                 * Insere sintaxe Markdown
+                 */
+                inserirMarkdown(antes, depois = '') {
+                    console.log('Inserindo markdown:', antes, depois);
+
+                    const textarea = this.$refs.editor;
+                    if (!textarea) {
+                        console.error('Textarea não encontrado!');
+                        return;
+                    }
+
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const textoSelecionado = this.conteudo.substring(start, end);
+
+                    console.log('Seleção:', start, end, textoSelecionado);
+
+                    const novoTexto =
+                        this.conteudo.substring(0, start) +
+                        antes + textoSelecionado + depois +
+                        this.conteudo.substring(end);
+
+                    this.conteudo = novoTexto;
+
+                    // Atualizar preview imediatamente
+                    this.renderizarPreview();
+
+                    // Mover cursor
+                    this.$nextTick(() => {
+                        textarea.focus();
+                        const novaPosicao = start + antes.length + textoSelecionado.length;
+                        textarea.setSelectionRange(novaPosicao, novaPosicao);
+                    });
+                },
+
+                /**
+                 * Abre modal para exportar como TXT
+                 */
+                exportarTxt() {
+                    console.log('📄 Exportar TXT clicado');
+                    this.formatoExportacao = 'txt';
+                    this.abrirModalExportacao();
+                },
+
+                /**
+                 * Abre modal para exportar como Markdown
+                 */
+                exportarMd() {
+                    console.log('📝 Exportar MD clicado');
+                    this.formatoExportacao = 'md';
+                    this.abrirModalExportacao();
+                },
+
+                /**
+                 * Abre o modal de exportação
+                 */
+                abrirModalExportacao() {
+                    console.log('🟢 Abrindo modal...');
+                    console.log('Estado ANTES:', this.mostrarModalExportacao);
+
+                    // Gerar nome sugerido baseado na data
+                    const hoje = new Date();
+                    const dataStr = hoje.toISOString().split('T')[0]; // YYYY-MM-DD
+                    this.nomeArquivo = `documento-${dataStr}`;
+                    this.mostrarModalExportacao = true;
+
+                    console.log('Estado DEPOIS:', this.mostrarModalExportacao);
+                    console.log('Formato:', this.formatoExportacao);
+
+                    // Verificar se a classe foi aplicada
+                    this.$nextTick(() => {
+                        const modal = document.querySelector('.modal-overlay');
+                        console.log('Classes do modal:', modal?.className);
+                        console.log('Display do modal:', modal ? getComputedStyle(modal).display : 'N/A');
+                    });
+                },
+
+                /**
+                 * Fecha o modal de exportação
+                 */
+                fecharModalExportacao() {
+                    console.log('🔴 Fechando modal...');
+                    this.mostrarModalExportacao = false;
+                },
+
+                /**
+                 * Confirma e executa a exportação
+                 */
+                async confirmarExportacao() {
+                    if (!this.nomeArquivo || this.nomeArquivo.trim() === '') {
+                        alert('Por favor, digite um nome para o arquivo');
+                        return;
+                    }
+
+                    try {
+                        const endpoint = this.formatoExportacao === 'txt'
+                            ? '/api/bloco-notas/exportar/txt'
+                            : '/api/bloco-notas/exportar/md';
+
+                        const response = await fetch(endpoint);
+
+                        if (!response.ok) {
+                            throw new Error('Erro ao exportar documento (status ' + response.status + ')');
+                        }
+
+                        const blob = await response.blob();
+
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${this.nomeArquivo}.${this.formatoExportacao}`;
+                        document.body.appendChild(a);
+                        a.click();
+
+                        // Limpar
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                        }, 100);
+
+                        this.fecharModalExportacao();
+                        alert(`Documento exportado como ${this.nomeArquivo}.${this.formatoExportacao}`);
+                    } catch (error) {
+                        console.error('Erro ao exportar:', error);
+                        alert('Erro ao exportar documento: ' + error.message);
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>

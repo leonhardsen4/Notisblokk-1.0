@@ -1,6 +1,6 @@
 package com.notisblokk.service;
 
-import com.notisblokk.model.NotaDTO;
+import com.notisblokk.model.TarefaDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,14 +11,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Serviço responsável por gerar notificações e alertas sobre notas.
+ * Serviço responsável por gerar notificações e alertas sobre tarefas.
  *
- * <p>Analisa notas pendentes e gera alertas baseados nos prazos finais,
+ * <p>Analisa tarefas pendentes e gera alertas baseados nos prazos finais,
  * classificando por níveis de urgência.</p>
  *
  * <p><b>Níveis de alerta:</b></p>
  * <ul>
- *   <li>CRÍTICO: Notas atrasadas (prazo vencido)</li>
+ *   <li>CRÍTICO: Tarefas atrasadas (prazo vencido)</li>
  *   <li>URGENTE: Vence em 0-1 dia</li>
  *   <li>ATENÇÃO: Vence em 2-3 dias</li>
  *   <li>AVISO: Vence em 4-5 dias</li>
@@ -31,50 +31,50 @@ import java.util.Map;
 public class NotificacaoService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificacaoService.class);
-    private final NotaService notaService;
+    private final TarefaService tarefaService;
 
     /**
      * Construtor padrão.
      */
     public NotificacaoService() {
-        this.notaService = new NotaService();
+        this.tarefaService = new TarefaService();
     }
 
     /**
      * Construtor com injeção de dependência (para testes).
      *
-     * @param notaService serviço de notas
+     * @param tarefaService serviço de tarefas
      */
-    public NotificacaoService(NotaService notaService) {
-        this.notaService = notaService;
+    public NotificacaoService(TarefaService tarefaService) {
+        this.tarefaService = tarefaService;
     }
 
     /**
-     * Gera alertas sobre notas pendentes, ordenados por urgência.
+     * Gera alertas sobre tarefas pendentes, ordenados por urgência.
      *
-     * <p>Filtra apenas notas com status pendente (não inclui "Resolvido" ou "Cancelado")
+     * <p>Filtra apenas tarefas com status pendente (não inclui "Resolvido" ou "Cancelado")
      * e classifica por nível de urgência baseado nos dias restantes até o prazo.</p>
      *
      * @return List<Map<String, Object>> lista de alertas ordenada por urgência
      * @throws Exception se houver erro ao gerar alertas
      */
     public List<Map<String, Object>> gerarAlertas() throws Exception {
-        logger.info("Gerando alertas de notas");
+        logger.info("Gerando alertas de tarefas");
 
         try {
-            List<NotaDTO> todasNotas = notaService.listarTodas();
+            List<TarefaDTO> todasTarefas = tarefaService.listarTodas();
             List<Map<String, Object>> alertas = new ArrayList<>();
 
-            // Filtrar apenas notas pendentes (excluir Resolvido e Cancelado)
-            for (NotaDTO nota : todasNotas) {
-                String statusNome = nota.getStatus().getNome().toLowerCase();
+            // Filtrar apenas tarefas pendentes (excluir Resolvido e Cancelado)
+            for (TarefaDTO tarefa : todasTarefas) {
+                String statusNome = tarefa.getStatus().getNome().toLowerCase();
 
-                // Ignorar notas resolvidas ou canceladas
+                // Ignorar tarefas resolvidas ou canceladas
                 if (statusNome.contains("resolvid") || statusNome.contains("cancelad")) {
                     continue;
                 }
 
-                Map<String, Object> alerta = criarAlerta(nota);
+                Map<String, Object> alerta = criarAlerta(tarefa);
                 if (alerta != null) {
                     alertas.add(alerta);
                 }
@@ -93,17 +93,17 @@ public class NotificacaoService {
     }
 
     /**
-     * Cria um alerta individual para uma nota, classificando por urgência.
+     * Cria um alerta individual para uma tarefa, classificando por urgência.
      *
-     * @param nota nota a ser analisada
-     * @return Map<String, Object> alerta criado, ou null se nota não precisa de alerta
+     * @param tarefa tarefa a ser analisada
+     * @return Map<String, Object> alerta criado, ou null se tarefa não precisa de alerta
      */
-    private Map<String, Object> criarAlerta(NotaDTO nota) {
-        if (nota.getDiasRestantes() == null) {
+    private Map<String, Object> criarAlerta(TarefaDTO tarefa) {
+        if (tarefa.getDiasRestantes() == null) {
             return null;
         }
 
-        long diasRestantes = nota.getDiasRestantes();
+        long diasRestantes = tarefa.getDiasRestantes();
         String nivel;
         String cor;
         int prioridade;
@@ -140,18 +140,18 @@ public class NotificacaoService {
             mensagem = String.format("Vence em %d dias", diasRestantes);
 
         } else {
-            // Sem alerta para notas com mais de 5 dias
+            // Sem alerta para tarefas com mais de 5 dias
             return null;
         }
 
         // Criar objeto de alerta
         Map<String, Object> alerta = new HashMap<>();
-        alerta.put("id", nota.getId());
-        alerta.put("titulo", nota.getTitulo());
-        alerta.put("etiqueta", nota.getEtiqueta().getNome());
-        alerta.put("status", nota.getStatus().getNome());
-        alerta.put("statusCor", nota.getStatus().getCorHex());
-        alerta.put("prazoFinal", nota.getPrazoFinalFormatado());
+        alerta.put("id", tarefa.getId());
+        alerta.put("titulo", tarefa.getTitulo());
+        alerta.put("etiqueta", tarefa.getEtiqueta().getNome());
+        alerta.put("status", tarefa.getStatus().getNome());
+        alerta.put("statusCor", tarefa.getStatus().getCorHex());
+        alerta.put("prazoFinal", tarefa.getPrazoFinalFormatado());
         alerta.put("diasRestantes", diasRestantes);
         alerta.put("nivel", nivel);
         alerta.put("cor", cor);

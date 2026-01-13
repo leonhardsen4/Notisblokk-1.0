@@ -10,24 +10,24 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Data Transfer Object para Nota.
+ * Data Transfer Object para Tarefa.
  *
- * <p>Este DTO enriquece a entidade Nota com objetos completos de
- * Etiqueta e StatusNota, além de campos calculados como dias restantes
+ * <p>Este DTO enriquece a entidade Tarefa com objetos completos de
+ * Etiqueta e StatusTarefa, além de campos calculados como dias restantes
  * e formatação de datas.</p>
  *
  * @author Notisblokk Team
  * @version 1.0
  * @since 2025-01-26
  */
-public class NotaDTO {
+public class TarefaDTO {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private Long id;
     private Etiqueta etiqueta;
-    private StatusNota status;
+    private StatusTarefa status;
     private String titulo;
     private String conteudo;
     private LocalDateTime dataCriacao;
@@ -48,29 +48,29 @@ public class NotaDTO {
     /**
      * Construtor padrão.
      */
-    public NotaDTO() {
+    public TarefaDTO() {
     }
 
     /**
-     * Cria um NotaDTO a partir de uma Nota, Etiqueta e StatusNota.
+     * Cria um TarefaDTO a partir de uma Tarefa, Etiqueta e StatusTarefa.
      *
-     * @param nota nota original
+     * @param tarefa tarefa original
      * @param etiqueta etiqueta associada
      * @param status status associado
-     * @return NotaDTO objeto DTO completo
+     * @return TarefaDTO objeto DTO completo
      */
-    public static NotaDTO from(Nota nota, Etiqueta etiqueta, StatusNota status) {
-        NotaDTO dto = new NotaDTO();
-        dto.id = nota.getId();
+    public static TarefaDTO from(Tarefa tarefa, Etiqueta etiqueta, StatusTarefa status) {
+        TarefaDTO dto = new TarefaDTO();
+        dto.id = tarefa.getId();
         dto.etiqueta = etiqueta;
         dto.status = status;
-        dto.titulo = nota.getTitulo();
-        dto.conteudo = nota.getConteudo();
-        dto.dataCriacao = nota.getDataCriacao();
-        dto.dataAtualizacao = nota.getDataAtualizacao();
-        dto.prazoFinal = nota.getPrazoFinal();
-        dto.sessaoId = nota.getSessaoId();
-        dto.usuarioId = nota.getUsuarioId();
+        dto.titulo = tarefa.getTitulo();
+        dto.conteudo = tarefa.getConteudo();
+        dto.dataCriacao = tarefa.getDataCriacao();
+        dto.dataAtualizacao = tarefa.getDataAtualizacao();
+        dto.prazoFinal = tarefa.getPrazoFinal();
+        dto.sessaoId = tarefa.getSessaoId();
+        dto.usuarioId = tarefa.getUsuarioId();
 
         // Calcular campos derivados
         dto.calcularDiasRestantes();
@@ -82,11 +82,11 @@ public class NotaDTO {
     /**
      * Calcula os dias restantes até o prazo final.
      *
-     * <p>Notas com status "Resolvido" ou "Cancelado" não terão dias restantes calculados,
+     * <p>Tarefas com status "Resolvido" ou "Cancelado" não terão dias restantes calculados,
      * pois já foram concluídas e não precisam mais de alertas de prazo.</p>
      */
     private void calcularDiasRestantes() {
-        // Não calcular dias restantes para notas resolvidas ou canceladas
+        // Não calcular dias restantes para tarefas resolvidas ou canceladas
         if (status != null) {
             String statusNome = status.getNome().toLowerCase();
             if (statusNome.contains("resolvid") || statusNome.contains("cancelad")) {
@@ -134,11 +134,11 @@ public class NotaDTO {
         this.etiqueta = etiqueta;
     }
 
-    public StatusNota getStatus() {
+    public StatusTarefa getStatus() {
         return status;
     }
 
-    public void setStatus(StatusNota status) {
+    public void setStatus(StatusTarefa status) {
         this.status = status;
     }
 
@@ -243,7 +243,7 @@ public class NotaDTO {
 
     @Override
     public String toString() {
-        return "NotaDTO{" +
+        return "TarefaDTO{" +
                 "id=" + id +
                 ", etiqueta=" + etiqueta +
                 ", status=" + status +

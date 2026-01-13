@@ -4,16 +4,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Entidade que representa uma nota no sistema.
+ * Entidade que representa uma tarefa no sistema.
  *
- * <p>Notas são o elemento central do sistema, contendo título, conteúdo,
+ * <p>Tarefas são o elemento central do sistema, contendo título, conteúdo,
  * prazo final, etiqueta e status.</p>
  *
  * @author Notisblokk Team
  * @version 1.0
  * @since 2025-01-26
  */
-public class Nota {
+public class Tarefa {
 
     private Long id;
     private Long etiquetaId;
@@ -23,30 +23,30 @@ public class Nota {
     private LocalDateTime dataCriacao;
     private LocalDateTime dataAtualizacao;
     private LocalDate prazoFinal;
-    private Long sessaoId; // ID da sessão que criou a nota
-    private Long usuarioId; // ID do usuário que criou a nota
+    private Long sessaoId; // ID da sessão que criou a tarefa
+    private Long usuarioId; // ID do usuário que criou a tarefa
 
     /**
      * Construtor padrão.
      */
-    public Nota() {
+    public Tarefa() {
     }
 
     /**
      * Construtor completo.
      *
-     * @param id identificador único da nota
+     * @param id identificador único da tarefa
      * @param etiquetaId ID da etiqueta associada
      * @param statusId ID do status atual
-     * @param titulo título da nota
-     * @param conteudo conteúdo/descrição da nota
+     * @param titulo título da tarefa
+     * @param conteudo conteúdo/descrição da tarefa
      * @param dataCriacao data e hora de criação
      * @param dataAtualizacao data e hora da última atualização
      * @param prazoFinal data limite para conclusão
      * @param sessaoId ID da sessão que criou
      * @param usuarioId ID do usuário que criou
      */
-    public Nota(Long id, Long etiquetaId, Long statusId, String titulo, String conteudo,
+    public Tarefa(Long id, Long etiquetaId, Long statusId, String titulo, String conteudo,
                 LocalDateTime dataCriacao, LocalDateTime dataAtualizacao, LocalDate prazoFinal,
                 Long sessaoId, Long usuarioId) {
         this.id = id;
@@ -145,7 +145,7 @@ public class Nota {
 
     @Override
     public String toString() {
-        return "Nota{" +
+        return "Tarefa{" +
                 "id=" + id +
                 ", etiquetaId=" + etiquetaId +
                 ", statusId=" + statusId +

@@ -1,6 +1,6 @@
 # Notisblokk 1.0
 
-Sistema de gerenciamento de notas com etiquetas, status e notificações de alertas.
+Sistema de gerenciamento de tarefas com etiquetas, status e notificações de alertas.
 
 ## Tecnologias
 
@@ -78,7 +78,7 @@ Notisblokk-1.0/
 ## Funcionalidades
 
 - Autenticação de usuários com sessões
-- Gerenciamento de notas
+- Gerenciamento de tarefas
 - Sistema de etiquetas (tags)
 - Status personalizáveis com cores
 - Notificações e alertas
@@ -137,13 +137,13 @@ jpackage --input target --name "Notisblokk" --main-jar notisblokk.jar --main-cla
 - `PUT /api/usuarios/:id` - Atualizar usuário
 - `DELETE /api/usuarios/:id` - Deletar usuário
 
-### Notas
+### Tarefas
 
-- `GET /api/notas` - Listar notas
-- `POST /api/notas` - Criar nota
-- `GET /api/notas/:id` - Buscar nota
-- `PUT /api/notas/:id` - Atualizar nota
-- `DELETE /api/notas/:id` - Deletar nota
+- `GET /api/tarefas` - Listar tarefas
+- `POST /api/tarefas` - Criar tarefa
+- `GET /api/tarefas/:id` - Buscar tarefa
+- `PUT /api/tarefas/:id` - Atualizar tarefa
+- `DELETE /api/tarefas/:id` - Deletar tarefa
 
 ### Etiquetas
 
@@ -153,13 +153,13 @@ jpackage --input target --name "Notisblokk" --main-jar notisblokk.jar --main-cla
 - `PUT /api/etiquetas/:id` - Atualizar etiqueta
 - `DELETE /api/etiquetas/:id` - Deletar etiqueta
 
-### Status
+### Status de Tarefas
 
-- `GET /api/status` - Listar status
-- `POST /api/status` - Criar status
-- `GET /api/status/:id` - Buscar status
-- `PUT /api/status/:id` - Atualizar status
-- `DELETE /api/status/:id` - Deletar status
+- `GET /api/status-tarefa` - Listar status
+- `POST /api/status-tarefa` - Criar status
+- `GET /api/status-tarefa/:id` - Buscar status
+- `PUT /api/status-tarefa/:id` - Atualizar status
+- `DELETE /api/status-tarefa/:id` - Deletar status
 
 ## Licença
 

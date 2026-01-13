@@ -9,7 +9,20 @@
       "Bash(mvn clean compile:*)",
       "Bash(find:*)",
       "Bash(rm:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(move \"src\\main\\resources\\templates\\notas\" \"src\\main\\resources\\templates\\tarefas\")",
+      "Bash(test:*)",
+      "Bash(cmd /c \"mvn clean compile\")",
+      "Bash(where mvn:*)",
+      "Bash(ls:*)",
+      "Bash(javac:*)",
+      "Bash(powershell -Command \"\n$hash = ''$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYILSBL9C4m''\n$conn = New-Object System.Data.SQLite.SQLiteConnection\\(''Data Source=notisblokk.db''\\)\ntry {\n    $conn.Open\\(\\)\n    $cmd = $conn.CreateCommand\\(\\)\n    $cmd.CommandText = ''UPDATE users SET password_hash = @hash, updated_at = CURRENT_TIMESTAMP WHERE email = ''''admin@notisblokk.com''''''\n    $cmd.Parameters.AddWithValue\\(''@hash'', $hash\\) | Out-Null\n    $rows = $cmd.ExecuteNonQuery\\(\\)\n    \n    if \\($rows -gt 0\\) {\n        Write-Host ''========================================''\n        Write-Host ''✓ SENHA RESETADA COM SUCESSO!''\n        Write-Host ''========================================''\n        Write-Host ''Email: admin@notisblokk.com''\n        Write-Host ''Nova senha: 12345''\n        Write-Host ''========================================''\n        Write-Host ''Você já pode fazer login!''\n        Write-Host ''========================================''\n    } else {\n        Write-Host ''Erro: Nenhuma linha atualizada''\n    }\n} catch {\n    Write-Host ''Erro:'' $_Exception.Message\n} finally {\n    if \\($conn.State -eq ''Open''\\) { $conn.Close\\(\\) }\n}\n\")",
+      "Bash(del notisblokk.db)",
+      "Bash(cmd /c \"where mvn\")",
+      "Bash(powershell -Command \"mvn --version\")",
+      "Bash(powershell -Command:*)",
+      "Bash(where:*)"
     ],
     "deny": [],
     "ask": []

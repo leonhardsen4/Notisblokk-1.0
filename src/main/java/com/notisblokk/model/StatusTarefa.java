@@ -3,9 +3,9 @@ package com.notisblokk.model;
 import java.time.LocalDateTime;
 
 /**
- * Entidade que representa o status de uma nota.
+ * Entidade que representa o status de uma tarefa.
  *
- * <p>Status permite acompanhar o estado atual de cada nota
+ * <p>Status permite acompanhar o estado atual de cada tarefa
  * (Pendente, Em Andamento, Resolvido, Suspenso, Cancelado, etc.)
  * com cores personalizadas para visualização.</p>
  *
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * @version 1.0
  * @since 2025-01-26
  */
-public class StatusNota {
+public class StatusTarefa {
 
     private Long id;
     private String nome;
@@ -25,7 +25,7 @@ public class StatusNota {
     /**
      * Construtor padrão.
      */
-    public StatusNota() {
+    public StatusTarefa() {
     }
 
     /**
@@ -38,7 +38,7 @@ public class StatusNota {
      * @param sessaoId ID da sessão que criou
      * @param usuarioId ID do usuário que criou
      */
-    public StatusNota(Long id, String nome, String corHex, LocalDateTime dataCriacao, Long sessaoId, Long usuarioId) {
+    public StatusTarefa(Long id, String nome, String corHex, LocalDateTime dataCriacao, Long sessaoId, Long usuarioId) {
         this.id = id;
         this.nome = nome;
         this.corHex = corHex;
@@ -99,7 +99,7 @@ public class StatusNota {
 
     @Override
     public String toString() {
-        return "StatusNota{" +
+        return "StatusTarefa{" +
                 "id=" + id +
                 ", nome='" + nome + '\'' +
                 ", corHex='" + corHex + '\'' +

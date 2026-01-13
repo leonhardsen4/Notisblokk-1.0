@@ -19,7 +19,7 @@ import java.util.Map;
  * <p>Gerencia:</p>
  * <ul>
  *   <li>Criação de backup manual do banco de dados</li>
- *   <li>Exportação de notas para CSV</li>
+ *   <li>Exportação de tarefas para CSV</li>
  *   <li>Listagem de backups existentes</li>
  *   <li>Download de backups</li>
  * </ul>
@@ -95,19 +95,19 @@ public class BackupController {
 
     /**
      * POST /api/backup/csv
-     * Exporta todas as notas para arquivo CSV.
+     * Exporta todas as tarefas para arquivo CSV.
      */
     public void exportarCSV(Context ctx) {
         try {
             User currentUser = SessionUtil.getCurrentUser(ctx);
 
-            String caminhoCSV = backupService.exportarNotasCSV(currentUser.getId());
+            String caminhoCSV = backupService.exportarTarefasCSV(currentUser.getId());
 
             logger.info("Export CSV criado por {}: {}", currentUser.getUsername(), caminhoCSV);
 
             ctx.json(Map.of(
                 "success", true,
-                "message", "Notas exportadas para CSV com sucesso!",
+                "message", "Tarefas exportadas para CSV com sucesso!",
                 "caminho", caminhoCSV
             ));
 

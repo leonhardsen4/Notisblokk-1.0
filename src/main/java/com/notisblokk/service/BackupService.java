@@ -97,14 +97,14 @@ public class BackupService {
     }
 
     /**
-     * Exporta todas as notas para arquivo CSV.
+     * Exporta todas as tarefas para arquivo CSV.
      *
      * @param userId ID do usuário que solicitou o export
      * @return caminho do arquivo CSV criado
      * @throws Exception se houver erro ao exportar
      */
-    public String exportarNotasCSV(Long userId) throws Exception {
-        logger.info("Iniciando exportação de notas para CSV");
+    public String exportarTarefasCSV(Long userId) throws Exception {
+        logger.info("Iniciando exportação de tarefas para CSV");
 
         // Criar pasta de backups se não existir
         String backupFolder = AppConfig.getBackupFolder();
@@ -115,7 +115,7 @@ public class BackupService {
 
         // Nome do arquivo CSV
         String timestamp = LocalDateTime.now(BRAZIL_ZONE).format(FORMATTER);
-        String filename = String.format("notisblokk_notas_%s.csv", timestamp);
+        String filename = String.format("notisblokk_tarefas_%s.csv", timestamp);
         String csvFilePath = Paths.get(backupFolder, filename).toString();
 
         try (FileWriter writer = new FileWriter(csvFilePath);
@@ -123,15 +123,15 @@ public class BackupService {
                      .withHeader("ID", "Título", "Etiqueta", "Status", "Prazo Final",
                                 "Data Criação", "Data Atualização", "Conteúdo"))) {
 
-            // Buscar todas as notas do banco
+            // Buscar todas as tarefas do banco
             String sql = """
                 SELECT
                     n.id, n.titulo, n.prazo_final, n.data_criacao, n.data_atualizacao, n.conteudo,
                     e.nome as etiqueta_nome,
                     s.nome as status_nome
-                FROM notas n
+                FROM tarefas n
                 LEFT JOIN etiquetas e ON n.etiqueta_id = e.id
-                LEFT JOIN status_nota s ON n.status_id = s.id
+                LEFT JOIN status_tarefa s ON n.status_id = s.id
                 ORDER BY n.prazo_final ASC
             """;
 
@@ -154,7 +154,7 @@ public class BackupService {
                     count++;
                 }
 
-                logger.info("{} notas exportadas para CSV: {}", count, csvFilePath);
+                logger.info("{} tarefas exportadas para CSV: {}", count, csvFilePath);
             }
 
             long fileSize = new File(csvFilePath).length();

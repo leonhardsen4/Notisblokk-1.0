@@ -162,18 +162,18 @@ public class EtiquetaService {
     }
 
     /**
-     * Conta notas por etiqueta.
+     * Conta tarefas por etiqueta.
      *
      * @param etiquetaId ID da etiqueta
-     * @return long quantidade de notas
+     * @return long quantidade de tarefas
      * @throws Exception se houver erro ao contar
      */
-    public long contarNotasPorEtiqueta(Long etiquetaId) throws Exception {
+    public long contarTarefasPorEtiqueta(Long etiquetaId) throws Exception {
         try {
-            return etiquetaRepository.contarNotasPorEtiqueta(etiquetaId);
+            return etiquetaRepository.contarTarefasPorEtiqueta(etiquetaId);
         } catch (SQLException e) {
-            logger.error("Erro ao contar notas da etiqueta ID {}", etiquetaId, e);
-            throw new Exception("Erro ao contar notas: " + e.getMessage(), e);
+            logger.error("Erro ao contar tarefas da etiqueta ID {}", etiquetaId, e);
+            throw new Exception("Erro ao contar tarefas: " + e.getMessage(), e);
         }
     }
 
@@ -280,8 +280,8 @@ public class EtiquetaService {
                 throw new Exception("Etiqueta não encontrada");
             }
 
-            // Contar notas que serão deletadas
-            long totalNotas = contarNotasPorEtiqueta(id);
+            // Contar tarefas que serão deletadas
+            long totalTarefas = contarTarefasPorEtiqueta(id);
 
             // Deletar
             etiquetaRepository.deletar(id);
@@ -289,8 +289,8 @@ public class EtiquetaService {
             // Invalidar cache
             invalidarCache();
 
-            logger.info("Etiqueta ID {} deletada (cascata: {} notas)", id, totalNotas);
-            return totalNotas;
+            logger.info("Etiqueta ID {} deletada (cascata: {} tarefas)", id, totalTarefas);
+            return totalTarefas;
 
         } catch (SQLException e) {
             logger.error("Erro ao deletar etiqueta ID {}", id, e);

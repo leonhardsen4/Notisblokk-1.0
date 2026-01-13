@@ -2,12 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Anotações - Notisblokk</title>
-    <link rel="stylesheet" href="/css/notas.css">
+    <title>Tarefas - Notisblokk</title>
+    <link rel="stylesheet" href="/css/tarefas.css">
 </head>
 <body>
     <th:block th:replace="~{layout/base :: base(~{::main-content})}">
-        <div th:fragment="main-content" x-data="notasApp()">
+        <div th:fragment="main-content" x-data="tarefasApp()">
             <!-- Container de Toast Notifications -->
             <div id="toast-container" class="toast-container"></div>
 
@@ -21,35 +21,35 @@
 
             <!-- Cabeçalho e Ações -->
             <div class="header-compact">
-                <h1 class="page-title">📝 Anotações</h1>
+                <h1 class="page-title">📝 Tarefas</h1>
                 <div class="acoes-topo">
-                    <a href="/notas/nova" class="btn btn-primary btn-sm">
-                        ➕ Nova Nota
+                    <a href="/tarefas/nova" class="btn btn-primary btn-sm">
+                        ➕ Nova Tarefa
                     </a>
                     <!-- Contador e botão de exportação em massa -->
-                    <div x-show="notasSelecionadas.length > 0" class="badge badge-info" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
-                        ✓ <span x-text="notasSelecionadas.length"></span> selecionada(s)
+                    <div x-show="tarefasSelecionadas.length > 0" class="badge badge-info" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                        ✓ <span x-text="tarefasSelecionadas.length"></span> selecionada(s)
                     </div>
                     <button
-                        x-show="notasSelecionadas.length > 0"
+                        x-show="tarefasSelecionadas.length > 0"
                         @click="exportarSelecionadas()"
                         class="btn btn-success btn-sm"
-                        title="Exportar notas selecionadas para PDF">
-                        📊 Exportar Selecionadas (<span x-text="notasSelecionadas.length"></span>)
+                        title="Exportar tarefas selecionadas para PDF">
+                        📊 Exportar Selecionadas (<span x-text="tarefasSelecionadas.length"></span>)
                     </button>
                     <button
-                        x-show="notasSelecionadas.length > 0"
+                        x-show="tarefasSelecionadas.length > 0"
                         @click="abrirModalMudarStatus()"
                         class="btn btn-primary btn-sm"
-                        title="Mudar status das notas selecionadas">
-                        📊 Mudar Status (<span x-text="notasSelecionadas.length"></span>)
+                        title="Mudar status das tarefas selecionadas">
+                        📊 Mudar Status (<span x-text="tarefasSelecionadas.length"></span>)
                     </button>
                     <button
-                        x-show="notasSelecionadas.length > 0"
+                        x-show="tarefasSelecionadas.length > 0"
                         @click="abrirModalDeletarSelecionadas()"
                         class="btn btn-danger btn-sm"
-                        title="Deletar notas selecionadas">
-                        🗑️ Deletar Selecionadas (<span x-text="notasSelecionadas.length"></span>)
+                        title="Deletar tarefas selecionadas">
+                        🗑️ Deletar Selecionadas (<span x-text="tarefasSelecionadas.length"></span>)
                     </button>
                     <button @click="abrirModalAlertas()" class="btn btn-sm btn-alertas" :class="{'btn-danger': alertasUrgentes.length > 0, 'btn-warning': alertasUrgentes.length === 0, 'pulse-animation': temAlertasCriticos()}">
                         🔔 Alertas
@@ -71,8 +71,8 @@
                         <input
                             type="text"
                             x-model="termoPesquisa"
-                            @input="pesquisarNotas()"
-                            placeholder="🔍 Pesquisar notas..."
+                            @input="pesquisarTarefas()"
+                            placeholder="🔍 Pesquisar tarefas..."
                             class="form-control-compact search-full-width"
                         >
                     </div>
@@ -114,7 +114,7 @@
                                         :class="{ 'filter-badge-active': filtroEtiquetaAtivo(etiqueta.id) }"
                                         :title="'Filtrar por ' + etiqueta.nome">
                                         <span class="filter-badge-name" x-text="etiqueta.nome"></span>
-                                        <span class="filter-badge-count" x-text="contarNotasPorEtiqueta(etiqueta.id)"></span>
+                                        <span class="filter-badge-count" x-text="contarTarefasPorEtiqueta(etiqueta.id)"></span>
                                     </button>
                                 </template>
                             </div>
@@ -141,7 +141,7 @@
                                         :style="filtroStatusAtivo(status.id) ? 'background-color: ' + status.corHex + '; border-color: ' + status.corHex + '; color: ' + getContrastColor(status.corHex) : ''"
                                         :title="'Filtrar por ' + status.nome">
                                         <span class="filter-badge-name" x-text="status.nome"></span>
-                                        <span class="filter-badge-count" x-text="contarNotasPorStatus(status.id)"></span>
+                                        <span class="filter-badge-count" x-text="contarTarefasPorStatus(status.id)"></span>
                                     </button>
                                 </template>
                             </div>
@@ -275,7 +275,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="notas-table">
+                    <table class="tarefas-table">
                         <thead>
                             <tr>
                                 <!-- Coluna de seleção múltipla -->
@@ -306,7 +306,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <template x-for="nota in notasProcessadas" :key="nota.id">
+                            <template x-for="nota in tarefasProcessadas" :key="nota.id">
                                 <tr :class="{'nota-atrasada': nota.diasRestantes !== null && nota.diasRestantes < 0, 'nota-urgente': nota.diasRestantes !== null && nota.diasRestantes >= 0 && nota.diasRestantes <= 3}">
                                     <!-- Checkbox de seleção -->
                                     <td style="width: 40px; text-align: center;">
@@ -332,8 +332,8 @@
                                     </td>
                                     <td class="acoes-col">
                                         <div class="btn-group">
-                                            <a :href="'/notas/editar/' + nota.id" class="btn btn-sm btn-primary" title="Editar">✏️</a>
-                                            <!-- Botão para exportar nota individual em PDF -->
+                                            <a :href="'/tarefas/editar/' + nota.id" class="btn btn-sm btn-primary" title="Editar">✏️</a>
+                                            <!-- Botão para exportar tarefaindividual em PDF -->
                                             <button @click="gerarPDF(nota.id, nota.titulo)" class="btn btn-sm btn-success" title="Exportar PDF">📄</button>
                                             <button @click="deletarNota(nota.id)" class="btn btn-sm btn-danger" title="Deletar">🗑️</button>
                                         </div>
@@ -343,9 +343,9 @@
                         </tbody>
                     </table>
 
-                    <div x-show="notasProcessadas.length === 0" class="empty-state">
+                    <div x-show="tarefasProcessadas.length === 0" class="empty-state">
                         <div class="empty-state-icon">📝</div>
-                        <p>Nenhuma nota encontrada</p>
+                        <p>Nenhuma tarefaencontrada</p>
                     </div>
                 </div>
             </div>
@@ -368,7 +368,7 @@
                         <div class="item-list">
                             <template x-for="etiqueta in etiquetas" :key="etiqueta.id">
                                 <div class="item-list-row">
-                                    <span x-text="etiqueta.nome + ' (' + etiqueta.totalNotas + ' notas)'"></span>
+                                    <span x-text="etiqueta.nome + ' (' + etiqueta.totalTarefas + ' tarefas)'"></span>
                                     <div class="btn-group">
                                         <button @click="iniciarEdicaoEtiqueta(etiqueta)" class="btn btn-sm btn-secondary" title="Editar">✏️</button>
                                         <button @click="deletarEtiqueta(etiqueta.id)" class="btn btn-sm btn-danger" title="Deletar">🗑️</button>
@@ -428,37 +428,37 @@
                         <h2 class="modal-title">👁️ Visualizar Nota</h2>
                         <button @click="fecharModalPreview()" class="modal-close">&times;</button>
                     </div>
-                    <div class="modal-body" x-show="notaPreview">
+                    <div class="modal-body" x-show="tarefaPreview">
                         <!-- Título da Nota -->
-                        <h3 class="nota-preview-titulo" x-text="notaPreview?.titulo"></h3>
+                        <h3 class="tarefa-preview-titulo" x-text="tarefaPreview?.titulo"></h3>
 
                         <!-- Metadados -->
-                        <div class="nota-preview-meta">
+                        <div class="tarefa-preview-meta">
                             <div class="meta-item">
                                 <strong>Etiqueta:</strong>
-                                <span class="badge" :style="'background-color: ' + (notaPreview?.etiqueta?.corHex || '#6B7280') + '; color: ' + getContrastColor(notaPreview?.etiqueta?.corHex || '#6B7280')" x-text="notaPreview?.etiqueta?.nome"></span>
+                                <span class="badge" :style="'background-color: ' + (tarefaPreview?.etiqueta?.corHex || '#6B7280') + '; color: ' + getContrastColor(tarefaPreview?.etiqueta?.corHex || '#6B7280')" x-text="tarefaPreview?.etiqueta?.nome"></span>
                             </div>
                             <div class="meta-item">
                                 <strong>Status:</strong>
-                                <span class="badge" :style="'background-color: ' + (notaPreview?.status?.corHex || '#6B7280') + '; color: ' + getContrastColor(notaPreview?.status?.corHex || '#6B7280')" x-text="notaPreview?.status?.nome"></span>
+                                <span class="badge" :style="'background-color: ' + (tarefaPreview?.status?.corHex || '#6B7280') + '; color: ' + getContrastColor(tarefaPreview?.status?.corHex || '#6B7280')" x-text="tarefaPreview?.status?.nome"></span>
                             </div>
                             <div class="meta-item">
                                 <strong>Prazo Final:</strong>
-                                <span x-text="notaPreview?.prazoFinal"></span>
+                                <span x-text="tarefaPreview?.prazoFinal"></span>
                             </div>
                         </div>
 
                         <!-- Conteúdo da Nota -->
-                        <div class="nota-preview-conteudo">
+                        <div class="tarefa-preview-conteudo">
                             <h4>Conteúdo:</h4>
-                            <div class="ql-editor" x-html="notaPreview?.conteudo || '<p>Sem conteúdo</p>'"></div>
+                            <div class="ql-editor" x-html="tarefaPreview?.conteudo || '<p>Sem conteúdo</p>'"></div>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button @click="exportarPDFPreview()" class="btn btn-success">
                             📄 Exportar PDF
                         </button>
-                        <a :href="'/notas/editar/' + notaPreview?.id" class="btn btn-primary">
+                        <a :href="'/tarefas/editar/' + tarefaPreview?.id" class="btn btn-primary">
                             ✏️ Editar
                         </a>
                         <button @click="fecharModalPreview()" class="btn btn-secondary">Fechar</button>
@@ -475,8 +475,8 @@
                     </div>
                     <div class="modal-body">
                         <p>Tem certeza que deseja deletar a seguinte nota?</p>
-                        <div class="nota-deletar-info" x-show="notaDeletar">
-                            <strong x-text="notaDeletar?.titulo"></strong>
+                        <div class="nota-deletar-info" x-show="tarefaDeletar">
+                            <strong x-text="tarefaDeletar?.titulo"></strong>
                         </div>
                         <p class="text-danger">⚠️ Esta ação não pode ser desfeita!</p>
                     </div>
@@ -499,7 +499,7 @@
                         <button @click="fecharModalDeletarSelecionadas()" class="modal-close">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <p>Tem certeza que deseja deletar <strong x-text="notasSelecionadas.length"></strong> nota(s) selecionada(s)?</p>
+                        <p>Tem certeza que deseja deletar <strong x-text="tarefasSelecionadas.length"></strong> nota(s) selecionada(s)?</p>
                         <p class="text-danger" style="font-weight: 600; margin-top: 1rem;">
                             ⚠️ Esta ação não pode ser desfeita!
                         </p>
@@ -507,7 +507,7 @@
                             <p style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-secondary);">
                                 Notas que serão deletadas:
                             </p>
-                            <template x-for="(notaId, index) in notasSelecionadas" :key="notaId">
+                            <template x-for="(notaId, index) in tarefasSelecionadas" :key="notaId">
                                 <div style="padding: 0.25rem 0; border-bottom: 1px solid var(--color-border);">
                                     <span x-text="(index + 1) + '. ' + obterTituloNota(notaId)"></span>
                                 </div>
@@ -519,7 +519,7 @@
                             ✕ Cancelar
                         </button>
                         <button @click="confirmarDeletarSelecionadas()" class="btn btn-danger">
-                            🗑️ Deletar <span x-text="notasSelecionadas.length"></span> Nota(s)
+                            🗑️ Deletar <span x-text="tarefasSelecionadas.length"></span> Nota(s)
                         </button>
                     </div>
                 </div>
@@ -533,7 +533,7 @@
                         <button @click="fecharModalMudarStatus()" class="modal-close">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <p>Selecione o novo status para <strong x-text="notasSelecionadas.length"></strong> nota(s) selecionada(s):</p>
+                        <p>Selecione o novo status para <strong x-text="tarefasSelecionadas.length"></strong> nota(s) selecionada(s):</p>
 
                         <div style="margin-top: 1.5rem;">
                             <label for="novoStatusMassa" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--color-text-primary);">
@@ -551,12 +551,12 @@
                             </select>
                         </div>
 
-                        <!-- Prévia das notas que serão alteradas -->
+                        <!-- Prévia das tarefasque serão alteradas -->
                         <div class="nota-deletar-info" style="max-height: 150px; overflow-y: auto; margin-top: 1.5rem; padding: 0.5rem; background-color: var(--color-bg-secondary); border-radius: 8px;">
                             <p style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-secondary);">
                                 Notas que serão atualizadas:
                             </p>
-                            <template x-for="(notaId, index) in notasSelecionadas" :key="notaId">
+                            <template x-for="(notaId, index) in tarefasSelecionadas" :key="notaId">
                                 <div style="padding: 0.25rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.875rem;">
                                     <span x-text="(index + 1) + '. ' + obterTituloNota(notaId)"></span>
                                 </div>
@@ -571,7 +571,7 @@
                             @click="confirmarMudarStatus()"
                             class="btn btn-primary"
                             :disabled="!novoStatusMassa">
-                            📊 Atualizar <span x-text="notasSelecionadas.length"></span> Nota(s)
+                            📊 Atualizar <span x-text="tarefasSelecionadas.length"></span> Nota(s)
                         </button>
                     </div>
                 </div>
@@ -604,7 +604,7 @@
                                         </div>
                                     </div>
                                     <div class="alerta-card-footer">
-                                        <a :href="'/notas/editar/' + alerta.id" class="btn btn-sm btn-primary">
+                                        <a :href="'/tarefas/editar/' + alerta.id" class="btn btn-sm btn-primary">
                                             Ver Anotação →
                                         </a>
                                     </div>
@@ -721,11 +721,11 @@
                     }, 300);
                 }
 
-                function notasApp() {
+                function tarefasApp() {
                     return {
-                        notas: [],
-                        notasFiltradas: [],
-                        notasProcessadas: [],
+                        tarefas: [],
+                        tarefasFiltradas: [],
+                        tarefasProcessadas: [],
                         alertasUrgentes: [],
                         etiquetas: [],
                         statusList: [],
@@ -733,9 +733,9 @@
                         modalStatus: false,
                         modalAlertas: false,
                         modalPreview: false,
-                        notaPreview: null,
+                        tarefaPreview: null,
                         modalConfirmarDeletar: false,
-                        notaDeletar: null,
+                        tarefaDeletar: null,
                         modalDeletarSelecionadas: false,
                         modalMudarStatus: false,
                         novoStatusMassa: '',
@@ -757,8 +757,8 @@
                             diasRestantes: true
                         },
                         pesquisaTimeout: null,
-                        // Seleção múltipla de notas para exportação em massa
-                        notasSelecionadas: [],
+                        // Seleção múltipla de tarefaspara exportação em massa
+                        tarefasSelecionadas: [],
                         // Filtros ativos (permite múltiplas seleções)
                         filtrosAtivos: {
                             etiquetas: [],
@@ -783,8 +783,8 @@
 
                             await this.carregarEtiquetas();
                             await this.carregarStatus();
-                            await this.carregarNotas();
-                            // Alertas são gerados automaticamente em processarNotas()
+                            await this.carregarTarefas();
+                            // Alertas são gerados automaticamente em processarTarefas()
 
                             // Watch para salvar preferências de colunas
                             this.$watch('colunasVisiveis', (value) => {
@@ -795,11 +795,11 @@
                             this.setupKeyboardShortcuts();
                         },
 
-                        async carregarNotas() {
+                        async carregarTarefas() {
                             mostrarLoading('Carregando notas...');
                             try {
-                                const url = '/api/notas';
-                                console.log('Carregando notas de:', url);
+                                const url = '/api/tarefas';
+                                console.log('Carregando tarefasde:', url);
                                 const res = await fetch(url);
                                 console.log('Status da resposta:', res.status);
                                 const data = await res.json();
@@ -807,31 +807,31 @@
 
                                 if (!data.success) {
                                     console.error('Erro da API:', data.message || data.error);
-                                    mostrarToast('error', 'Erro ao Carregar', data.message || data.error || 'Não foi possível carregar as notas');
+                                    mostrarToast('error', 'Erro ao Carregar', data.message || data.error || 'Não foi possível carregar as tarefas');
                                     return;
                                 }
 
-                                this.notas = data.dados || [];
-                                console.log(`✓ ${this.notas.length} nota(s) carregada(s):`, this.notas);
-                                this.processarNotas();
+                                this.tarefas = data.dados || [];
+                                console.log(`✓ ${this.tarefas.length} nota(s) carregada(s):`, this.tarefas);
+                                this.processarTarefas();
                             } catch (err) {
-                                console.error('Erro ao carregar notas:', err);
-                                mostrarToast('error', 'Erro ao Carregar', 'Ocorreu um erro ao carregar as notas');
+                                console.error('Erro ao carregar tarefas:', err);
+                                mostrarToast('error', 'Erro ao Carregar', 'Ocorreu um erro ao carregar as tarefas');
                             } finally {
                                 ocultarLoading();
                             }
                         },
 
                         // Processa e filtra notas
-                        processarNotas() {
+                        processarTarefas() {
                             console.log('🔄 Processando notas...');
 
                             // 1. Calcular dias restantes para cada nota
-                            const notasComDias = this.notas.map(nota => {
+                            const notasComDias = this.tarefas.map(nota => {
                                 let diasRestantes = null;
                                 let prazoDate = null;
 
-                                // Verificar se a nota é resolvida ou cancelada
+                                // Verificar se a tarefaé resolvida ou cancelada
                                 const statusNome = nota.status?.nome?.toLowerCase() || '';
                                 const isResolvida = statusNome.includes('resolvid') || statusNome.includes('cancelad');
 
@@ -852,10 +852,10 @@
                             });
 
                             // 2. Filtrar por pesquisa
-                            let notasFiltradas = notasComDias;
+                            let tarefasFiltradas = notasComDias;
                             if (this.termoPesquisa.trim()) {
                                 const termo = this.termoPesquisa.toLowerCase();
-                                notasFiltradas = notasFiltradas.filter(nota =>
+                                tarefasFiltradas = tarefasFiltradas.filter(nota =>
                                     nota.titulo.toLowerCase().includes(termo) ||
                                     (nota.conteudo && nota.conteudo.toLowerCase().includes(termo)) ||
                                     nota.etiqueta.nome.toLowerCase().includes(termo) ||
@@ -865,24 +865,24 @@
 
                             // 3. Filtrar por etiqueta (dropdown - mantido para compatibilidade)
                             if (this.filtroEtiqueta) {
-                                notasFiltradas = notasFiltradas.filter(n => n.etiqueta.id == this.filtroEtiqueta);
+                                tarefasFiltradas = tarefasFiltradas.filter(n => n.etiqueta.id == this.filtroEtiqueta);
                             }
 
                             // 4. Filtrar por status (dropdown - mantido para compatibilidade)
                             if (this.filtroStatus) {
-                                notasFiltradas = notasFiltradas.filter(n => n.status.id == this.filtroStatus);
+                                tarefasFiltradas = tarefasFiltradas.filter(n => n.status.id == this.filtroStatus);
                             }
 
                             // 5. Filtros múltiplos por etiquetas (badges)
                             if (this.filtrosAtivos.etiquetas.length > 0) {
-                                notasFiltradas = notasFiltradas.filter(n =>
+                                tarefasFiltradas = tarefasFiltradas.filter(n =>
                                     this.filtrosAtivos.etiquetas.includes(n.etiqueta.id)
                                 );
                             }
 
                             // 6. Filtros múltiplos por status (badges)
                             if (this.filtrosAtivos.status.length > 0) {
-                                notasFiltradas = notasFiltradas.filter(n =>
+                                tarefasFiltradas = tarefasFiltradas.filter(n =>
                                     this.filtrosAtivos.status.includes(n.status.id)
                                 );
                             }
@@ -894,16 +894,16 @@
                                 dataInicio.setHours(0, 0, 0, 0);
                                 dataFim.setHours(23, 59, 59, 999);
 
-                                notasFiltradas = notasFiltradas.filter(n => {
+                                tarefasFiltradas = tarefasFiltradas.filter(n => {
                                     const prazoNota = n.prazoDate;
                                     return prazoNota >= dataInicio && prazoNota <= dataFim;
                                 });
 
-                                console.log(`📅 Filtro de data aplicado: ${notasFiltradas.length} notas entre ${this.filtroData.inicio} e ${this.filtroData.fim}`);
+                                console.log(`📅 Filtro de data aplicado: ${tarefasFiltradas.length} tarefasentre ${this.filtroData.inicio} e ${this.filtroData.fim}`);
                             }
 
                             // 8. Ordenar
-                            notasFiltradas.sort((a, b) => {
+                            tarefasFiltradas.sort((a, b) => {
                                 let valorA, valorB;
 
                                 switch(this.colunaOrdenacao) {
@@ -936,7 +936,7 @@
                                 return 0;
                             });
 
-                            this.notasProcessadas = notasFiltradas;
+                            this.tarefasProcessadas = tarefasFiltradas;
 
                             // 6. Gerar alertas urgentes
                             this.gerarAlertasUrgentes(notasComDias);
@@ -947,7 +947,7 @@
                             const alertas = [];
 
                             notas.forEach(nota => {
-                                // Ignorar notas com status "Resolvido" ou "Cancelado"
+                                // Ignorar tarefascom status "Resolvido" ou "Cancelado"
                                 const statusNome = nota.status?.nome?.toLowerCase() || '';
                                 if (statusNome.includes('resolvid') || statusNome.includes('cancelad')) {
                                     return; // Não gera alerta para essas notas
@@ -956,7 +956,7 @@
                                 let nivel, prazoTexto;
                                 const dias = nota.diasRestantes;
 
-                                // Pular notas sem diasRestantes (já resolvidas ou canceladas)
+                                // Pular tarefassem diasRestantes (já resolvidas ou canceladas)
                                 if (dias === null || dias === undefined) {
                                     return;
                                 }
@@ -1027,10 +1027,10 @@
                         },
 
                         // Pesquisa com debounce
-                        pesquisarNotas() {
+                        pesquisarTarefas() {
                             clearTimeout(this.pesquisaTimeout);
                             this.pesquisaTimeout = setTimeout(() => {
-                                this.processarNotas();
+                                this.processarTarefas();
                             }, 300);
                         },
 
@@ -1044,7 +1044,7 @@
                                 this.colunaOrdenacao = coluna;
                                 this.direcaoOrdenacao = 'asc';
                             }
-                            this.processarNotas();
+                            this.processarTarefas();
                         },
 
                         // Ícone de ordenação
@@ -1081,7 +1081,7 @@
                         async carregarStatus() {
                             mostrarLoading('Carregando status...');
                             try {
-                                const res = await fetch('/api/status');
+                                const res = await fetch('/api/status-tarefa');
                                 const data = await res.json();
 
                                 console.log('Status carregados:', data);
@@ -1114,14 +1114,14 @@
                         // que é chamada automaticamente ao processar as notas
 
                         /**
-                         * Abre modal de confirmação para deletar nota
-                         * @param {number} id - ID da nota a ser deletada
+                         * Abre modal de confirmação para deletar tarefa
+                         * @param {number} id - ID da tarefaa ser deletada
                          */
                         deletarNota(id) {
-                            // Buscar a nota na lista processada
-                            const nota = this.notasProcessadas.find(n => n.id === id);
+                            // Buscar a tarefana lista processada
+                            const tarefa= this.tarefasProcessadas.find(n => n.id === id);
                             if (nota) {
-                                this.notaDeletar = nota;
+                                this.tarefaDeletar = nota;
                                 this.modalConfirmarDeletar = true;
                             }
                         },
@@ -1130,26 +1130,26 @@
                          * Confirma e executa a exclusão da nota
                          */
                         async confirmarDeletar() {
-                            if (!this.notaDeletar) return;
+                            if (!this.tarefaDeletar) return;
 
-                            const id = this.notaDeletar.id;
-                            const titulo = this.notaDeletar.titulo;
+                            const id = this.tarefaDeletar.id;
+                            const titulo = this.tarefaDeletar.titulo;
 
                             mostrarLoading('Deletando nota...');
                             try {
-                                const res = await fetch(`/api/notas/${id}`, { method: 'DELETE' });
+                                const res = await fetch(`/api/tarefas/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
 
                                 if (data.success) {
                                     mostrarToast('success', 'Nota Deletada', `"${titulo}" foi removida com sucesso!`);
-                                    await this.carregarNotas();
+                                    await this.carregarTarefas();
                                 } else {
                                     mostrarToast('error', 'Erro ao Deletar', data.message || 'Não foi possível deletar a nota');
                                     ocultarLoading();
                                 }
                             } catch (err) {
                                 mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao tentar deletar a nota');
-                                console.error('Erro ao deletar nota:', err);
+                                console.error('Erro ao deletar tarefa:', err);
                                 ocultarLoading();
                             } finally {
                                 // Fechar modal
@@ -1163,7 +1163,7 @@
                         cancelarDeletar() {
                             this.modalConfirmarDeletar = false;
                             setTimeout(() => {
-                                this.notaDeletar = null;
+                                this.tarefaDeletar = null;
                             }, 300);
                         },
 
@@ -1174,16 +1174,16 @@
                          */
 
                         /**
-                         * Abre modal de confirmação para deletar notas selecionadas.
+                         * Abre modal de confirmação para deletar tarefas selecionadas.
                          */
                         abrirModalDeletarSelecionadas() {
-                            if (this.notasSelecionadas.length === 0) {
-                                mostrarToast('warning', 'Nenhuma Nota Selecionada', 'Selecione ao menos uma nota para deletar');
+                            if (this.tarefasSelecionadas.length === 0) {
+                                mostrarToast('warning', 'Nenhuma Nota Selecionada', 'Selecione ao menos uma tarefapara deletar');
                                 return;
                             }
 
                             this.modalDeletarSelecionadas = true;
-                            console.log(`🗑️ Modal de deletar selecionadas aberto. ${this.notasSelecionadas.length} nota(s) selecionada(s)`);
+                            console.log(`🗑️ Modal de deletar selecionadas aberto. ${this.tarefasSelecionadas.length} nota(s) selecionada(s)`);
                         },
 
                         /**
@@ -1194,21 +1194,21 @@
                         },
 
                         /**
-                         * Obtém o título de uma nota pelo ID.
+                         * Obtém o título de uma tarefapelo ID.
                          * @param {number} notaId - ID da nota
-                         * @returns {string} Título da nota ou mensagem de erro
+                         * @returns {string} Título da tarefaou mensagem de erro
                          */
                         obterTituloNota(notaId) {
-                            const nota = this.notas.find(n => n.id === notaId);
-                            return nota ? nota.titulo : 'Nota não encontrada';
+                            const tarefa= this.tarefas.find(n => n.id === notaId);
+                            return tarefa? nota.titulo : 'Nota não encontrada';
                         },
 
                         /**
-                         * Confirma e executa a exclusão de múltiplas notas selecionadas.
-                         * Deleta as notas em paralelo e mostra progresso ao usuário.
+                         * Confirma e executa a exclusão de múltiplas tarefas selecionadas.
+                         * Deleta as tarefasem paralelo e mostra progresso ao usuário.
                          */
                         async confirmarDeletarSelecionadas() {
-                            const quantidade = this.notasSelecionadas.length;
+                            const quantidade = this.tarefasSelecionadas.length;
 
                             if (quantidade === 0) return;
 
@@ -1219,10 +1219,10 @@
                                 let sucessos = 0;
                                 let erros = 0;
 
-                                // Deletar notas em paralelo
-                                const promises = this.notasSelecionadas.map(async (notaId) => {
+                                // Deletar tarefasem paralelo
+                                const promises = this.tarefasSelecionadas.map(async (notaId) => {
                                     try {
-                                        const res = await fetch(`/api/notas/${notaId}`, { method: 'DELETE' });
+                                        const res = await fetch(`/api/tarefas/${notaId}`, { method: 'DELETE' });
                                         const data = await res.json();
 
                                         if (data.success) {
@@ -1230,11 +1230,11 @@
                                             console.log(`✓ Nota ID ${notaId} deletada com sucesso`);
                                         } else {
                                             erros++;
-                                            console.error(`✗ Erro ao deletar nota ID ${notaId}:`, data.message);
+                                            console.error(`✗ Erro ao deletar tarefaID ${notaId}:`, data.message);
                                         }
                                     } catch (err) {
                                         erros++;
-                                        console.error(`✗ Exceção ao deletar nota ID ${notaId}:`, err);
+                                        console.error(`✗ Exceção ao deletar tarefaID ${notaId}:`, err);
                                     }
                                 });
 
@@ -1242,10 +1242,10 @@
                                 await Promise.all(promises);
 
                                 // Limpar seleção
-                                this.notasSelecionadas = [];
+                                this.tarefasSelecionadas = [];
 
                                 // Recarregar lista de notas
-                                await this.carregarNotas();
+                                await this.carregarTarefas();
 
                                 // Mostrar resultado
                                 if (erros === 0) {
@@ -1263,7 +1263,7 @@
 
                             } catch (err) {
                                 mostrarToast('error', 'Erro ao Deletar', 'Ocorreu um erro ao deletar as notas');
-                                console.error('Erro ao deletar notas em massa:', err);
+                                console.error('Erro ao deletar tarefasem massa:', err);
                             } finally {
                                 ocultarLoading();
                             }
@@ -1276,17 +1276,17 @@
                          */
 
                         /**
-                         * Abre modal para mudar status das notas selecionadas.
+                         * Abre modal para mudar status das tarefas selecionadas.
                          */
                         abrirModalMudarStatus() {
-                            if (this.notasSelecionadas.length === 0) {
-                                mostrarToast('warning', 'Nenhuma Nota Selecionada', 'Selecione ao menos uma nota para mudar o status');
+                            if (this.tarefasSelecionadas.length === 0) {
+                                mostrarToast('warning', 'Nenhuma Nota Selecionada', 'Selecione ao menos uma tarefapara mudar o status');
                                 return;
                             }
 
                             this.novoStatusMassa = ''; // Limpar seleção anterior
                             this.modalMudarStatus = true;
-                            console.log(`📊 Modal de mudar status aberto. ${this.notasSelecionadas.length} nota(s) selecionada(s)`);
+                            console.log(`📊 Modal de mudar status aberto. ${this.tarefasSelecionadas.length} nota(s) selecionada(s)`);
                         },
 
                         /**
@@ -1299,10 +1299,10 @@
 
                         /**
                          * Confirma e executa a mudança de status de múltiplas notas.
-                         * Atualiza as notas em paralelo e mostra progresso ao usuário.
+                         * Atualiza as tarefasem paralelo e mostra progresso ao usuário.
                          */
                         async confirmarMudarStatus() {
-                            const quantidade = this.notasSelecionadas.length;
+                            const quantidade = this.tarefasSelecionadas.length;
                             const novoStatusId = parseInt(this.novoStatusMassa);
 
                             if (!novoStatusId) {
@@ -1323,11 +1323,11 @@
                                 let sucessos = 0;
                                 let erros = 0;
 
-                                // Atualizar notas em paralelo
-                                const promises = this.notasSelecionadas.map(async (notaId) => {
+                                // Atualizar tarefasem paralelo
+                                const promises = this.tarefasSelecionadas.map(async (notaId) => {
                                     try {
-                                        // Buscar nota atual para manter outros dados
-                                        const nota = this.notas.find(n => n.id === notaId);
+                                        // Buscar tarefaatual para manter outros dados
+                                        const tarefa= this.tarefas.find(n => n.id === notaId);
                                         if (!nota) {
                                             erros++;
                                             console.error(`✗ Nota ID ${notaId} não encontrada`);
@@ -1343,7 +1343,7 @@
                                             statusId: novoStatusId
                                         };
 
-                                        const res = await fetch(`/api/notas/${notaId}`, {
+                                        const res = await fetch(`/api/tarefas/${notaId}`, {
                                             method: 'PUT',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify(payload)
@@ -1352,14 +1352,14 @@
 
                                         if (data.success) {
                                             sucessos++;
-                                            console.log(`✓ Status da nota ID ${notaId} atualizado para "${nomeStatus}"`);
+                                            console.log(`✓ Status da tarefaID ${notaId} atualizado para "${nomeStatus}"`);
                                         } else {
                                             erros++;
-                                            console.error(`✗ Erro ao atualizar nota ID ${notaId}:`, data.message);
+                                            console.error(`✗ Erro ao atualizar tarefaID ${notaId}:`, data.message);
                                         }
                                     } catch (err) {
                                         erros++;
-                                        console.error(`✗ Exceção ao atualizar nota ID ${notaId}:`, err);
+                                        console.error(`✗ Exceção ao atualizar tarefaID ${notaId}:`, err);
                                     }
                                 });
 
@@ -1367,10 +1367,10 @@
                                 await Promise.all(promises);
 
                                 // Limpar seleção
-                                this.notasSelecionadas = [];
+                                this.tarefasSelecionadas = [];
 
                                 // Recarregar lista de notas
-                                await this.carregarNotas();
+                                await this.carregarTarefas();
 
                                 // Mostrar resultado
                                 if (erros === 0) {
@@ -1395,17 +1395,17 @@
                         },
 
                         /**
-                         * Exporta uma nota individual para PDF
-                         * @param {number} notaId - ID da nota a ser exportada
-                         * @param {string} tituloNota - Título da nota (usado para nome do arquivo)
+                         * Exporta uma tarefaindividual para PDF
+                         * @param {number} notaId - ID da tarefaa ser exportada
+                         * @param {string} tituloNota - Título da tarefa(usado para nome do arquivo)
                          */
                         async gerarPDF(notaId, tituloNota) {
                             mostrarLoading('Gerando PDF...');
                             try {
-                                console.log(`📄 Gerando PDF para nota ID: ${notaId}`);
+                                console.log(`📄 Gerando PDF para tarefaID: ${notaId}`);
 
                                 // Fazer requisição para o endpoint de PDF
-                                const response = await fetch(`/api/notas/${notaId}/pdf`);
+                                const response = await fetch(`/api/tarefas/${notaId}/pdf`);
 
                                 if (!response.ok) {
                                     throw new Error(`Erro ao gerar PDF: ${response.statusText}`);
@@ -1455,77 +1455,77 @@
                         },
 
                         /**
-                         * Alterna a seleção de uma nota individual
-                         * @param {number} notaId - ID da nota a ser selecionada/desselecionada
+                         * Alterna a seleção de uma tarefaindividual
+                         * @param {number} notaId - ID da tarefaa ser selecionada/desselecionada
                          */
                         toggleSelecaoNota(notaId) {
-                            const index = this.notasSelecionadas.indexOf(notaId);
+                            const index = this.tarefasSelecionadas.indexOf(notaId);
                             if (index === -1) {
                                 // Nota não está selecionada, adicionar
-                                this.notasSelecionadas.push(notaId);
-                                console.log(`✓ Nota ${notaId} selecionada. Total: ${this.notasSelecionadas.length}`);
+                                this.tarefasSelecionadas.push(notaId);
+                                console.log(`✓ Nota ${notaId} selecionada. Total: ${this.tarefasSelecionadas.length}`);
                             } else {
                                 // Nota já está selecionada, remover
-                                this.notasSelecionadas.splice(index, 1);
-                                console.log(`✗ Nota ${notaId} desselecionada. Total: ${this.notasSelecionadas.length}`);
+                                this.tarefasSelecionadas.splice(index, 1);
+                                console.log(`✗ Nota ${notaId} desselecionada. Total: ${this.tarefasSelecionadas.length}`);
                             }
                         },
 
                         /**
-                         * Verifica se uma nota está selecionada
+                         * Verifica se uma tarefaestá selecionada
                          * @param {number} notaId - ID da nota
-                         * @returns {boolean} true se a nota está selecionada
+                         * @returns {boolean} true se a tarefaestá selecionada
                          */
                         notaEstaSelecionada(notaId) {
-                            return this.notasSelecionadas.includes(notaId);
+                            return this.tarefasSelecionadas.includes(notaId);
                         },
 
                         /**
-                         * Alterna entre selecionar todas as notas visíveis ou desselecionar todas
+                         * Alterna entre selecionar todas as tarefasvisíveis ou desselecionar todas
                          */
                         toggleSelecionarTodas() {
                             if (this.todasNotasSelecionadas()) {
                                 // Desselecionar todas
-                                this.notasSelecionadas = [];
-                                console.log('✗ Todas as notas desselecionadas');
+                                this.tarefasSelecionadas = [];
+                                console.log('✗ Todas as tarefasdesselecionadas');
                             } else {
-                                // Selecionar todas as notas visíveis (processadas)
-                                this.notasSelecionadas = this.notasProcessadas.map(nota => nota.id);
-                                console.log(`✓ ${this.notasSelecionadas.length} notas selecionadas`);
+                                // Selecionar todas as tarefasvisíveis (processadas)
+                                this.tarefasSelecionadas = this.tarefasProcessadas.map(nota => nota.id);
+                                console.log(`✓ ${this.tarefasSelecionadas.length} tarefas selecionadas`);
                             }
                         },
 
                         /**
-                         * Verifica se todas as notas visíveis estão selecionadas
-                         * @returns {boolean} true se todas as notas processadas estão selecionadas
+                         * Verifica se todas as tarefasvisíveis estão selecionadas
+                         * @returns {boolean} true se todas as tarefasprocessadas estão selecionadas
                          */
                         todasNotasSelecionadas() {
-                            if (this.notasProcessadas.length === 0) return false;
-                            return this.notasProcessadas.every(nota => this.notasSelecionadas.includes(nota.id));
+                            if (this.tarefasProcessadas.length === 0) return false;
+                            return this.tarefasProcessadas.every(nota => this.tarefasSelecionadas.includes(nota.id));
                         },
 
                         /**
-                         * Exporta múltiplas notas selecionadas para um único PDF (relatório)
-                         * Faz POST para /api/notas/pdf/relatorio com array de IDs
+                         * Exporta múltiplas tarefas selecionadas para um único PDF (relatório)
+                         * Faz POST para /api/tarefas/pdf/relatorio com array de IDs
                          */
                         async exportarSelecionadas() {
-                            if (this.notasSelecionadas.length === 0) {
-                                mostrarToast('warning', 'Nenhuma Seleção', 'Selecione pelo menos uma nota para exportar');
+                            if (this.tarefasSelecionadas.length === 0) {
+                                mostrarToast('warning', 'Nenhuma Seleção', 'Selecione pelo menos uma tarefapara exportar');
                                 return;
                             }
 
-                            mostrarLoading(`Gerando relatório com ${this.notasSelecionadas.length} nota(s)...`);
+                            mostrarLoading(`Gerando relatório com ${this.tarefasSelecionadas.length} nota(s)...`);
                             try {
-                                console.log(`📊 Exportando ${this.notasSelecionadas.length} nota(s) selecionada(s)`);
+                                console.log(`📊 Exportando ${this.tarefasSelecionadas.length} nota(s) selecionada(s)`);
 
                                 // Fazer requisição POST com array de IDs
-                                const response = await fetch('/api/notas/pdf/relatorio', {
+                                const response = await fetch('/api/tarefas/pdf/relatorio', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json'
                                     },
                                     body: JSON.stringify({
-                                        ids: this.notasSelecionadas
+                                        ids: this.tarefasSelecionadas
                                     })
                                 });
 
@@ -1563,15 +1563,15 @@
                                 console.log(`✓ Relatório PDF gerado com sucesso: ${nomeCompleto}`);
 
                                 // Limpar seleção após exportação bem-sucedida
-                                const quantidadeExportada = this.notasSelecionadas.length;
-                                this.notasSelecionadas = [];
+                                const quantidadeExportada = this.tarefasSelecionadas.length;
+                                this.tarefasSelecionadas = [];
                                 console.log('✓ Seleção limpa após exportação');
 
                                 // Feedback visual com toast
                                 mostrarToast('success', 'Relatório Gerado', `${quantidadeExportada} nota(s) exportada(s) com sucesso!`);
 
                             } catch (error) {
-                                console.error('❌ Erro ao exportar notas selecionadas:', error);
+                                console.error('❌ Erro ao exportar tarefas selecionadas:', error);
                                 mostrarToast('error', 'Erro ao Exportar Relatório', `Não foi possível gerar o PDF: ${error.message}`);
                             } finally {
                                 ocultarLoading();
@@ -1603,7 +1603,7 @@
                                     this.novaEtiqueta = '';
                                     this.etiquetaEditandoId = null;
                                     await this.carregarEtiquetas();
-                                    await this.carregarNotas(); // Recarregar notas para atualizar badges
+                                    await this.carregarTarefas(); // Recarregar tarefaspara atualizar badges
                                 } else {
                                     mostrarToast('error', 'Erro ao Salvar', data.message || 'Não foi possível salvar a etiqueta');
                                 }
@@ -1616,7 +1616,7 @@
                         },
 
                         async deletarEtiqueta(id) {
-                            if (!confirm('Deletar esta etiqueta? Todas as notas associadas também serão deletadas!')) return;
+                            if (!confirm('Deletar esta etiqueta? Todas as tarefasassociadas também serão deletadas!')) return;
                             mostrarLoading('Deletando etiqueta...');
                             try {
                                 const res = await fetch(`/api/etiquetas/${id}`, { method: 'DELETE' });
@@ -1624,7 +1624,7 @@
                                 if (data.success) {
                                     mostrarToast('success', 'Etiqueta Deletada', data.message || 'Etiqueta removida com sucesso!');
                                     await this.carregarEtiquetas();
-                                    await this.carregarNotas();
+                                    await this.carregarTarefas();
                                 } else {
                                     mostrarToast('error', 'Erro ao Deletar', data.message || 'Não foi possível deletar a etiqueta');
                                 }
@@ -1660,8 +1660,8 @@
                             try {
                                 // Se estiver editando, fazer PUT; senão, fazer POST
                                 const url = this.statusEditandoId
-                                    ? `/api/status/${this.statusEditandoId}`
-                                    : '/api/status';
+                                    ? `/api/status-tarefa/${this.statusEditandoId}`
+                                    : '/api/status-tarefa';
                                 const method = this.statusEditandoId ? 'PUT' : 'POST';
                                 const acao = this.statusEditandoId ? 'atualizado' : 'criado';
 
@@ -1678,7 +1678,7 @@
                                     this.novoStatus = { nome: '', cor: '#6B7280' };
                                     this.statusEditandoId = null;
                                     await this.carregarStatus();
-                                    await this.carregarNotas(); // Recarregar notas para atualizar badges
+                                    await this.carregarTarefas(); // Recarregar tarefaspara atualizar badges
                                 } else {
                                     mostrarToast('error', 'Erro ao Salvar', data.message || 'Não foi possível salvar o status');
                                 }
@@ -1694,7 +1694,7 @@
                             if (!confirm('Deseja realmente deletar este status?')) return;
                             mostrarLoading('Deletando status...');
                             try {
-                                const res = await fetch(`/api/status/${id}`, { method: 'DELETE' });
+                                const res = await fetch(`/api/status-tarefa/${id}`, { method: 'DELETE' });
                                 const data = await res.json();
                                 if (data.success) {
                                     mostrarToast('success', 'Status Deletado', data.message || 'Status removido com sucesso!');
@@ -1717,15 +1717,15 @@
 
                         /**
                          * Abre modal de preview para visualizar nota
-                         * @param {number} notaId - ID da nota a ser visualizada
+                         * @param {number} notaId - ID da tarefaa ser visualizada
                          */
                         async visualizarNota(notaId) {
                             mostrarLoading('Carregando nota...');
                             try {
-                                console.log(`👁️ Abrindo preview da nota ID: ${notaId}`);
+                                console.log(`👁️ Abrindo preview da tarefaID: ${notaId}`);
 
-                                // Buscar dados da nota via API
-                                const res = await fetch(`/api/notas/${notaId}`);
+                                // Buscar dados da tarefavia API
+                                const res = await fetch(`/api/tarefas/${notaId}`);
                                 const data = await res.json();
 
                                 if (!data.success) {
@@ -1733,11 +1733,11 @@
                                     return;
                                 }
 
-                                // Armazenar nota e abrir modal
-                                this.notaPreview = data.dados;
+                                // Armazenar tarefae abrir modal
+                                this.tarefaPreview = data.dados;
                                 this.modalPreview = true;
 
-                                console.log('✓ Nota carregada para preview:', this.notaPreview);
+                                console.log('✓ Nota carregada para preview:', this.tarefaPreview);
 
                             } catch (err) {
                                 console.error('Erro ao visualizar nota:', err);
@@ -1754,16 +1754,16 @@
                             this.modalPreview = false;
                             // Limpar dados após animação de fechamento
                             setTimeout(() => {
-                                this.notaPreview = null;
+                                this.tarefaPreview = null;
                             }, 300);
                         },
 
                         /**
-                         * Exporta PDF da nota que está em preview
+                         * Exporta PDF da tarefaque está em preview
                          */
                         async exportarPDFPreview() {
-                            if (!this.notaPreview) return;
-                            await this.gerarPDF(this.notaPreview.id, this.notaPreview.titulo);
+                            if (!this.tarefaPreview) return;
+                            await this.gerarPDF(this.tarefaPreview.id, this.tarefaPreview.titulo);
                         },
 
                         /**
@@ -1860,7 +1860,7 @@
                                 this.filtrosAtivos.etiquetas.push(etiquetaId);
                                 console.log(`🏷️ Filtro de etiqueta ${etiquetaId} adicionado`);
                             }
-                            this.processarNotas();
+                            this.processarTarefas();
                         },
 
                         /**
@@ -1878,7 +1878,7 @@
                                 this.filtrosAtivos.status.push(statusId);
                                 console.log(`📊 Filtro de status ${statusId} adicionado`);
                             }
-                            this.processarNotas();
+                            this.processarTarefas();
                         },
 
                         /**
@@ -1900,21 +1900,21 @@
                         },
 
                         /**
-                         * Conta quantas notas têm determinada etiqueta (considerando filtros ativos).
+                         * Conta quantas tarefas têm determinada etiqueta (considerando filtros ativos).
                          * @param {number} etiquetaId - ID da etiqueta
-                         * @returns {number} quantidade de notas
+                         * @returns {number} quantidade de tarefas
                          */
-                        contarNotasPorEtiqueta(etiquetaId) {
-                            return this.notas.filter(n => n.etiqueta.id === etiquetaId).length;
+                        contarTarefasPorEtiqueta(etiquetaId) {
+                            return this.tarefas.filter(n => n.etiqueta.id === etiquetaId).length;
                         },
 
                         /**
-                         * Conta quantas notas têm determinado status (considerando filtros ativos).
+                         * Conta quantas tarefas têm determinado status (considerando filtros ativos).
                          * @param {number} statusId - ID do status
-                         * @returns {number} quantidade de notas
+                         * @returns {number} quantidade de tarefas
                          */
-                        contarNotasPorStatus(statusId) {
-                            return this.notas.filter(n => n.status.id === statusId).length;
+                        contarTarefasPorStatus(statusId) {
+                            return this.tarefas.filter(n => n.status.id === statusId).length;
                         },
 
                         /**
@@ -1923,7 +1923,7 @@
                         limparFiltrosEtiquetas() {
                             this.filtrosAtivos.etiquetas = [];
                             console.log('🏷️ Filtros de etiquetas limpos');
-                            this.processarNotas();
+                            this.processarTarefas();
                         },
 
                         /**
@@ -1932,7 +1932,7 @@
                         limparFiltrosStatus() {
                             this.filtrosAtivos.status = [];
                             console.log('📊 Filtros de status limpos');
-                            this.processarNotas();
+                            this.processarTarefas();
                         },
 
                         /**
@@ -1943,7 +1943,7 @@
                             this.filtrosAtivos.status = [];
                             console.log('✨ Todos os filtros limpos');
                             mostrarToast('info', 'Filtros Limpos', 'Todos os filtros foram removidos');
-                            this.processarNotas();
+                            this.processarTarefas();
                         },
 
                         /**
@@ -1954,17 +1954,17 @@
 
                         /**
                          * Aplica filtro por intervalo de datas.
-                         * Filtra notas cujo prazo final está entre as datas especificadas.
+                         * Filtra tarefascujo prazo final está entre as datas especificadas.
                          */
                         aplicarFiltroData() {
                             this.presetAtivo = ''; // Limpar preset se usuário alterar datas manualmente
-                            this.processarNotas();
+                            this.processarTarefas();
 
                             if (this.filtroData.inicio && this.filtroData.fim) {
                                 const dataInicioFormatada = new Date(this.filtroData.inicio).toLocaleDateString('pt-BR');
                                 const dataFimFormatada = new Date(this.filtroData.fim).toLocaleDateString('pt-BR');
                                 mostrarToast('info', 'Filtro de Data Aplicado',
-                                    `Mostrando notas de ${dataInicioFormatada} até ${dataFimFormatada}`);
+                                    `Mostrando tarefasde ${dataInicioFormatada} até ${dataFimFormatada}`);
                             }
                         },
 
@@ -1977,7 +1977,7 @@
                             this.presetAtivo = '';
                             console.log('✨ Filtro de data limpo');
                             mostrarToast('info', 'Filtro de Data Limpo', 'Filtro por prazo removido');
-                            this.processarNotas();
+                            this.processarTarefas();
                         },
 
                         /**
@@ -2030,7 +2030,7 @@
                             this.presetAtivo = preset;
 
                             console.log(`📅 Preset aplicado: ${preset} (${this.filtroData.inicio} - ${this.filtroData.fim})`);
-                            this.processarNotas();
+                            this.processarTarefas();
 
                             // Mostrar toast com informação do preset
                             const presetNomes = {
@@ -2066,8 +2066,8 @@
                                 // Ctrl+N ou Alt+N: Nova nota
                                 if ((e.ctrlKey || e.altKey) && e.key.toLowerCase() === 'n') {
                                     e.preventDefault();
-                                    console.log('⌨️ Atalho: Nova Nota');
-                                    window.location.href = '/notas/nova';
+                                    console.log('⌨️ Atalho: Nova Tarefa');
+                                    window.location.href = '/tarefas/nova';
                                     return;
                                 }
 

@@ -59,11 +59,11 @@ public class EtiquetaController {
                     map.put("dataCriacao", etiqueta.getDataCriacao());
 
                     try {
-                        long totalNotas = etiquetaService.contarNotasPorEtiqueta(etiqueta.getId());
-                        map.put("totalNotas", totalNotas);
+                        long totalTarefas = etiquetaService.contarTarefasPorEtiqueta(etiqueta.getId());
+                        map.put("totalTarefas", totalTarefas);
                     } catch (Exception e) {
-                        logger.error("Erro ao contar notas da etiqueta {}", etiqueta.getId(), e);
-                        map.put("totalNotas", 0);
+                        logger.error("Erro ao contar tarefas da etiqueta {}", etiqueta.getId(), e);
+                        map.put("totalTarefas", 0);
                     }
 
                     return map;

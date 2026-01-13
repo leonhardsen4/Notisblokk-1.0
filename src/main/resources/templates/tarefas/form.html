@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title th:text="${nota != null ? 'Editar Nota' : 'Nova Nota'} + ' - Notisblokk'">Nova Nota - Notisblokk</title>
+    <title th:text="${tarefa != null ? 'Editar Tarefa' : 'Nova Tarefa'} + ' - Notisblokk'">Nova Tarefa - Notisblokk</title>
 
     <!-- Quill Editor CSS -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -131,29 +131,29 @@
     <th:block th:replace="~{layout/base :: base(~{::main-content})}">
         <div th:fragment="main-content" x-data="notaFormApp()">
             <div class="mb-3" style="display: flex; gap: 0.75rem; align-items: center;">
-                <a href="/notas" class="btn btn-secondary">← Voltar para Anotações</a>
-                <!-- Botão de exportar PDF (só aparece ao editar nota existente) -->
+                <a href="/tarefas" class="btn btn-secondary">← Voltar para Tarefas</a>
+                <!-- Botão de exportar PDF (só aparece ao editar tarefa existente) -->
                 <button
                     type="button"
                     @click="exportarPDF()"
                     class="btn btn-success"
-                    x-show="notaId"
-                    title="Exportar esta nota em PDF">
+                    x-show="tarefaId"
+                    title="Exportar esta tarefa em PDF">
                     📄 Exportar PDF
                 </button>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title" th:text="${nota != null ? 'Editar Nota' : 'Nova Nota'}">Nova Nota</h2>
+                    <h2 class="card-title" th:text="${tarefa != null ? 'Editar Tarefa' : 'Nova Tarefa'}">Nova Tarefa</h2>
                 </div>
                 <div class="card-body">
                     <form id="notaForm">
-                        <input type="hidden" id="notaId" th:value="${nota != null ? nota.id : ''}">
+                        <input type="hidden" id="tarefaId" th:value="${tarefa != null ? tarefa.id : ''}">
 
                         <div class="form-group">
                             <label class="form-label">Título*</label>
-                            <input type="text" id="titulo" class="form-input" th:value="${nota != null ? nota.titulo : ''}" required>
+                            <input type="text" id="titulo" class="form-input" th:value="${tarefa != null ? tarefa.titulo : ''}" required>
                         </div>
 
                         <div class="grid grid-cols-2 mb-3">
@@ -205,7 +205,7 @@
                             <!-- Datepicker compacto -->
                             <div style="margin-top: 0.75rem;">
                                 <label class="form-label-small">Ou escolha a data manualmente:</label>
-                                <input type="date" id="prazoFinal" class="form-input-compact" th:value="${nota != null ? nota.prazoFinal : ''}" required>
+                                <input type="date" id="prazoFinal" class="form-input-compact" th:value="${tarefa != null ? tarefa.prazoFinal : ''}" required>
                             </div>
                         </div>
 
@@ -218,8 +218,8 @@
                         </div>
 
                         <div class="d-flex gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary">Salvar Nota</button>
-                            <a href="/notas" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">Salvar Tarefa</button>
+                            <a href="/tarefas" class="btn btn-secondary">Cancelar</a>
                         </div>
                     </form>
                 </div>
@@ -231,16 +231,16 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
     <script th:inline="javascript">
-        // Dados da nota (se estiver editando)
-        const notaData = /*[[${nota}]]*/ null;
+        // Dados da tarefa(se estiver editando)
+        const tarefaData = /*[[${tarefa}]]*/ null;
 
         /**
-         * Função Alpine.js para gerenciar o formulário de nota
+         * Função Alpine.js para gerenciar o formulário de tarefa
          * @returns {Object} Objeto com estado e métodos do formulário
          */
         function notaFormApp() {
             return {
-                notaId: notaData ? notaData.id : null,
+                tarefaId: tarefaData ? tarefaData.id : null,
 
                 /**
                  * Inicializa o componente do formulário
@@ -250,20 +250,20 @@
                 },
 
                 /**
-                 * Exporta a nota atual para PDF
-                 * Só funciona ao editar uma nota existente
+                 * Exporta a tarefa atual para PDF
+                 * Só funciona ao editar uma tarefa existente
                  */
                 async exportarPDF() {
-                    if (!this.notaId) {
-                        alert('É necessário salvar a nota antes de exportar para PDF.');
+                    if (!this.tarefaId) {
+                        alert('É necessário salvar a tarefa antes de exportar para PDF.');
                         return;
                     }
 
                     try {
-                        console.log(`📄 Gerando PDF para nota ID: ${this.notaId}`);
+                        console.log(`📄 Gerando PDF para tarefa ID: ${this.tarefaId}`);
 
                         // Fazer requisição para o endpoint de PDF
-                        const response = await fetch(`/api/notas/${this.notaId}/pdf`);
+                        const response = await fetch(`/api/tarefas/${this.tarefaId}/pdf`);
 
                         if (!response.ok) {
                             throw new Error(`Erro ao gerar PDF: ${response.statusText}`);
@@ -272,11 +272,11 @@
                         // Converter resposta em blob
                         const blob = await response.blob();
 
-                        // Obter título da nota para nome do arquivo
-                        const tituloNota = document.getElementById('titulo').value || 'nota';
+                        // Obter título da tarefa para nome do arquivo
+                        const tituloTarefa = document.getElementById('titulo').value || 'tarefa';
 
                         // Criar nome do arquivo limpo (sem caracteres especiais)
-                        const nomeArquivo = tituloNota
+                        const nomeArquivo = tituloTarefa
                             .replace(/[^a-zA-Z0-9\s-]/g, '') // Remove caracteres especiais
                             .replace(/\s+/g, '_') // Substitui espaços por underscore
                             .substring(0, 50); // Limita tamanho
@@ -288,7 +288,7 @@
                         const ano = agora.getFullYear();
                         const timestamp = `${dia}${mes}${ano}`;
 
-                        const nomeCompleto = `Nota_${nomeArquivo}_${timestamp}.pdf`;
+                        const nomeCompleto = `Tarefa_${nomeArquivo}_${timestamp}.pdf`;
 
                         // Criar link temporário para download
                         const url = window.URL.createObjectURL(blob);
@@ -317,16 +317,16 @@
                  * Configura atalhos de teclado para o formulário.
                  *
                  * Atalhos disponíveis:
-                 * - Ctrl+S: Salvar nota
+                 * - Ctrl+S: Salvar tarefa
                  * - Ctrl+P: Exportar PDF (apenas ao editar)
                  * - Esc: Cancelar e voltar
                  */
                 setupKeyboardShortcuts() {
                     document.addEventListener('keydown', (e) => {
-                        // Ctrl+S: Salvar nota
+                        // Ctrl+S: Salvar tarefa
                         if (e.ctrlKey && e.key.toLowerCase() === 's') {
                             e.preventDefault();
-                            console.log('⌨️ Atalho: Ctrl+S - Salvando nota');
+                            console.log('⌨️ Atalho: Ctrl+S - Salvando tarefa');
                             const form = document.getElementById('formNota');
                             if (form) {
                                 form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
@@ -334,7 +334,7 @@
                             return;
                         }
 
-                        // Ctrl+P: Exportar PDF (apenas ao editar nota existente)
+                        // Ctrl+P: Exportar PDF (apenas ao editar tarefa existente)
                         if (e.ctrlKey && e.key.toLowerCase() === 'p') {
                             e.preventDefault();
                             console.log('⌨️ Atalho: Ctrl+P - Exportar PDF');
@@ -350,7 +350,7 @@
                             }
                             console.log('⌨️ Atalho: ESC - Cancelar');
                             if (confirm('Deseja cancelar e voltar? Alterações não salvas serão perdidas.')) {
-                                window.location.href = '/notas';
+                                window.location.href = '/tarefas';
                             }
                             return;
                         }
@@ -358,7 +358,7 @@
 
                     console.log('⌨️ Atalhos de teclado configurados (Formulário)');
                     console.log('📋 Atalhos disponíveis:');
-                    console.log('   • Ctrl+S: Salvar nota');
+                    console.log('   • Ctrl+S: Salvar tarefa');
                     console.log('   • Ctrl+P: Exportar PDF');
                     console.log('   • Esc: Cancelar e voltar');
                 }
@@ -384,7 +384,7 @@
                     ['clean']
                 ]
             },
-            placeholder: 'Digite o conteúdo da nota aqui...'
+            placeholder: 'Digite a descrição da tarefa aqui...'
         });
 
         // Converte data brasileira (dd/MM/yyyy ou dd-MM-yyyy) para ISO (yyyy-MM-dd)
@@ -436,7 +436,7 @@
                 });
 
                 // Carregar status
-                const resStatus = await fetch('/api/status');
+                const resStatus = await fetch('/api/status-tarefa');
                 const dataStatus = await resStatus.json();
                 console.log('Status carregados:', dataStatus);
 
@@ -455,19 +455,19 @@
                 });
 
                 // Se estiver editando, preencher dados
-                if (notaData) {
-                    console.log('📝 Dados da nota recebidos:', notaData);
+                if (tarefaData) {
+                    console.log('📝 Dados da tarefarecebidos:', tarefaData);
 
-                    document.getElementById('titulo').value = notaData.titulo || '';
-                    document.getElementById('etiquetaId').value = notaData.etiqueta?.id || '';
-                    document.getElementById('statusId').value = notaData.status?.id || '';
+                    document.getElementById('titulo').value = tarefaData.titulo || '';
+                    document.getElementById('etiquetaId').value = tarefaData.etiqueta?.id || '';
+                    document.getElementById('statusId').value = tarefaData.status?.id || '';
 
                     // Converter data brasileira para formato ISO (yyyy-MM-dd) para o input type="date"
-                    console.log('📅 prazoFinal recebido:', notaData.prazoFinal);
-                    console.log('📅 prazoFinalFormatado recebido:', notaData.prazoFinalFormatado);
+                    console.log('📅 prazoFinal recebido:', tarefaData.prazoFinal);
+                    console.log('📅 prazoFinalFormatado recebido:', tarefaData.prazoFinalFormatado);
 
                     // Tentar usar prazoFinal primeiro, depois prazoFinalFormatado como fallback
-                    const dataParaConverter = notaData.prazoFinal || notaData.prazoFinalFormatado;
+                    const dataParaConverter = tarefaData.prazoFinal || tarefaData.prazoFinalFormatado;
                     console.log('📅 Data para converter:', dataParaConverter);
 
                     const dataISO = converterDataBrasileiraParaISO(dataParaConverter);
@@ -477,8 +477,8 @@
                     console.log('📅 Campo prazoFinal preenchido com:', document.getElementById('prazoFinal').value);
 
                     // Carregar conteúdo no editor
-                    if (notaData.conteudo) {
-                        quill.root.innerHTML = notaData.conteudo;
+                    if (tarefaData.conteudo) {
+                        quill.root.innerHTML = tarefaData.conteudo;
                     }
                 }
             } catch (err) {
@@ -532,14 +532,14 @@
             });
         });
 
-        // Salvar nota
+        // Salvar tarefa
         document.getElementById('notaForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             // Pegar conteúdo HTML do editor
             const conteudoHtml = quill.root.innerHTML;
 
-            const notaId = document.getElementById('notaId').value;
+            const tarefaId = document.getElementById('tarefaId').value;
             const titulo = document.getElementById('titulo').value;
             const etiquetaId = document.getElementById('etiquetaId').value;
             const statusId = document.getElementById('statusId').value;
@@ -557,8 +557,8 @@
             };
 
             try {
-                const url = notaId ? `/api/notas/${notaId}` : '/api/notas';
-                const method = notaId ? 'PUT' : 'POST';
+                const url = tarefaId ? `/api/tarefas/${tarefaId}` : '/api/tarefas';
+                const method = tarefaId ? 'PUT' : 'POST';
 
                 const res = await fetch(url, {
                     method,
@@ -570,13 +570,13 @@
 
                 if (data.success) {
                     alert(data.message);
-                    window.location.href = '/notas';
+                    window.location.href = '/tarefas';
                 } else {
                     alert('Erro: ' + data.message);
                 }
             } catch (err) {
-                console.error('Erro ao salvar nota:', err);
-                alert('Erro ao salvar nota: ' + err.message);
+                console.error('Erro ao salvar tarefa:', err);
+                alert('Erro ao salvar tarefa: ' + err.message);
             }
         });
 

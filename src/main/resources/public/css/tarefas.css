@@ -31,24 +31,24 @@
    CARDS DE NOTA
    ============================================================ */
 
-.nota-card {
+.tarefa-card {
     border-left-width: 4px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.nota-card:hover {
+.tarefa-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
 
-.nota-card-titulo {
+.tarefa-card-titulo {
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--color-text-primary);
 }
 
-.nota-card-conteudo {
+.tarefa-card-conteudo {
     color: var(--color-text-secondary);
     margin-bottom: 0.75rem;
     line-height: 1.6;
@@ -58,37 +58,37 @@
 }
 
 /* Renderizar HTML rico no conteúdo */
-.nota-card-conteudo p {
+.tarefa-card-conteudo p {
     margin-bottom: 0.5rem;
 }
 
-.nota-card-conteudo strong {
+.tarefa-card-conteudo strong {
     font-weight: 600;
 }
 
-.nota-card-conteudo em {
+.tarefa-card-conteudo em {
     font-style: italic;
 }
 
-.nota-card-conteudo u {
+.tarefa-card-conteudo u {
     text-decoration: underline;
 }
 
-.nota-card-conteudo ul,
-.nota-card-conteudo ol {
+.tarefa-card-conteudo ul,
+.tarefa-card-conteudo ol {
     margin-left: 1.5rem;
     margin-bottom: 0.5rem;
 }
 
-.nota-card-conteudo ul {
+.tarefa-card-conteudo ul {
     list-style-type: disc;
 }
 
-.nota-card-conteudo ol {
+.tarefa-card-conteudo ol {
     list-style-type: decimal;
 }
 
-.nota-card-conteudo a {
+.tarefa-card-conteudo a {
     color: var(--color-primary);
     text-decoration: underline;
 }
@@ -216,7 +216,7 @@
    GRID DE NOTAS
    ============================================================ */
 
-.notas-grid {
+.tarefas-grid {
     display: grid;
     gap: 1rem;
 }
@@ -246,18 +246,18 @@
     -webkit-overflow-scrolling: touch;
 }
 
-.notas-table {
+.tarefas-table {
     width: 100%;
     border-collapse: collapse;
     background-color: var(--color-surface);
 }
 
-.notas-table thead {
+.tarefas-table thead {
     background-color: var(--color-bg-secondary);
     border-bottom: 2px solid var(--color-border);
 }
 
-.notas-table th {
+.tarefas-table th {
     padding: 0.875rem 1rem;
     text-align: left;
     font-weight: 600;
@@ -265,39 +265,39 @@
     white-space: nowrap;
 }
 
-.notas-table th.sortable {
+.tarefas-table th.sortable {
     cursor: pointer;
     user-select: none;
     transition: background-color 0.2s ease;
 }
 
-.notas-table th.sortable:hover {
+.tarefas-table th.sortable:hover {
     background-color: var(--color-surface);
 }
 
-.notas-table td {
+.tarefas-table td {
     padding: 0.875rem 1rem;
     border-bottom: 1px solid var(--color-border);
     color: var(--color-text-primary);
 }
 
-.notas-table tbody tr {
+.tarefas-table tbody tr {
     transition: background-color 0.2s ease;
 }
 
-.notas-table tbody tr:hover {
+.tarefas-table tbody tr:hover {
     background-color: var(--color-background);
 }
 
-.notas-table tbody tr.nota-atrasada {
+.tarefas-table tbody tr.tarefa-atrasada {
     background-color: rgba(220, 38, 38, 0.1);
 }
 
-.notas-table tbody tr.nota-urgente {
+.tarefas-table tbody tr.tarefa-urgente {
     background-color: rgba(249, 115, 22, 0.1);
 }
 
-.notas-table .acoes-col {
+.tarefas-table .acoes-col {
     width: 120px;
     text-align: center;
 }
@@ -469,8 +469,8 @@
         min-width: 100%;
     }
 
-    .notas-table th,
-    .notas-table td {
+    .tarefas-table th,
+    .tarefas-table td {
         padding: 0.625rem 0.5rem;
         font-size: 0.875rem;
     }
@@ -1027,7 +1027,7 @@
    MODAL DE PREVIEW DE NOTA
    ============================================================================ */
 
-.nota-preview-titulo {
+.tarefa-preview-titulo {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--color-text-primary);
@@ -1036,7 +1036,7 @@
     border-bottom: 2px solid var(--color-border);
 }
 
-.nota-preview-meta {
+.tarefa-preview-meta {
     display: flex;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
@@ -1057,18 +1057,18 @@
     font-size: 0.9375rem;
 }
 
-.nota-preview-conteudo {
+.tarefa-preview-conteudo {
     margin-top: 1.5rem;
 }
 
-.nota-preview-conteudo h4 {
+.tarefa-preview-conteudo h4 {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--color-text-primary);
     margin: 0 0 0.75rem 0;
 }
 
-.nota-preview-conteudo .ql-editor {
+.tarefa-preview-conteudo .ql-editor {
     background-color: var(--color-background);
     border: 1px solid var(--color-border);
     border-radius: 0.375rem;
@@ -1081,16 +1081,16 @@
 
 /* Responsividade para preview */
 @media (max-width: 768px) {
-    .nota-preview-meta {
+    .tarefa-preview-meta {
         flex-direction: column;
         gap: 0.75rem;
     }
 
-    .nota-preview-titulo {
+    .tarefa-preview-titulo {
         font-size: 1.25rem;
     }
 
-    .nota-preview-conteudo .ql-editor {
+    .tarefa-preview-conteudo .ql-editor {
         max-height: 300px;
     }
 }
@@ -1122,7 +1122,7 @@
     line-height: 1.6;
 }
 
-.nota-deletar-info {
+.tarefa-deletar-info {
     padding: 1rem;
     background-color: rgba(239, 68, 68, 0.05);
     border: 1px solid #ef4444;
@@ -1130,7 +1130,7 @@
     margin: 1rem 0;
 }
 
-.nota-deletar-info strong {
+.tarefa-deletar-info strong {
     color: #dc2626;
     font-size: 1.0625rem;
 }
@@ -1312,7 +1312,7 @@
     flex: 1;
 }
 
-/* Contador de notas */
+/* Contador de tarefas */
 .filter-badge-count {
     display: inline-flex;
     align-items: center;

@@ -1,7 +1,7 @@
 package com.notisblokk.repository;
 
 import com.notisblokk.config.DatabaseConfig;
-import com.notisblokk.model.Nota;
+import com.notisblokk.model.Tarefa;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repositório responsável pelo acesso a dados de notas.
+ * Repositório responsável pelo acesso a dados de tarefas.
  *
- * <p>Implementa operações CRUD (Create, Read, Update, Delete) para a entidade Nota,
+ * <p>Implementa operações CRUD (Create, Read, Update, Delete) para a entidade Tarefa,
  * utilizando PreparedStatements para prevenir SQL injection.</p>
  *
  * <p><b>IMPORTANTE:</b> Ajusta timestamps do SQLite (UTC) para UTC-3 (horário de Brasília).</p>
@@ -30,46 +30,46 @@ import java.util.Optional;
  * @version 1.0
  * @since 2025-01-26
  */
-public class NotaRepository {
+public class TarefaRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(NotaRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(TarefaRepository.class);
     private static final ZoneId BRAZIL_ZONE = ZoneId.of("America/Sao_Paulo");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     /**
-     * Busca todas as notas do sistema, ordenadas por prazo final (mais urgentes primeiro).
+     * Busca todas as tarefas do sistema, ordenadas por prazo final (mais urgentes primeiro).
      *
-     * @return List<Nota> lista de todas as notas (vazia se não houver)
+     * @return List<Tarefa> lista de todas as tarefas (vazia se não houver)
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<Nota> buscarTodos() throws SQLException {
-        String sql = "SELECT * FROM notas ORDER BY prazo_final ASC, data_criacao DESC";
-        List<Nota> notas = new ArrayList<>();
+    public List<Tarefa> buscarTodos() throws SQLException {
+        String sql = "SELECT * FROM tarefas ORDER BY prazo_final ASC, data_criacao DESC";
+        List<Tarefa> tarefas = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                notas.add(mapResultSetToNota(rs));
+                tarefas.add(mapResultSetToTarefa(rs));
             }
 
-            logger.debug("Encontradas {} notas", notas.size());
+            logger.debug("Encontradas {} tarefas", tarefas.size());
         }
 
-        return notas;
+        return tarefas;
     }
 
     /**
-     * Busca uma nota por ID.
+     * Busca uma tarefa por ID.
      *
-     * @param id ID da nota
-     * @return Optional<Nota> nota encontrada ou Optional.empty()
+     * @param id ID da tarefa
+     * @return Optional<Tarefa> tarefa encontrada ou Optional.empty()
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public Optional<Nota> buscarPorId(Long id) throws SQLException {
-        String sql = "SELECT * FROM notas WHERE id = ?";
+    public Optional<Tarefa> buscarPorId(Long id) throws SQLException {
+        String sql = "SELECT * FROM tarefas WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -78,27 +78,27 @@ public class NotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    Nota nota = mapResultSetToNota(rs);
-                    logger.debug("Nota encontrada: {}", nota.getTitulo());
-                    return Optional.of(nota);
+                    Tarefa tarefa = mapResultSetToTarefa(rs);
+                    logger.debug("Tarefa encontrada: {}", tarefa.getTitulo());
+                    return Optional.of(tarefa);
                 }
             }
         }
 
-        logger.debug("Nota com ID {} não encontrada", id);
+        logger.debug("Tarefa com ID {} não encontrada", id);
         return Optional.empty();
     }
 
     /**
-     * Busca notas por etiqueta.
+     * Busca tarefas por etiqueta.
      *
      * @param etiquetaId ID da etiqueta
-     * @return List<Nota> lista de notas com a etiqueta especificada
+     * @return List<Tarefa> lista de tarefas com a etiqueta especificada
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<Nota> buscarPorEtiqueta(Long etiquetaId) throws SQLException {
-        String sql = "SELECT * FROM notas WHERE etiqueta_id = ? ORDER BY prazo_final ASC";
-        List<Nota> notas = new ArrayList<>();
+    public List<Tarefa> buscarPorEtiqueta(Long etiquetaId) throws SQLException {
+        String sql = "SELECT * FROM tarefas WHERE etiqueta_id = ? ORDER BY prazo_final ASC";
+        List<Tarefa> tarefas = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -107,26 +107,26 @@ public class NotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    notas.add(mapResultSetToNota(rs));
+                    tarefas.add(mapResultSetToTarefa(rs));
                 }
             }
 
-            logger.debug("Encontradas {} notas com etiqueta_id {}", notas.size(), etiquetaId);
+            logger.debug("Encontradas {} tarefas com etiqueta_id {}", tarefas.size(), etiquetaId);
         }
 
-        return notas;
+        return tarefas;
     }
 
     /**
-     * Busca notas por status.
+     * Busca tarefas por status.
      *
      * @param statusId ID do status
-     * @return List<Nota> lista de notas com o status especificado
+     * @return List<Tarefa> lista de tarefas com o status especificado
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<Nota> buscarPorStatus(Long statusId) throws SQLException {
-        String sql = "SELECT * FROM notas WHERE status_id = ? ORDER BY prazo_final ASC";
-        List<Nota> notas = new ArrayList<>();
+    public List<Tarefa> buscarPorStatus(Long statusId) throws SQLException {
+        String sql = "SELECT * FROM tarefas WHERE status_id = ? ORDER BY prazo_final ASC";
+        List<Tarefa> tarefas = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -135,27 +135,27 @@ public class NotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    notas.add(mapResultSetToNota(rs));
+                    tarefas.add(mapResultSetToTarefa(rs));
                 }
             }
 
-            logger.debug("Encontradas {} notas com status_id {}", notas.size(), statusId);
+            logger.debug("Encontradas {} tarefas com status_id {}", tarefas.size(), statusId);
         }
 
-        return notas;
+        return tarefas;
     }
 
     /**
-     * Busca notas por texto no título ou conteúdo (case-insensitive).
+     * Busca tarefas por texto no título ou conteúdo (case-insensitive).
      *
-     * <p>Este método busca o termo fornecido tanto no título quanto no conteúdo das notas.
-     * A busca é case-insensitive usando LOWER() e retorna notas com relacionamentos completos.</p>
+     * <p>Este método busca o termo fornecido tanto no título quanto no conteúdo das tarefas.
+     * A busca é case-insensitive usando LOWER() e retorna tarefas com relacionamentos completos.</p>
      *
      * @param termo termo de busca (será convertido para lowercase)
-     * @return List<NotaDTO> lista de notas que contêm o termo (vazia se não houver)
+     * @return List<TarefaDTO> lista de tarefas que contêm o termo (vazia se não houver)
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<com.notisblokk.model.NotaDTO> buscarPorTexto(String termo) throws SQLException {
+    public List<com.notisblokk.model.TarefaDTO> buscarPorTexto(String termo) throws SQLException {
         if (termo == null || termo.trim().isEmpty()) {
             logger.debug("Termo de busca vazio, retornando lista vazia");
             return new ArrayList<>();
@@ -176,14 +176,14 @@ public class NotaRepository {
                 s.id as status_id,
                 s.nome as status_nome,
                 s.cor_hex as status_cor
-            FROM notas n
+            FROM tarefas n
             LEFT JOIN etiquetas e ON n.etiqueta_id = e.id
-            LEFT JOIN status_nota s ON n.status_id = s.id
+            LEFT JOIN status_tarefa s ON n.status_id = s.id
             WHERE LOWER(n.titulo) LIKE LOWER(?) OR LOWER(n.conteudo) LIKE LOWER(?)
             ORDER BY n.prazo_final ASC, n.data_criacao DESC
         """;
 
-        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+        List<com.notisblokk.model.TarefaDTO> tarefasDTO = new ArrayList<>();
         String termoBusca = "%" + termo.trim() + "%";
 
         try (Connection conn = DatabaseConfig.getConnection();
@@ -194,28 +194,28 @@ public class NotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    notasDTO.add(mapResultSetToNotaDTOCompleto(rs));
+                    tarefasDTO.add(mapResultSetToTarefaDTOCompleto(rs));
                 }
             }
 
-            logger.debug("Encontradas {} notas para o termo de busca '{}'", notasDTO.size(), termo);
+            logger.debug("Encontradas {} tarefas para o termo de busca '{}'", tarefasDTO.size(), termo);
         }
 
-        return notasDTO;
+        return tarefasDTO;
     }
 
     /**
-     * Busca notas por intervalo de prazo final.
+     * Busca tarefas por intervalo de prazo final.
      *
-     * <p>Retorna notas cujo prazo final está entre as datas especificadas (inclusive).
+     * <p>Retorna tarefas cujo prazo final está entre as datas especificadas (inclusive).
      * Retorna DTOs completos com relacionamentos (etiquetas e status).</p>
      *
      * @param dataInicio data inicial do intervalo (inclusive)
      * @param dataFim data final do intervalo (inclusive)
-     * @return List<NotaDTO> lista de notas no intervalo especificado
+     * @return List<TarefaDTO> lista de tarefas no intervalo especificado
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<com.notisblokk.model.NotaDTO> buscarPorIntervaloPrazo(LocalDate dataInicio, LocalDate dataFim)
+    public List<com.notisblokk.model.TarefaDTO> buscarPorIntervaloPrazo(LocalDate dataInicio, LocalDate dataFim)
             throws SQLException {
 
         if (dataInicio == null || dataFim == null) {
@@ -238,14 +238,14 @@ public class NotaRepository {
                 s.id as status_id,
                 s.nome as status_nome,
                 s.cor_hex as status_cor
-            FROM notas n
+            FROM tarefas n
             LEFT JOIN etiquetas e ON n.etiqueta_id = e.id
-            LEFT JOIN status_nota s ON n.status_id = s.id
+            LEFT JOIN status_tarefa s ON n.status_id = s.id
             WHERE n.prazo_final >= ? AND n.prazo_final <= ?
             ORDER BY n.prazo_final ASC, n.data_criacao DESC
         """;
 
-        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+        List<com.notisblokk.model.TarefaDTO> tarefasDTO = new ArrayList<>();
         String dataInicioStr = dataInicio.format(DATE_FORMATTER);
         String dataFimStr = dataFim.format(DATE_FORMATTER);
 
@@ -257,26 +257,26 @@ public class NotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    notasDTO.add(mapResultSetToNotaDTOCompleto(rs));
+                    tarefasDTO.add(mapResultSetToTarefaDTOCompleto(rs));
                 }
             }
 
-            logger.debug("Encontradas {} notas entre {} e {}", notasDTO.size(), dataInicioStr, dataFimStr);
+            logger.debug("Encontradas {} tarefas entre {} e {}", tarefasDTO.size(), dataInicioStr, dataFimStr);
         }
 
-        return notasDTO;
+        return tarefasDTO;
     }
 
     /**
-     * Busca todas as notas com seus relacionamentos (etiquetas e status) em uma única query.
+     * Busca todas as tarefas com seus relacionamentos (etiquetas e status) em uma única query.
      *
      * <p>Este método otimiza a performance ao usar LEFT JOIN para evitar o problema de N+1 queries.
-     * Retorna diretamente objetos NotaDTO com etiquetas e status já populados.</p>
+     * Retorna diretamente objetos TarefaDTO com etiquetas e status já populados.</p>
      *
-     * @return List<NotaDTO> lista de todas as notas com relacionamentos (vazia se não houver)
+     * @return List<TarefaDTO> lista de todas as tarefas com relacionamentos (vazia se não houver)
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<com.notisblokk.model.NotaDTO> buscarTodasComRelacionamentos() throws SQLException {
+    public List<com.notisblokk.model.TarefaDTO> buscarTodasComRelacionamentos() throws SQLException {
         String sql = """
             SELECT
                 n.id,
@@ -292,49 +292,49 @@ public class NotaRepository {
                 s.id as status_id,
                 s.nome as status_nome,
                 s.cor_hex as status_cor
-            FROM notas n
+            FROM tarefas n
             LEFT JOIN etiquetas e ON n.etiqueta_id = e.id
-            LEFT JOIN status_nota s ON n.status_id = s.id
+            LEFT JOIN status_tarefa s ON n.status_id = s.id
             ORDER BY n.prazo_final ASC, n.data_criacao DESC
         """;
 
-        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+        List<com.notisblokk.model.TarefaDTO> tarefasDTO = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                notasDTO.add(mapResultSetToNotaDTOCompleto(rs));
+                tarefasDTO.add(mapResultSetToTarefaDTOCompleto(rs));
             }
 
-            logger.debug("Encontradas {} notas com relacionamentos (query otimizada)", notasDTO.size());
+            logger.debug("Encontradas {} tarefas com relacionamentos (query otimizada)", tarefasDTO.size());
         }
 
-        return notasDTO;
+        return tarefasDTO;
     }
 
     /**
-     * Busca notas por usuário (para sistema de alertas).
+     * Busca tarefas por usuário (para sistema de alertas).
      *
      * @param usuarioId ID do usuário
-     * @return List<NotaDTO> lista de notas do usuário com informações completas
+     * @return List<TarefaDTO> lista de tarefas do usuário com informações completas
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<com.notisblokk.model.NotaDTO> buscarPorUsuarioId(Long usuarioId) throws SQLException {
+    public List<com.notisblokk.model.TarefaDTO> buscarPorUsuarioId(Long usuarioId) throws SQLException {
         String sql = """
             SELECT
                 n.*,
                 e.nome as etiqueta_nome,
                 s.nome as status_nome,
                 s.cor_hex as status_cor
-            FROM notas n
+            FROM tarefas n
             INNER JOIN etiquetas e ON n.etiqueta_id = e.id
-            INNER JOIN status_nota s ON n.status_id = s.id
+            INNER JOIN status_tarefa s ON n.status_id = s.id
             WHERE n.usuario_id = ?
             ORDER BY n.prazo_final ASC
         """;
-        List<com.notisblokk.model.NotaDTO> notasDTO = new ArrayList<>();
+        List<com.notisblokk.model.TarefaDTO> tarefasDTO = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -343,28 +343,28 @@ public class NotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    notasDTO.add(mapResultSetToNotaDTO(rs));
+                    tarefasDTO.add(mapResultSetToTarefaDTO(rs));
                 }
             }
 
-            logger.debug("Encontradas {} notas para usuário ID {}", notasDTO.size(), usuarioId);
+            logger.debug("Encontradas {} tarefas para usuário ID {}", tarefasDTO.size(), usuarioId);
         }
 
-        return notasDTO;
+        return tarefasDTO;
     }
 
     /**
-     * Mapeia ResultSet para NotaDTO com informações completas de etiqueta e status.
+     * Mapeia ResultSet para TarefaDTO com informações completas de etiqueta e status.
      * Usado pelo método buscarTodasComRelacionamentos() que traz todos os campos.
      *
      * @param rs ResultSet com dados completos da query com JOINs
-     * @return NotaDTO objeto DTO completo com etiqueta e status
+     * @return TarefaDTO objeto DTO completo com etiqueta e status
      * @throws SQLException se houver erro ao ler o ResultSet
      */
-    private com.notisblokk.model.NotaDTO mapResultSetToNotaDTOCompleto(ResultSet rs) throws SQLException {
-        com.notisblokk.model.NotaDTO dto = new com.notisblokk.model.NotaDTO();
+    private com.notisblokk.model.TarefaDTO mapResultSetToTarefaDTOCompleto(ResultSet rs) throws SQLException {
+        com.notisblokk.model.TarefaDTO dto = new com.notisblokk.model.TarefaDTO();
 
-        // Dados da nota
+        // Dados da tarefa
         dto.setId(rs.getLong("id"));
         dto.setTitulo(rs.getString("titulo"));
         dto.setConteudo(rs.getString("conteudo"));
@@ -424,7 +424,7 @@ public class NotaRepository {
         // Status (pode ser NULL se LEFT JOIN não encontrou)
         Long statusId = rs.getLong("status_id");
         if (!rs.wasNull()) {
-            com.notisblokk.model.StatusNota status = new com.notisblokk.model.StatusNota();
+            com.notisblokk.model.StatusTarefa status = new com.notisblokk.model.StatusTarefa();
             status.setId(statusId);
             status.setNome(rs.getString("status_nome"));
             status.setCorHex(rs.getString("status_cor"));
@@ -435,12 +435,12 @@ public class NotaRepository {
     }
 
     /**
-     * Mapeia ResultSet para NotaDTO com informações completas de etiqueta e status.
+     * Mapeia ResultSet para TarefaDTO com informações completas de etiqueta e status.
      */
-    private com.notisblokk.model.NotaDTO mapResultSetToNotaDTO(ResultSet rs) throws SQLException {
-        com.notisblokk.model.NotaDTO dto = new com.notisblokk.model.NotaDTO();
+    private com.notisblokk.model.TarefaDTO mapResultSetToTarefaDTO(ResultSet rs) throws SQLException {
+        com.notisblokk.model.TarefaDTO dto = new com.notisblokk.model.TarefaDTO();
 
-        // Dados da nota
+        // Dados da tarefa
         dto.setId(rs.getLong("id"));
         dto.setTitulo(rs.getString("titulo"));
         dto.setConteudo(rs.getString("conteudo"));
@@ -480,7 +480,7 @@ public class NotaRepository {
         dto.setEtiqueta(etiqueta);
 
         // Status
-        com.notisblokk.model.StatusNota status = new com.notisblokk.model.StatusNota();
+        com.notisblokk.model.StatusTarefa status = new com.notisblokk.model.StatusTarefa();
         status.setId(rs.getLong("status_id"));
         status.setNome(rs.getString("status_nome"));
         status.setCorHex(rs.getString("status_cor"));
@@ -490,17 +490,17 @@ public class NotaRepository {
     }
 
     /**
-     * Salva uma nova nota no banco de dados.
+     * Salva uma nova tarefa no banco de dados.
      *
-     * @param nota nota a ser salva (sem ID)
+     * @param tarefa tarefa a ser salva (sem ID)
      * @param sessaoId ID da sessão atual
      * @param usuarioId ID do usuário atual
-     * @return Nota nota salva com ID gerado
+     * @return Tarefa tarefa salva com ID gerado
      * @throws SQLException se houver erro ao salvar
      */
-    public Nota salvar(Nota nota, Long sessaoId, Long usuarioId) throws SQLException {
+    public Tarefa salvar(Tarefa tarefa, Long sessaoId, Long usuarioId) throws SQLException {
         String sql = """
-            INSERT INTO notas (etiqueta_id, status_id, titulo, conteudo, data_criacao, data_atualizacao, prazo_final, sessao_id, usuario_id)
+            INSERT INTO tarefas (etiqueta_id, status_id, titulo, conteudo, data_criacao, data_atualizacao, prazo_final, sessao_id, usuario_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
@@ -509,12 +509,12 @@ public class NotaRepository {
 
             LocalDateTime now = LocalDateTime.now(BRAZIL_ZONE);
             String timestamp = now.format(FORMATTER);
-            String prazoFinal = nota.getPrazoFinal().format(DATE_FORMATTER);
+            String prazoFinal = tarefa.getPrazoFinal().format(DATE_FORMATTER);
 
-            pstmt.setLong(1, nota.getEtiquetaId());
-            pstmt.setLong(2, nota.getStatusId());
-            pstmt.setString(3, nota.getTitulo());
-            pstmt.setString(4, nota.getConteudo());
+            pstmt.setLong(1, tarefa.getEtiquetaId());
+            pstmt.setLong(2, tarefa.getStatusId());
+            pstmt.setString(3, tarefa.getTitulo());
+            pstmt.setString(4, tarefa.getConteudo());
             pstmt.setString(5, timestamp);
             pstmt.setString(6, timestamp);
             pstmt.setString(7, prazoFinal);
@@ -524,7 +524,7 @@ public class NotaRepository {
             int affectedRows = pstmt.executeUpdate();
 
             if (affectedRows == 0) {
-                throw new SQLException("Falha ao salvar nota, nenhuma linha afetada");
+                throw new SQLException("Falha ao salvar tarefa, nenhuma linha afetada");
             }
 
             // Obter ID gerado
@@ -532,30 +532,30 @@ public class NotaRepository {
                  ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
 
                 if (rs.next()) {
-                    nota.setId(rs.getLong(1));
-                    nota.setDataCriacao(now);
-                    nota.setDataAtualizacao(now);
-                    nota.setSessaoId(sessaoId);
-                    nota.setUsuarioId(usuarioId);
+                    tarefa.setId(rs.getLong(1));
+                    tarefa.setDataCriacao(now);
+                    tarefa.setDataAtualizacao(now);
+                    tarefa.setSessaoId(sessaoId);
+                    tarefa.setUsuarioId(usuarioId);
                 } else {
-                    throw new SQLException("Falha ao obter ID da nota criada");
+                    throw new SQLException("Falha ao obter ID da tarefa criada");
                 }
             }
 
-            logger.info("Nota salva com sucesso: {} (ID: {})", nota.getTitulo(), nota.getId());
-            return nota;
+            logger.info("Tarefa salva com sucesso: {} (ID: {})", tarefa.getTitulo(), tarefa.getId());
+            return tarefa;
         }
     }
 
     /**
-     * Atualiza uma nota existente no banco de dados.
+     * Atualiza uma tarefa existente no banco de dados.
      *
-     * @param nota nota a ser atualizada (com ID)
+     * @param tarefa tarefa a ser atualizada (com ID)
      * @throws SQLException se houver erro ao atualizar
      */
-    public void atualizar(Nota nota) throws SQLException {
+    public void atualizar(Tarefa tarefa) throws SQLException {
         String sql = """
-            UPDATE notas
+            UPDATE tarefas
             SET etiqueta_id = ?, status_id = ?, titulo = ?, conteudo = ?, data_atualizacao = ?, prazo_final = ?
             WHERE id = ?
         """;
@@ -565,36 +565,36 @@ public class NotaRepository {
 
             LocalDateTime now = LocalDateTime.now(BRAZIL_ZONE);
             String timestamp = now.format(FORMATTER);
-            String prazoFinal = nota.getPrazoFinal().format(DATE_FORMATTER);
+            String prazoFinal = tarefa.getPrazoFinal().format(DATE_FORMATTER);
 
-            pstmt.setLong(1, nota.getEtiquetaId());
-            pstmt.setLong(2, nota.getStatusId());
-            pstmt.setString(3, nota.getTitulo());
-            pstmt.setString(4, nota.getConteudo());
+            pstmt.setLong(1, tarefa.getEtiquetaId());
+            pstmt.setLong(2, tarefa.getStatusId());
+            pstmt.setString(3, tarefa.getTitulo());
+            pstmt.setString(4, tarefa.getConteudo());
             pstmt.setString(5, timestamp);
             pstmt.setString(6, prazoFinal);
-            pstmt.setLong(7, nota.getId());
+            pstmt.setLong(7, tarefa.getId());
 
             int affectedRows = pstmt.executeUpdate();
 
             if (affectedRows == 0) {
-                throw new SQLException("Nota com ID " + nota.getId() + " não encontrada");
+                throw new SQLException("Tarefa com ID " + tarefa.getId() + " não encontrada");
             }
 
-            nota.setDataAtualizacao(now);
+            tarefa.setDataAtualizacao(now);
 
-            logger.info("Nota atualizada com sucesso: {} (ID: {})", nota.getTitulo(), nota.getId());
+            logger.info("Tarefa atualizada com sucesso: {} (ID: {})", tarefa.getTitulo(), tarefa.getId());
         }
     }
 
     /**
-     * Remove uma nota do banco de dados.
+     * Remove uma tarefa do banco de dados.
      *
-     * @param id ID da nota a ser removida
+     * @param id ID da tarefa a ser removida
      * @throws SQLException se houver erro ao deletar
      */
     public void deletar(Long id) throws SQLException {
-        String sql = "DELETE FROM notas WHERE id = ?";
+        String sql = "DELETE FROM tarefas WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -603,21 +603,21 @@ public class NotaRepository {
             int affectedRows = pstmt.executeUpdate();
 
             if (affectedRows == 0) {
-                throw new SQLException("Nota com ID " + id + " não encontrada");
+                throw new SQLException("Tarefa com ID " + id + " não encontrada");
             }
 
-            logger.info("Nota com ID {} removida com sucesso", id);
+            logger.info("Tarefa com ID {} removida com sucesso", id);
         }
     }
 
     /**
-     * Conta o total de notas no sistema.
+     * Conta o total de tarefas no sistema.
      *
-     * @return long total de notas
+     * @return long total de tarefas
      * @throws SQLException se houver erro ao contar
      */
     public long contarTotal() throws SQLException {
-        String sql = "SELECT COUNT(*) FROM notas";
+        String sql = "SELECT COUNT(*) FROM tarefas";
 
         try (Connection conn = DatabaseConfig.getConnection();
              Statement stmt = conn.createStatement();
@@ -631,16 +631,16 @@ public class NotaRepository {
     }
 
     /**
-     * Busca notas com paginação.
+     * Busca tarefas com paginação.
      *
      * @param pagina número da página (começa em 1)
      * @param tamanhoPagina quantidade de registros por página
      * @param ordenarPor campo para ordenação (prazo_final, data_criacao, titulo)
      * @param direcao direção da ordenação (ASC ou DESC)
-     * @return List<Nota> lista de notas paginada
+     * @return List<Tarefa> lista de tarefas paginada
      * @throws SQLException se houver erro ao acessar o banco
      */
-    public List<Nota> buscarComPaginacao(int pagina, int tamanhoPagina, String ordenarPor, String direcao)
+    public List<Tarefa> buscarComPaginacao(int pagina, int tamanhoPagina, String ordenarPor, String direcao)
             throws SQLException {
 
         // Validar e sanitizar ordenação
@@ -657,11 +657,11 @@ public class NotaRepository {
         int offset = (pagina - 1) * tamanhoPagina;
 
         String sql = String.format(
-            "SELECT * FROM notas ORDER BY %s %s LIMIT ? OFFSET ?",
+            "SELECT * FROM tarefas ORDER BY %s %s LIMIT ? OFFSET ?",
             ordenacao, direcaoOrdem
         );
 
-        List<Nota> notas = new ArrayList<>();
+        List<Tarefa> tarefas = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -671,44 +671,44 @@ public class NotaRepository {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    notas.add(mapResultSetToNota(rs));
+                    tarefas.add(mapResultSetToTarefa(rs));
                 }
             }
 
-            logger.debug("Encontradas {} notas (página {}, tamanho {})",
-                notas.size(), pagina, tamanhoPagina);
+            logger.debug("Encontradas {} tarefas (página {}, tamanho {})",
+                tarefas.size(), pagina, tamanhoPagina);
         }
 
-        return notas;
+        return tarefas;
     }
 
     /**
-     * Mapeia um ResultSet para um objeto Nota.
+     * Mapeia um ResultSet para um objeto Tarefa.
      * IMPORTANTE: Ajusta timestamps do SQLite para o horário de Brasília.
      *
      * @param rs ResultSet posicionado na linha a ser mapeada
-     * @return Nota objeto mapeado
+     * @return Tarefa objeto mapeado
      * @throws SQLException se houver erro ao ler o ResultSet
      */
-    private Nota mapResultSetToNota(ResultSet rs) throws SQLException {
-        Nota nota = new Nota();
-        nota.setId(rs.getLong("id"));
-        nota.setEtiquetaId(rs.getLong("etiqueta_id"));
-        nota.setStatusId(rs.getLong("status_id"));
-        nota.setTitulo(rs.getString("titulo"));
-        nota.setConteudo(rs.getString("conteudo"));
-        nota.setSessaoId(rs.getLong("sessao_id"));
-        nota.setUsuarioId(rs.getLong("usuario_id"));
+    private Tarefa mapResultSetToTarefa(ResultSet rs) throws SQLException {
+        Tarefa tarefa = new Tarefa();
+        tarefa.setId(rs.getLong("id"));
+        tarefa.setEtiquetaId(rs.getLong("etiqueta_id"));
+        tarefa.setStatusId(rs.getLong("status_id"));
+        tarefa.setTitulo(rs.getString("titulo"));
+        tarefa.setConteudo(rs.getString("conteudo"));
+        tarefa.setSessaoId(rs.getLong("sessao_id"));
+        tarefa.setUsuarioId(rs.getLong("usuario_id"));
 
         // Parse data_criacao usando formato brasileiro
         String dataCriacaoStr = rs.getString("data_criacao");
         if (dataCriacaoStr != null && !dataCriacaoStr.isEmpty()) {
             try {
-                nota.setDataCriacao(LocalDateTime.parse(dataCriacaoStr, FORMATTER));
+                tarefa.setDataCriacao(LocalDateTime.parse(dataCriacaoStr, FORMATTER));
             } catch (Exception e) {
                 logger.warn("Erro ao fazer parse da data '{}', tentando formato ISO", dataCriacaoStr);
                 try {
-                    nota.setDataCriacao(LocalDateTime.parse(dataCriacaoStr.replace(" ", "T")));
+                    tarefa.setDataCriacao(LocalDateTime.parse(dataCriacaoStr.replace(" ", "T")));
                 } catch (Exception ex) {
                     logger.error("Não foi possível fazer parse da data_criacao: {}", dataCriacaoStr);
                 }
@@ -719,11 +719,11 @@ public class NotaRepository {
         String dataAtualizacaoStr = rs.getString("data_atualizacao");
         if (dataAtualizacaoStr != null && !dataAtualizacaoStr.isEmpty()) {
             try {
-                nota.setDataAtualizacao(LocalDateTime.parse(dataAtualizacaoStr, FORMATTER));
+                tarefa.setDataAtualizacao(LocalDateTime.parse(dataAtualizacaoStr, FORMATTER));
             } catch (Exception e) {
                 logger.warn("Erro ao fazer parse da data '{}', tentando formato ISO", dataAtualizacaoStr);
                 try {
-                    nota.setDataAtualizacao(LocalDateTime.parse(dataAtualizacaoStr.replace(" ", "T")));
+                    tarefa.setDataAtualizacao(LocalDateTime.parse(dataAtualizacaoStr.replace(" ", "T")));
                 } catch (Exception ex) {
                     logger.error("Não foi possível fazer parse da data_atualizacao: {}", dataAtualizacaoStr);
                 }
@@ -735,18 +735,18 @@ public class NotaRepository {
         if (prazoFinalStr != null && !prazoFinalStr.isEmpty()) {
             try {
                 // Tentar formato brasileiro dd/MM/yyyy primeiro
-                nota.setPrazoFinal(LocalDate.parse(prazoFinalStr, DATE_FORMATTER));
+                tarefa.setPrazoFinal(LocalDate.parse(prazoFinalStr, DATE_FORMATTER));
             } catch (Exception e) {
                 logger.warn("Erro ao fazer parse da data '{}', tentando formato ISO", prazoFinalStr);
                 try {
                     // Fallback: tentar formato ISO yyyy-MM-dd
-                    nota.setPrazoFinal(LocalDate.parse(prazoFinalStr));
+                    tarefa.setPrazoFinal(LocalDate.parse(prazoFinalStr));
                 } catch (Exception ex) {
                     logger.error("Não foi possível fazer parse do prazo_final: {}", prazoFinalStr);
                 }
             }
         }
 
-        return nota;
+        return tarefa;
     }
 }

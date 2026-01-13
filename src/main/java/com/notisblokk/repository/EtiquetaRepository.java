@@ -191,7 +191,7 @@ public class EtiquetaRepository {
 
     /**
      * Remove uma etiqueta do banco de dados.
-     * ATENÇÃO: Cascata irá deletar todas as notas associadas!
+     * ATENÇÃO: Cascata irá deletar todas as tarefas associadas!
      *
      * @param id ID da etiqueta a ser removida
      * @throws SQLException se houver erro ao deletar
@@ -214,14 +214,14 @@ public class EtiquetaRepository {
     }
 
     /**
-     * Conta quantas notas estão associadas a uma etiqueta.
+     * Conta quantas tarefas estão associadas a uma etiqueta.
      *
      * @param etiquetaId ID da etiqueta
-     * @return long número de notas associadas
+     * @return long número de tarefas associadas
      * @throws SQLException se houver erro ao contar
      */
-    public long contarNotasPorEtiqueta(Long etiquetaId) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM notas WHERE etiqueta_id = ?";
+    public long contarTarefasPorEtiqueta(Long etiquetaId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM tarefas WHERE etiqueta_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {

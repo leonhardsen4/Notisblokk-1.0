@@ -272,7 +272,7 @@ public class DatabaseConfig {
     }
 
     /**
-     * Cria os status padrão do sistema de notas se ainda não existirem.
+     * Cria os status padrão do sistema de tarefas se ainda não existirem.
      *
      * <p><b>Status criados:</b></p>
      * <ul>
@@ -303,9 +303,9 @@ public class DatabaseConfig {
             String timestamp = now.format(FORMATTER);
 
             // Verificar e criar cada status se não existir
-            String checkSql = "SELECT COUNT(*) FROM status_nota WHERE nome = ?";
+            String checkSql = "SELECT COUNT(*) FROM status_tarefa WHERE nome = ?";
             String insertSql = """
-                INSERT INTO status_nota (nome, cor_hex, data_criacao, sessao_id, usuario_id)
+                INSERT INTO status_tarefa (nome, cor_hex, data_criacao, sessao_id, usuario_id)
                 VALUES (?, ?, ?, NULL, NULL)
             """;
 

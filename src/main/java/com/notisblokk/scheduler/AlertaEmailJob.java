@@ -1,13 +1,13 @@
 package com.notisblokk.scheduler;
 
-import com.notisblokk.model.NotaDTO;
+import com.notisblokk.model.TarefaDTO;
 import com.notisblokk.model.User;
 import com.notisblokk.repository.AlertaEnviadoRepository;
-import com.notisblokk.repository.NotaRepository;
+import com.notisblokk.repository.TarefaRepository;
 import com.notisblokk.repository.UserRepository;
 import com.notisblokk.service.ConfiguracaoService;
 import com.notisblokk.service.EmailService;
-import com.notisblokk.service.NotaService;
+import com.notisblokk.service.TarefaService;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -24,7 +24,7 @@ import java.util.Map;
  * <ul>
  *   <li>Busca todos os usuários ativos</li>
  *   <li>Verifica configuração de notificação por email de cada usuário</li>
- *   <li>Identifica notas com prazos próximos</li>
+ *   <li>Identifica tarefas com prazos próximos</li>
  *   <li>Envia emails de alerta respeitando níveis configurados</li>
  *   <li>Evita duplicatas usando controle de envios</li>
  * </ul>
@@ -38,8 +38,8 @@ public class AlertaEmailJob implements Job {
     private static final Logger logger = LoggerFactory.getLogger(AlertaEmailJob.class);
 
     private final UserRepository userRepository;
-    private final NotaService notaService;
-    private final NotaRepository notaRepository;
+    private final TarefaService tarefaService;
+    private final TarefaRepository tarefaRepository;
     private final EmailService emailService;
     private final ConfiguracaoService configuracaoService;
     private final AlertaEnviadoRepository alertaEnviadoRepository;
@@ -49,8 +49,8 @@ public class AlertaEmailJob implements Job {
      */
     public AlertaEmailJob() {
         this.userRepository = new UserRepository();
-        this.notaService = new NotaService();
-        this.notaRepository = new NotaRepository();
+        this.tarefaService = new TarefaService();
+        this.tarefaRepository = new TarefaRepository();
         this.emailService = new EmailService();
         this.configuracaoService = new ConfiguracaoService();
         this.alertaEnviadoRepository = new AlertaEnviadoRepository();
@@ -128,15 +128,15 @@ public class AlertaEmailJob implements Job {
     private int processarAlertasParaUsuario(User usuario) throws Exception {
         int enviados = 0;
 
-        // Buscar todas as notas do usuário
-        List<NotaDTO> notas = notaRepository.buscarPorUsuarioId(usuario.getId());
+        // Buscar todas as tarefas do usuário
+        List<TarefaDTO> tarefas = tarefaRepository.buscarPorUsuarioId(usuario.getId());
 
-        if (notas.isEmpty()) {
-            logger.debug("Usuário {} não possui notas", usuario.getUsername());
+        if (tarefas.isEmpty()) {
+            logger.debug("Usuário {} não possui tarefas", usuario.getUsername());
             return 0;
         }
 
-        logger.debug("Verificando {} notas do usuário {}", notas.size(), usuario.getUsername());
+        logger.debug("Verificando {} tarefas do usuário {}", tarefas.size(), usuario.getUsername());
 
         // Buscar configurações de dias para alertas
         Map<String, String> config = configuracaoService.buscarConfiguracoes(usuario.getId());
@@ -144,46 +144,46 @@ public class AlertaEmailJob implements Job {
         int diasUrgente = Integer.parseInt(config.getOrDefault("notif_dias_urgente", "3"));
         int diasAtencao = Integer.parseInt(config.getOrDefault("notif_dias_atencao", "5"));
 
-        for (NotaDTO nota : notas) {
-            // Ignorar notas resolvidas ou canceladas
-            String statusNome = nota.getStatus().getNome().toLowerCase();
+        for (TarefaDTO tarefa : tarefas) {
+            // Ignorar tarefas resolvidas ou canceladas
+            String statusNome = tarefa.getStatus().getNome().toLowerCase();
             if (statusNome.contains("resolvid") || statusNome.contains("cancelad")) {
                 continue;
             }
 
-            // Verificar se nota precisa de alerta
-            if (nota.getDiasRestantes() == null) {
+            // Verificar se tarefa precisa de alerta
+            if (tarefa.getDiasRestantes() == null) {
                 continue;
             }
 
-            long diasRestantes = nota.getDiasRestantes();
+            long diasRestantes = tarefa.getDiasRestantes();
             String nivel = determinarNivelAlerta(diasRestantes, diasCritico, diasUrgente, diasAtencao);
 
             if (nivel == null) {
-                // Nota não precisa de alerta ainda
+                // Tarefa não precisa de alerta ainda
                 continue;
             }
 
             // Verificar se já foi enviado alerta hoje
-            if (alertaEnviadoRepository.alertaJaEnviado(usuario.getId(), nota.getId(), nivel)) {
-                logger.debug("Alerta para nota {} (nível {}) já foi enviado hoje", nota.getTitulo(), nivel);
+            if (alertaEnviadoRepository.alertaJaEnviado(usuario.getId(), tarefa.getId(), nivel)) {
+                logger.debug("Alerta para tarefa {} (nível {}) já foi enviado hoje", tarefa.getTitulo(), nivel);
                 continue;
             }
 
             // Enviar email de alerta
             try {
-                enviarEmailAlerta(usuario, nota, diasRestantes);
+                enviarEmailAlerta(usuario, tarefa, diasRestantes);
 
                 // Registrar envio
-                alertaEnviadoRepository.registrarEnvio(usuario.getId(), nota.getId(), nivel, (int) diasRestantes);
+                alertaEnviadoRepository.registrarEnvio(usuario.getId(), tarefa.getId(), nivel, (int) diasRestantes);
 
                 enviados++;
 
-                logger.info("Email enviado: {} - Nota: {} ({} dias)",
-                           usuario.getEmail(), nota.getTitulo(), diasRestantes);
+                logger.info("Email enviado: {} - Tarefa: {} ({} dias)",
+                           usuario.getEmail(), tarefa.getTitulo(), diasRestantes);
 
             } catch (Exception e) {
-                logger.error("Erro ao enviar email para nota {}: {}", nota.getTitulo(), e.getMessage());
+                logger.error("Erro ao enviar email para tarefa {}: {}", tarefa.getTitulo(), e.getMessage());
             }
         }
 
@@ -212,20 +212,20 @@ public class AlertaEmailJob implements Job {
     }
 
     /**
-     * Envia email de alerta para o usuário sobre uma nota específica.
+     * Envia email de alerta para o usuário sobre uma tarefa específica.
      *
      * @param usuario usuário destinatário
-     * @param nota nota sobre a qual alertar
+     * @param tarefa tarefa sobre a qual alertar
      * @param diasRestantes dias restantes até o prazo
      */
-    private void enviarEmailAlerta(User usuario, NotaDTO nota, long diasRestantes) throws Exception {
+    private void enviarEmailAlerta(User usuario, TarefaDTO tarefa, long diasRestantes) throws Exception {
         String nomeUsuario = usuario.getFullName() != null ? usuario.getFullName() : usuario.getUsername();
 
         emailService.enviarEmailAlertaNota(
             usuario.getEmail(),
             nomeUsuario,
-            nota.getTitulo(),
-            nota.getPrazoFinalFormatado(),
+            tarefa.getTitulo(),
+            tarefa.getPrazoFinalFormatado(),
             (int) diasRestantes
         );
     }

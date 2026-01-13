@@ -1,9 +1,9 @@
 package com.notisblokk.controller;
 
-import com.notisblokk.model.Nota;
-import com.notisblokk.model.NotaDTO;
+import com.notisblokk.model.Tarefa;
+import com.notisblokk.model.TarefaDTO;
 import com.notisblokk.model.PaginatedResponse;
-import com.notisblokk.service.NotaService;
+import com.notisblokk.service.TarefaService;
 import com.notisblokk.service.PDFService;
 import com.notisblokk.util.SessionUtil;
 import io.javalin.http.Context;
@@ -18,40 +18,40 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Controller responsável pelo gerenciamento de notas.
+ * Controller responsável pelo gerenciamento de tarefas.
  *
- * <p>Gerencia os endpoints REST para operações CRUD de notas:</p>
+ * <p>Gerencia os endpoints REST para operações CRUD de tarefas:</p>
  * <ul>
- *   <li>GET /api/notas - Listar todas as notas</li>
- *   <li>GET /api/notas/{id} - Buscar nota por ID</li>
- *   <li>GET /api/notas/etiqueta/{etiquetaId} - Buscar notas por etiqueta</li>
- *   <li>POST /api/notas - Criar nova nota</li>
- *   <li>PUT /api/notas/{id} - Atualizar nota</li>
- *   <li>DELETE /api/notas/{id} - Deletar nota</li>
+ *   <li>GET /api/tarefas - Listar todas as tarefas</li>
+ *   <li>GET /api/tarefas/{id} - Buscar tarefa por ID</li>
+ *   <li>GET /api/tarefas/etiqueta/{etiquetaId} - Buscar tarefas por etiqueta</li>
+ *   <li>POST /api/tarefas - Criar nova tarefa</li>
+ *   <li>PUT /api/tarefas/{id} - Atualizar tarefa</li>
+ *   <li>DELETE /api/tarefas/{id} - Deletar tarefa</li>
  * </ul>
  *
  * @author Notisblokk Team
  * @version 1.0
  * @since 2025-01-26
  */
-public class NotaController {
+public class TarefaController {
 
-    private static final Logger logger = LoggerFactory.getLogger(NotaController.class);
-    private final NotaService notaService;
+    private static final Logger logger = LoggerFactory.getLogger(TarefaController.class);
+    private final TarefaService tarefaService;
     private final PDFService pdfService;
 
     /**
      * Construtor padrão.
      */
-    public NotaController() {
-        this.notaService = new NotaService();
+    public TarefaController() {
+        this.tarefaService = new TarefaService();
         this.pdfService = new PDFService();
     }
 
     /**
-     * Classe interna para receber dados da requisição de criar/atualizar nota.
+     * Classe interna para receber dados da requisição de criar/atualizar tarefa.
      */
-    private static class NotaRequest {
+    private static class TarefaRequest {
         public Long etiquetaId;
         public Long statusId;
         public String titulo;
@@ -60,8 +60,8 @@ public class NotaController {
     }
 
     /**
-     * GET /api/notas
-     * Lista todas as notas como DTOs completos.
+     * GET /api/tarefas
+     * Lista todas as tarefas como DTOs completos.
      * Se query params "pagina" e "tamanho" estiverem presentes, retorna paginado.
      */
     public void listar(Context ctx) {
@@ -76,29 +76,29 @@ public class NotaController {
                 return;
             }
 
-            // Caso contrário, retornar todas as notas
-            List<NotaDTO> notas = notaService.listarTodas();
+            // Caso contrário, retornar todas as tarefas
+            List<TarefaDTO> tarefas = tarefaService.listarTodas();
 
             ctx.json(Map.of(
                 "success", true,
-                "dados", notas
+                "dados", tarefas
             ));
 
-            logger.debug("Listadas {} notas", notas.size());
+            logger.debug("Listadas {} tarefas", tarefas.size());
 
         } catch (Exception e) {
-            logger.error("Erro ao listar notas", e);
+            logger.error("Erro ao listar tarefas", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao listar notas: " + e.getMessage()
+                "message", "Erro ao listar tarefas: " + e.getMessage()
             ));
         }
     }
 
     /**
-     * GET /api/notas/paginado
-     * Lista notas com paginação.
+     * GET /api/tarefas/paginado
+     * Lista tarefas com paginação.
      * Query params: pagina (default 1), tamanho (default 10), ordenar (default prazo_final), direcao (default ASC)
      */
     public void listarPaginado(Context ctx) {
@@ -109,8 +109,8 @@ public class NotaController {
             String ordenarPor = ctx.queryParamAsClass("ordenar", String.class).getOrDefault("prazo_final");
             String direcao = ctx.queryParamAsClass("direcao", String.class).getOrDefault("ASC");
 
-            // Buscar notas paginadas
-            PaginatedResponse<NotaDTO> response = notaService.listarComPaginacao(
+            // Buscar tarefas paginadas
+            PaginatedResponse<TarefaDTO> response = tarefaService.listarComPaginacao(
                 pagina, tamanho, ordenarPor, direcao
             );
 
@@ -125,40 +125,40 @@ public class NotaController {
                 "dados", response.getDados()
             ));
 
-            logger.debug("Listadas {} notas (página {}/{})",
+            logger.debug("Listadas {} tarefas (página {}/{})",
                 response.getDados().size(), pagina, response.getTotalPaginas());
 
         } catch (Exception e) {
-            logger.error("Erro ao listar notas paginadas", e);
+            logger.error("Erro ao listar tarefas paginadas", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao listar notas: " + e.getMessage()
+                "message", "Erro ao listar tarefas: " + e.getMessage()
             ));
         }
     }
 
     /**
-     * GET /api/notas/{id}
-     * Busca uma nota por ID.
+     * GET /api/tarefas/{id}
+     * Busca uma tarefa por ID.
      */
     public void buscarPorId(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
-            Optional<NotaDTO> notaOpt = notaService.buscarPorId(id);
+            Optional<TarefaDTO> tarefaOpt = tarefaService.buscarPorId(id);
 
-            if (notaOpt.isEmpty()) {
+            if (tarefaOpt.isEmpty()) {
                 ctx.status(404);
                 ctx.json(Map.of(
                     "success", false,
-                    "message", "Nota não encontrada"
+                    "message", "Tarefa não encontrada"
                 ));
                 return;
             }
 
             ctx.json(Map.of(
                 "success", true,
-                "dados", notaOpt.get()
+                "dados", tarefaOpt.get()
             ));
 
         } catch (NumberFormatException e) {
@@ -168,30 +168,30 @@ public class NotaController {
                 "message", "ID inválido"
             ));
         } catch (Exception e) {
-            logger.error("Erro ao buscar nota", e);
+            logger.error("Erro ao buscar tarefa", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao buscar nota: " + e.getMessage()
+                "message", "Erro ao buscar tarefa: " + e.getMessage()
             ));
         }
     }
 
     /**
-     * GET /api/notas/etiqueta/{etiquetaId}
-     * Busca notas por etiqueta.
+     * GET /api/tarefas/etiqueta/{etiquetaId}
+     * Busca tarefas por etiqueta.
      */
     public void buscarPorEtiqueta(Context ctx) {
         try {
             Long etiquetaId = Long.parseLong(ctx.pathParam("etiquetaId"));
-            List<NotaDTO> notas = notaService.listarPorEtiqueta(etiquetaId);
+            List<TarefaDTO> tarefas = tarefaService.listarPorEtiqueta(etiquetaId);
 
             ctx.json(Map.of(
                 "success", true,
-                "dados", notas
+                "dados", tarefas
             ));
 
-            logger.debug("Encontradas {} notas da etiqueta {}", notas.size(), etiquetaId);
+            logger.debug("Encontradas {} tarefas da etiqueta {}", tarefas.size(), etiquetaId);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -200,18 +200,18 @@ public class NotaController {
                 "message", "ID da etiqueta inválido"
             ));
         } catch (Exception e) {
-            logger.error("Erro ao buscar notas por etiqueta", e);
+            logger.error("Erro ao buscar tarefas por etiqueta", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao buscar notas: " + e.getMessage()
+                "message", "Erro ao buscar tarefas: " + e.getMessage()
             ));
         }
     }
 
     /**
-     * GET /api/notas/buscar
-     * Busca notas por texto no título ou conteúdo.
+     * GET /api/tarefas/buscar
+     * Busca tarefas por texto no título ou conteúdo.
      * Query param: q (termo de busca)
      */
     public void buscarPorTexto(Context ctx) {
@@ -227,29 +227,29 @@ public class NotaController {
                 return;
             }
 
-            List<NotaDTO> notas = notaService.buscarPorTexto(termo);
+            List<TarefaDTO> tarefas = tarefaService.buscarPorTexto(termo);
 
             ctx.json(Map.of(
                 "success", true,
-                "dados", notas,
-                "total", notas.size()
+                "dados", tarefas,
+                "total", tarefas.size()
             ));
 
-            logger.debug("Busca por '{}': encontradas {} notas", termo, notas.size());
+            logger.debug("Busca por '{}': encontradas {} tarefas", termo, tarefas.size());
 
         } catch (Exception e) {
-            logger.error("Erro ao buscar notas por texto", e);
+            logger.error("Erro ao buscar tarefas por texto", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao buscar notas: " + e.getMessage()
+                "message", "Erro ao buscar tarefas: " + e.getMessage()
             ));
         }
     }
 
     /**
-     * GET /api/notas/intervalo
-     * Busca notas por intervalo de prazo final.
+     * GET /api/tarefas/intervalo
+     * Busca tarefas por intervalo de prazo final.
      * Query params: inicio (data início), fim (data fim)
      * Formatos aceitos: yyyy-MM-dd, dd/MM/yyyy, dd-MM-yyyy
      */
@@ -276,46 +276,46 @@ public class NotaController {
                 return;
             }
 
-            List<NotaDTO> notas = notaService.buscarPorIntervaloPrazo(dataInicio, dataFim);
+            List<TarefaDTO> tarefas = tarefaService.buscarPorIntervaloPrazo(dataInicio, dataFim);
 
             ctx.json(Map.of(
                 "success", true,
-                "dados", notas,
-                "total", notas.size(),
+                "dados", tarefas,
+                "total", tarefas.size(),
                 "intervalo", Map.of(
                     "inicio", dataInicio,
                     "fim", dataFim
                 )
             ));
 
-            logger.debug("Busca por intervalo {} - {}: encontradas {} notas",
-                dataInicio, dataFim, notas.size());
+            logger.debug("Busca por intervalo {} - {}: encontradas {} tarefas",
+                dataInicio, dataFim, tarefas.size());
 
         } catch (Exception e) {
-            logger.error("Erro ao buscar notas por intervalo de prazo", e);
+            logger.error("Erro ao buscar tarefas por intervalo de prazo", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao buscar notas: " + e.getMessage()
+                "message", "Erro ao buscar tarefas: " + e.getMessage()
             ));
         }
     }
 
     /**
-     * POST /api/notas
-     * Cria uma nova nota.
+     * POST /api/tarefas
+     * Cria uma nova tarefa.
      */
     public void criar(Context ctx) {
         try {
             // Obter dados do JSON
-            NotaRequest request = ctx.bodyAsClass(NotaRequest.class);
+            TarefaRequest request = ctx.bodyAsClass(TarefaRequest.class);
 
             // Obter sessão e usuário atual
             Long sessaoId = SessionUtil.getCurrentSessionId(ctx);
             Long usuarioId = SessionUtil.getCurrentUserId(ctx);
 
-            // Criar nota
-            NotaDTO nota = notaService.criar(
+            // Criar tarefa
+            TarefaDTO tarefa = tarefaService.criar(
                 request.etiquetaId,
                 request.statusId,
                 request.titulo,
@@ -328,14 +328,14 @@ public class NotaController {
             ctx.status(201);
             ctx.json(Map.of(
                 "success", true,
-                "message", "Nota criada com sucesso",
-                "dados", nota
+                "message", "Tarefa criada com sucesso",
+                "dados", tarefa
             ));
 
-            logger.info("Nota criada: {} por usuário {}", request.titulo, usuarioId);
+            logger.info("Tarefa criada: {} por usuário {}", request.titulo, usuarioId);
 
         } catch (Exception e) {
-            logger.error("Erro ao criar nota", e);
+            logger.error("Erro ao criar tarefa", e);
             ctx.status(400);
             ctx.json(Map.of(
                 "success", false,
@@ -345,18 +345,18 @@ public class NotaController {
     }
 
     /**
-     * PUT /api/notas/{id}
-     * Atualiza uma nota existente.
+     * PUT /api/tarefas/{id}
+     * Atualiza uma tarefa existente.
      */
     public void atualizar(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
 
             // Obter dados do JSON
-            NotaRequest request = ctx.bodyAsClass(NotaRequest.class);
+            TarefaRequest request = ctx.bodyAsClass(TarefaRequest.class);
 
-            // Atualizar nota
-            NotaDTO nota = notaService.atualizar(
+            // Atualizar tarefa
+            TarefaDTO tarefa = tarefaService.atualizar(
                 id,
                 request.etiquetaId,
                 request.statusId,
@@ -367,11 +367,11 @@ public class NotaController {
 
             ctx.json(Map.of(
                 "success", true,
-                "message", "Nota atualizada com sucesso",
-                "dados", nota
+                "message", "Tarefa atualizada com sucesso",
+                "dados", tarefa
             ));
 
-            logger.info("Nota ID {} atualizada", id);
+            logger.info("Tarefa ID {} atualizada", id);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -380,7 +380,7 @@ public class NotaController {
                 "message", "ID inválido"
             ));
         } catch (Exception e) {
-            logger.error("Erro ao atualizar nota", e);
+            logger.error("Erro ao atualizar tarefa", e);
             ctx.status(400);
             ctx.json(Map.of(
                 "success", false,
@@ -390,33 +390,33 @@ public class NotaController {
     }
 
     /**
-     * DELETE /api/notas/{id}
-     * Deleta uma nota.
+     * DELETE /api/tarefas/{id}
+     * Deleta uma tarefa.
      */
     public void deletar(Context ctx) {
         try {
             Long id = Long.parseLong(ctx.pathParam("id"));
 
-            // Verificar se nota existe
-            Optional<NotaDTO> notaOpt = notaService.buscarPorId(id);
-            if (notaOpt.isEmpty()) {
+            // Verificar se tarefa existe
+            Optional<TarefaDTO> tarefaOpt = tarefaService.buscarPorId(id);
+            if (tarefaOpt.isEmpty()) {
                 ctx.status(404);
                 ctx.json(Map.of(
                     "success", false,
-                    "message", "Nota não encontrada"
+                    "message", "Tarefa não encontrada"
                 ));
                 return;
             }
 
-            // Deletar nota
-            notaService.deletar(id);
+            // Deletar tarefa
+            tarefaService.deletar(id);
 
             ctx.json(Map.of(
                 "success", true,
-                "message", "Nota deletada com sucesso"
+                "message", "Tarefa deletada com sucesso"
             ));
 
-            logger.warn("Nota ID {} deletada", id);
+            logger.warn("Tarefa ID {} deletada", id);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -425,18 +425,18 @@ public class NotaController {
                 "message", "ID inválido"
             ));
         } catch (Exception e) {
-            logger.error("Erro ao deletar nota", e);
+            logger.error("Erro ao deletar tarefa", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
-                "message", "Erro ao deletar nota: " + e.getMessage()
+                "message", "Erro ao deletar tarefa: " + e.getMessage()
             ));
         }
     }
 
     /**
-     * GET /api/notas/{id}/pdf
-     * Gera PDF de uma nota específica.
+     * GET /api/tarefas/{id}/pdf
+     * Gera PDF de uma tarefa específica.
      */
     public void gerarPDF(Context ctx) {
         try {
@@ -445,15 +445,16 @@ public class NotaController {
             // Gerar PDF
             byte[] pdfBytes = pdfService.gerarPDFNota(id);
 
-            // Buscar nota para obter o título e usar no nome do arquivo
-            Optional<NotaDTO> notaOpt = notaService.buscarPorId(id);
-            String fileName = "nota_" + id;
-            if (notaOpt.isPresent()) {
-                String titulo = notaOpt.get().getTitulo();
+            // Buscar tarefa para obter o título e usar no nome do arquivo
+            Optional<TarefaDTO> tarefaOpt = tarefaService.buscarPorId(id);
+            String fileName = "tarefa_" + id;
+            if (tarefaOpt.isPresent()) {
+                String titulo = tarefaOpt.get().getTitulo();
                 // Remover caracteres inválidos do nome do arquivo
-                fileName = titulo.replaceAll("[^a-zA-Z0-9\\s-]", "")
-                                 .replaceAll("\\s+", "_")
-                                 .substring(0, Math.min(titulo.length(), 50));
+                String tituloProcessado = titulo.replaceAll("[^a-zA-Z0-9\\s-]", "")
+                                                .replaceAll("\\s+", "_");
+                // Limitar tamanho baseado na string processada
+                fileName = tituloProcessado.substring(0, Math.min(tituloProcessado.length(), 50));
             }
 
             // Adicionar timestamp ao nome do arquivo (formato brasileiro: DDMMYYYY_HHmmss)
@@ -465,7 +466,7 @@ public class NotaController {
             ctx.header("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
             ctx.result(pdfBytes);
 
-            logger.info("PDF gerado para nota ID {}", id);
+            logger.info("PDF gerado para tarefa ID {}", id);
 
         } catch (NumberFormatException e) {
             ctx.status(400);
@@ -474,7 +475,7 @@ public class NotaController {
                 "message", "ID inválido"
             ));
         } catch (Exception e) {
-            logger.error("Erro ao gerar PDF da nota", e);
+            logger.error("Erro ao gerar PDF da tarefa", e);
             ctx.status(500);
             ctx.json(Map.of(
                 "success", false,
@@ -484,8 +485,8 @@ public class NotaController {
     }
 
     /**
-     * POST /api/notas/pdf/relatorio
-     * Gera PDF com relatório de múltiplas notas.
+     * POST /api/tarefas/pdf/relatorio
+     * Gera PDF com relatório de múltiplas tarefas.
      * Espera um JSON com array de IDs: {"ids": [1, 2, 3]}
      */
     public void gerarPDFRelatorio(Context ctx) {
@@ -504,40 +505,40 @@ public class NotaController {
                 return;
             }
 
-            // Converter IDs para Long e buscar notas
-            List<Long> notaIds = ids.stream()
+            // Converter IDs para Long e buscar tarefas
+            List<Long> tarefaIds = ids.stream()
                 .map(Integer::longValue)
                 .collect(Collectors.toList());
 
-            // Buscar as notas completas
-            List<NotaDTO> notasDTO = notaService.listarTodas();
-            List<Nota> notas = notasDTO.stream()
-                .filter(n -> notaIds.contains(n.getId()))
-                .map(this::convertDTOToNota)
+            // Buscar as tarefas completas
+            List<TarefaDTO> tarefasDTO = tarefaService.listarTodas();
+            List<Tarefa> tarefas = tarefasDTO.stream()
+                .filter(n -> tarefaIds.contains(n.getId()))
+                .map(this::convertDTOToTarefa)
                 .collect(Collectors.toList());
 
-            if (notas.isEmpty()) {
+            if (tarefas.isEmpty()) {
                 ctx.status(404);
                 ctx.json(Map.of(
                     "success", false,
-                    "message", "Nenhuma nota encontrada"
+                    "message", "Nenhuma tarefa encontrada"
                 ));
                 return;
             }
 
             // Gerar PDF
-            byte[] pdfBytes = pdfService.gerarPDFRelatorio(notas);
+            byte[] pdfBytes = pdfService.gerarPDFRelatorio(tarefas);
 
             // Nome do arquivo com timestamp (formato brasileiro: DDMMYYYY_HHmmss)
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("ddMMyyyy_HHmmss"));
-            String fileName = "relatorio_notas_" + timestamp + ".pdf";
+            String fileName = "relatorio_tarefas_" + timestamp + ".pdf";
 
             // Enviar PDF
             ctx.contentType("application/pdf");
             ctx.header("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
             ctx.result(pdfBytes);
 
-            logger.info("PDF de relatório gerado com {} notas", notas.size());
+            logger.info("PDF de relatório gerado com {} tarefas", tarefas.size());
 
         } catch (Exception e) {
             logger.error("Erro ao gerar PDF de relatório", e);
@@ -550,20 +551,20 @@ public class NotaController {
     }
 
     /**
-     * Converte NotaDTO para Nota (helper method).
+     * Converte TarefaDTO para Tarefa (helper method).
      */
-    private Nota convertDTOToNota(NotaDTO dto) {
-        Nota nota = new Nota();
-        nota.setId(dto.getId());
-        nota.setEtiquetaId(dto.getEtiqueta() != null ? dto.getEtiqueta().getId() : null);
-        nota.setStatusId(dto.getStatus() != null ? dto.getStatus().getId() : null);
-        nota.setTitulo(dto.getTitulo());
-        nota.setConteudo(dto.getConteudo());
-        nota.setPrazoFinal(dto.getPrazoFinal());
-        nota.setDataCriacao(dto.getDataCriacao());
-        nota.setDataAtualizacao(dto.getDataAtualizacao());
-        nota.setSessaoId(dto.getSessaoId());
-        nota.setUsuarioId(dto.getUsuarioId());
-        return nota;
+    private Tarefa convertDTOToTarefa(TarefaDTO dto) {
+        Tarefa tarefa = new Tarefa();
+        tarefa.setId(dto.getId());
+        tarefa.setEtiquetaId(dto.getEtiqueta() != null ? dto.getEtiqueta().getId() : null);
+        tarefa.setStatusId(dto.getStatus() != null ? dto.getStatus().getId() : null);
+        tarefa.setTitulo(dto.getTitulo());
+        tarefa.setConteudo(dto.getConteudo());
+        tarefa.setPrazoFinal(dto.getPrazoFinal());
+        tarefa.setDataCriacao(dto.getDataCriacao());
+        tarefa.setDataAtualizacao(dto.getDataAtualizacao());
+        tarefa.setSessaoId(dto.getSessaoId());
+        tarefa.setUsuarioId(dto.getUsuarioId());
+        return tarefa;
     }
 }

@@ -196,8 +196,8 @@ class ToastNotificationManager {
                 whiteSpace: "pre-line"
             },
             onClick: function() {
-                // Redirecionar para a nota
-                window.location.href = `/notas?id=${alerta.notaId}`;
+                // Redirecionar para a tarefa
+                window.location.href = `/tarefas?id=${alerta.tarefaId}`;
             }
         }).showToast();
 

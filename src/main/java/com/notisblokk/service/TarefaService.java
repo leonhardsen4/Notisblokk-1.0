@@ -1,13 +1,13 @@
 package com.notisblokk.service;
 
 import com.notisblokk.model.Etiqueta;
-import com.notisblokk.model.Nota;
-import com.notisblokk.model.NotaDTO;
+import com.notisblokk.model.Tarefa;
+import com.notisblokk.model.TarefaDTO;
 import com.notisblokk.model.PaginatedResponse;
-import com.notisblokk.model.StatusNota;
+import com.notisblokk.model.StatusTarefa;
 import com.notisblokk.repository.EtiquetaRepository;
-import com.notisblokk.repository.NotaRepository;
-import com.notisblokk.repository.StatusNotaRepository;
+import com.notisblokk.repository.TarefaRepository;
+import com.notisblokk.repository.StatusTarefaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,82 +20,82 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Serviço responsável pela lógica de negócio relacionada a notas.
+ * Serviço responsável pela lógica de negócio relacionada a tarefas.
  *
  * <p>Coordena operações entre controllers e repositories, implementando
- * regras de negócio para gerenciamento de notas.</p>
+ * regras de negócio para gerenciamento de tarefas.</p>
  *
  * <p>Responsável por criar DTOs completos que combinam dados de
- * Nota, Etiqueta e StatusNota.</p>
+ * Tarefa, Etiqueta e StatusTarefa.</p>
  *
  * @author Notisblokk Team
  * @version 1.0
  * @since 2025-01-26
  */
-public class NotaService {
+public class TarefaService {
 
-    private static final Logger logger = LoggerFactory.getLogger(NotaService.class);
+    private static final Logger logger = LoggerFactory.getLogger(TarefaService.class);
     private static final DateTimeFormatter DATE_FORMATTER_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATE_FORMATTER_BR_HIFEN = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-    private final NotaRepository notaRepository;
+    private final TarefaRepository tarefaRepository;
     private final EtiquetaRepository etiquetaRepository;
-    private final StatusNotaRepository statusNotaRepository;
+    private final StatusTarefaRepository statusTarefaRepository;
 
     /**
      * Construtor padrão.
      */
-    public NotaService() {
-        this.notaRepository = new NotaRepository();
+    public TarefaService() {
+        this.tarefaRepository = new TarefaRepository();
         this.etiquetaRepository = new EtiquetaRepository();
-        this.statusNotaRepository = new StatusNotaRepository();
+        this.statusTarefaRepository = new StatusTarefaRepository();
     }
 
     /**
      * Construtor com injeção de dependência (para testes).
      *
-     * @param notaRepository repositório de notas
+     * @param tarefaRepository repositório de tarefas
      * @param etiquetaRepository repositório de etiquetas
-     * @param statusNotaRepository repositório de status
+     * @param statusTarefaRepository repositório de status
      */
-    public NotaService(NotaRepository notaRepository, EtiquetaRepository etiquetaRepository,
-                      StatusNotaRepository statusNotaRepository) {
-        this.notaRepository = notaRepository;
+    public TarefaService(TarefaRepository tarefaRepository, EtiquetaRepository etiquetaRepository,
+                      StatusTarefaRepository statusTarefaRepository) {
+        this.tarefaRepository = tarefaRepository;
         this.etiquetaRepository = etiquetaRepository;
-        this.statusNotaRepository = statusNotaRepository;
+        this.statusTarefaRepository = statusTarefaRepository;
     }
 
     /**
-     * Lista todas as notas do sistema como DTOs completos.
+     * Lista todas as tarefas do sistema como DTOs completos.
      *
      * <p><b>OTIMIZADO:</b> Utiliza query com JOIN para evitar N+1 queries.
-     * Busca notas, etiquetas e status em uma única consulta ao banco.</p>
+     * Busca tarefas, etiquetas e status em uma única consulta ao banco.</p>
      *
-     * @return List<NotaDTO> lista de notas com etiquetas e status embutidos
+     * @return List<TarefaDTO> lista de tarefas com etiquetas e status embutidos
      * @throws Exception se houver erro ao listar
      */
-    public List<NotaDTO> listarTodas() throws Exception {
+    public List<TarefaDTO> listarTodas() throws Exception {
         try {
             // Usa método otimizado que faz JOIN e retorna DTOs diretamente
-            return notaRepository.buscarTodasComRelacionamentos();
+            return tarefaRepository.buscarTodasComRelacionamentos();
 
         } catch (SQLException e) {
-            logger.error("Erro ao listar notas", e);
-            throw new Exception("Erro ao listar notas: " + e.getMessage(), e);
+            logger.error("Erro ao listar tarefas", e);
+            throw new Exception("Erro ao listar tarefas: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Lista notas com paginação.
+     * Lista tarefas com paginação.
      *
      * @param pagina número da página (começa em 1)
      * @param tamanhoPagina quantidade de registros por página
      * @param ordenarPor campo para ordenação (prazo_final, data_criacao, titulo)
      * @param direcao direção da ordenação (ASC ou DESC)
-     * @return PaginatedResponse<NotaDTO> resposta paginada com DTOs completos
+     * @return PaginatedResponse<TarefaDTO> resposta paginada com DTOs completos
      * @throws Exception se houver erro ao listar
      */
-    public PaginatedResponse<NotaDTO> listarComPaginacao(int pagina, int tamanhoPagina,
+    public PaginatedResponse<TarefaDTO> listarComPaginacao(int pagina, int tamanhoPagina,
                                                           String ordenarPor, String direcao)
             throws Exception {
         try {
@@ -105,76 +105,76 @@ public class NotaService {
             if (tamanhoPagina > 100) tamanhoPagina = 100; // Limite máximo
 
             // Buscar total de registros
-            long totalRegistros = notaRepository.contarTotal();
+            long totalRegistros = tarefaRepository.contarTotal();
 
-            // Buscar notas paginadas
-            List<Nota> notas = notaRepository.buscarComPaginacao(pagina, tamanhoPagina, ordenarPor, direcao);
-            List<NotaDTO> dtos = converterParaDTOs(notas);
+            // Buscar tarefas paginadas
+            List<Tarefa> tarefas = tarefaRepository.buscarComPaginacao(pagina, tamanhoPagina, ordenarPor, direcao);
+            List<TarefaDTO> dtos = converterParaDTOs(tarefas);
 
             // Criar resposta paginada
             return new PaginatedResponse<>(dtos, pagina, tamanhoPagina, totalRegistros);
 
         } catch (SQLException e) {
-            logger.error("Erro ao listar notas paginadas", e);
-            throw new Exception("Erro ao listar notas: " + e.getMessage(), e);
+            logger.error("Erro ao listar tarefas paginadas", e);
+            throw new Exception("Erro ao listar tarefas: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Lista notas por etiqueta como DTOs completos.
+     * Lista tarefas por etiqueta como DTOs completos.
      *
      * @param etiquetaId ID da etiqueta
-     * @return List<NotaDTO> lista de notas da etiqueta
+     * @return List<TarefaDTO> lista de tarefas da etiqueta
      * @throws Exception se houver erro ao listar
      */
-    public List<NotaDTO> listarPorEtiqueta(Long etiquetaId) throws Exception {
+    public List<TarefaDTO> listarPorEtiqueta(Long etiquetaId) throws Exception {
         try {
-            List<Nota> notas = notaRepository.buscarPorEtiqueta(etiquetaId);
-            return converterParaDTOs(notas);
+            List<Tarefa> tarefas = tarefaRepository.buscarPorEtiqueta(etiquetaId);
+            return converterParaDTOs(tarefas);
 
         } catch (SQLException e) {
-            logger.error("Erro ao listar notas por etiqueta {}", etiquetaId, e);
-            throw new Exception("Erro ao listar notas: " + e.getMessage(), e);
+            logger.error("Erro ao listar tarefas por etiqueta {}", etiquetaId, e);
+            throw new Exception("Erro ao listar tarefas: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Busca notas por texto no título ou conteúdo.
+     * Busca tarefas por texto no título ou conteúdo.
      *
      * <p>Busca case-insensitive que procura o termo fornecido tanto no título
-     * quanto no conteúdo das notas. Retorna DTOs completos com etiquetas e status.</p>
+     * quanto no conteúdo das tarefas. Retorna DTOs completos com etiquetas e status.</p>
      *
      * @param termo termo de busca (pode conter espaços)
-     * @return List<NotaDTO> lista de notas que contêm o termo
+     * @return List<TarefaDTO> lista de tarefas que contêm o termo
      * @throws Exception se houver erro ao buscar
      */
-    public List<NotaDTO> buscarPorTexto(String termo) throws Exception {
+    public List<TarefaDTO> buscarPorTexto(String termo) throws Exception {
         try {
             if (termo == null || termo.trim().isEmpty()) {
                 logger.debug("Termo de busca vazio, retornando lista vazia");
                 return new ArrayList<>();
             }
 
-            return notaRepository.buscarPorTexto(termo.trim());
+            return tarefaRepository.buscarPorTexto(termo.trim());
 
         } catch (SQLException e) {
-            logger.error("Erro ao buscar notas por texto '{}'", termo, e);
-            throw new Exception("Erro ao buscar notas: " + e.getMessage(), e);
+            logger.error("Erro ao buscar tarefas por texto '{}'", termo, e);
+            throw new Exception("Erro ao buscar tarefas: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Busca notas por intervalo de prazo final.
+     * Busca tarefas por intervalo de prazo final.
      *
-     * <p>Retorna notas cujo prazo final está entre as datas especificadas.
+     * <p>Retorna tarefas cujo prazo final está entre as datas especificadas.
      * Ambas as datas são inclusivas.</p>
      *
      * @param dataInicio data inicial do intervalo (formato: yyyy-MM-dd, dd/MM/yyyy ou dd-MM-yyyy)
      * @param dataFim data final do intervalo (formato: yyyy-MM-dd, dd/MM/yyyy ou dd-MM-yyyy)
-     * @return List<NotaDTO> lista de notas no intervalo especificado
+     * @return List<TarefaDTO> lista de tarefas no intervalo especificado
      * @throws Exception se houver erro ao buscar ou formato de data inválido
      */
-    public List<NotaDTO> buscarPorIntervaloPrazo(String dataInicio, String dataFim) throws Exception {
+    public List<TarefaDTO> buscarPorIntervaloPrazo(String dataInicio, String dataFim) throws Exception {
         try {
             if (dataInicio == null || dataInicio.trim().isEmpty()) {
                 throw new Exception("Data de início é obrigatória");
@@ -193,62 +193,62 @@ public class NotaService {
                 throw new Exception("Data de início não pode ser posterior à data de fim");
             }
 
-            return notaRepository.buscarPorIntervaloPrazo(inicio, fim);
+            return tarefaRepository.buscarPorIntervaloPrazo(inicio, fim);
 
         } catch (SQLException e) {
-            logger.error("Erro ao buscar notas por intervalo de prazo: {} - {}", dataInicio, dataFim, e);
-            throw new Exception("Erro ao buscar notas: " + e.getMessage(), e);
+            logger.error("Erro ao buscar tarefas por intervalo de prazo: {} - {}", dataInicio, dataFim, e);
+            throw new Exception("Erro ao buscar tarefas: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Busca uma nota por ID e retorna como DTO completo.
+     * Busca uma tarefa por ID e retorna como DTO completo.
      *
-     * @param id ID da nota
-     * @return Optional<NotaDTO> nota encontrada ou Optional.empty()
+     * @param id ID da tarefa
+     * @return Optional<TarefaDTO> tarefa encontrada ou Optional.empty()
      * @throws Exception se houver erro ao buscar
      */
-    public Optional<NotaDTO> buscarPorId(Long id) throws Exception {
+    public Optional<TarefaDTO> buscarPorId(Long id) throws Exception {
         try {
-            Optional<Nota> notaOpt = notaRepository.buscarPorId(id);
-            if (notaOpt.isEmpty()) {
+            Optional<Tarefa> tarefaOpt = tarefaRepository.buscarPorId(id);
+            if (tarefaOpt.isEmpty()) {
                 return Optional.empty();
             }
 
-            Nota nota = notaOpt.get();
-            Etiqueta etiqueta = etiquetaRepository.buscarPorId(nota.getEtiquetaId())
+            Tarefa tarefa = tarefaOpt.get();
+            Etiqueta etiqueta = etiquetaRepository.buscarPorId(tarefa.getEtiquetaId())
                 .orElseThrow(() -> new Exception("Etiqueta não encontrada"));
-            StatusNota status = statusNotaRepository.buscarPorId(nota.getStatusId())
+            StatusTarefa status = statusTarefaRepository.buscarPorId(tarefa.getStatusId())
                 .orElseThrow(() -> new Exception("Status não encontrado"));
 
-            return Optional.of(NotaDTO.from(nota, etiqueta, status));
+            return Optional.of(TarefaDTO.from(tarefa, etiqueta, status));
 
         } catch (SQLException e) {
-            logger.error("Erro ao buscar nota ID {}", id, e);
-            throw new Exception("Erro ao buscar nota: " + e.getMessage(), e);
+            logger.error("Erro ao buscar tarefa ID {}", id, e);
+            throw new Exception("Erro ao buscar tarefa: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Cria uma nova nota.
+     * Cria uma nova tarefa.
      *
      * @param etiquetaId ID da etiqueta
      * @param statusId ID do status
-     * @param titulo título da nota
-     * @param conteudo conteúdo da nota
+     * @param titulo título da tarefa
+     * @param conteudo conteúdo da tarefa
      * @param prazoFinalISO prazo final em formato ISO (yyyy-MM-dd)
      * @param sessaoId ID da sessão atual
      * @param usuarioId ID do usuário atual
-     * @return NotaDTO nota criada
+     * @return TarefaDTO tarefa criada
      * @throws Exception se houver erro de validação ou ao criar
      */
-    public NotaDTO criar(Long etiquetaId, Long statusId, String titulo, String conteudo,
+    public TarefaDTO criar(Long etiquetaId, Long statusId, String titulo, String conteudo,
                         String prazoFinalISO, Long sessaoId, Long usuarioId) throws Exception {
 
-        logger.info("Criando nova nota: {}", titulo);
+        logger.info("Criando nova tarefa: {}", titulo);
 
         // Validações
-        validarDadosNota(etiquetaId, statusId, titulo, prazoFinalISO);
+        validarDadosTarefa(etiquetaId, statusId, titulo, prazoFinalISO);
 
         try {
             // Verificar se etiqueta existe
@@ -256,114 +256,114 @@ public class NotaService {
                 .orElseThrow(() -> new Exception("Etiqueta não encontrada"));
 
             // Verificar se status existe
-            StatusNota status = statusNotaRepository.buscarPorId(statusId)
+            StatusTarefa status = statusTarefaRepository.buscarPorId(statusId)
                 .orElseThrow(() -> new Exception("Status não encontrado"));
 
             // Parse prazo final (aceita múltiplos formatos)
             LocalDate prazoFinal = parsePrazoFinal(prazoFinalISO);
 
-            // Criar nota
-            Nota nota = new Nota();
-            nota.setEtiquetaId(etiquetaId);
-            nota.setStatusId(statusId);
-            nota.setTitulo(titulo.trim());
-            nota.setConteudo(conteudo != null ? conteudo.trim() : "");
-            nota.setPrazoFinal(prazoFinal);
+            // Criar tarefa
+            Tarefa tarefa = new Tarefa();
+            tarefa.setEtiquetaId(etiquetaId);
+            tarefa.setStatusId(statusId);
+            tarefa.setTitulo(titulo.trim());
+            tarefa.setConteudo(conteudo != null ? conteudo.trim() : "");
+            tarefa.setPrazoFinal(prazoFinal);
 
-            nota = notaRepository.salvar(nota, sessaoId, usuarioId);
+            tarefa = tarefaRepository.salvar(tarefa, sessaoId, usuarioId);
 
-            logger.info("Nota criada com sucesso: {} (ID: {})", nota.getTitulo(), nota.getId());
-            return NotaDTO.from(nota, etiqueta, status);
+            logger.info("Tarefa criada com sucesso: {} (ID: {})", tarefa.getTitulo(), tarefa.getId());
+            return TarefaDTO.from(tarefa, etiqueta, status);
 
         } catch (SQLException e) {
-            logger.error("Erro ao criar nota: {}", titulo, e);
-            throw new Exception("Erro ao criar nota: " + e.getMessage(), e);
+            logger.error("Erro ao criar tarefa: {}", titulo, e);
+            throw new Exception("Erro ao criar tarefa: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Atualiza uma nota existente.
+     * Atualiza uma tarefa existente.
      *
-     * @param id ID da nota
+     * @param id ID da tarefa
      * @param etiquetaId ID da etiqueta
      * @param statusId ID do status
-     * @param titulo título da nota
-     * @param conteudo conteúdo da nota
+     * @param titulo título da tarefa
+     * @param conteudo conteúdo da tarefa
      * @param prazoFinalISO prazo final em formato ISO (yyyy-MM-dd)
-     * @return NotaDTO nota atualizada
+     * @return TarefaDTO tarefa atualizada
      * @throws Exception se houver erro de validação ou ao atualizar
      */
-    public NotaDTO atualizar(Long id, Long etiquetaId, Long statusId, String titulo,
+    public TarefaDTO atualizar(Long id, Long etiquetaId, Long statusId, String titulo,
                             String conteudo, String prazoFinalISO) throws Exception {
 
-        logger.info("Atualizando nota ID {}", id);
+        logger.info("Atualizando tarefa ID {}", id);
 
         // Validações
-        validarDadosNota(etiquetaId, statusId, titulo, prazoFinalISO);
+        validarDadosTarefa(etiquetaId, statusId, titulo, prazoFinalISO);
 
         try {
-            // Buscar nota existente
-            Nota nota = notaRepository.buscarPorId(id)
-                .orElseThrow(() -> new Exception("Nota não encontrada"));
+            // Buscar tarefa existente
+            Tarefa tarefa = tarefaRepository.buscarPorId(id)
+                .orElseThrow(() -> new Exception("Tarefa não encontrada"));
 
             // Verificar se etiqueta existe
             Etiqueta etiqueta = etiquetaRepository.buscarPorId(etiquetaId)
                 .orElseThrow(() -> new Exception("Etiqueta não encontrada"));
 
             // Verificar se status existe
-            StatusNota status = statusNotaRepository.buscarPorId(statusId)
+            StatusTarefa status = statusTarefaRepository.buscarPorId(statusId)
                 .orElseThrow(() -> new Exception("Status não encontrado"));
 
             // Parse prazo final (aceita múltiplos formatos)
             LocalDate prazoFinal = parsePrazoFinal(prazoFinalISO);
 
             // Atualizar dados
-            nota.setEtiquetaId(etiquetaId);
-            nota.setStatusId(statusId);
-            nota.setTitulo(titulo.trim());
-            nota.setConteudo(conteudo != null ? conteudo.trim() : "");
-            nota.setPrazoFinal(prazoFinal);
+            tarefa.setEtiquetaId(etiquetaId);
+            tarefa.setStatusId(statusId);
+            tarefa.setTitulo(titulo.trim());
+            tarefa.setConteudo(conteudo != null ? conteudo.trim() : "");
+            tarefa.setPrazoFinal(prazoFinal);
 
-            notaRepository.atualizar(nota);
+            tarefaRepository.atualizar(tarefa);
 
-            logger.info("Nota atualizada com sucesso: {} (ID: {})", nota.getTitulo(), nota.getId());
-            return NotaDTO.from(nota, etiqueta, status);
+            logger.info("Tarefa atualizada com sucesso: {} (ID: {})", tarefa.getTitulo(), tarefa.getId());
+            return TarefaDTO.from(tarefa, etiqueta, status);
 
         } catch (SQLException e) {
-            logger.error("Erro ao atualizar nota ID {}", id, e);
-            throw new Exception("Erro ao atualizar nota: " + e.getMessage(), e);
+            logger.error("Erro ao atualizar tarefa ID {}", id, e);
+            throw new Exception("Erro ao atualizar tarefa: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Deleta uma nota.
+     * Deleta uma tarefa.
      *
-     * @param id ID da nota a ser deletada
+     * @param id ID da tarefa a ser deletada
      * @throws Exception se houver erro ao deletar
      */
     public void deletar(Long id) throws Exception {
-        logger.warn("Deletando nota ID {}", id);
+        logger.warn("Deletando tarefa ID {}", id);
 
         try {
-            notaRepository.deletar(id);
-            logger.info("Nota ID {} deletada com sucesso", id);
+            tarefaRepository.deletar(id);
+            logger.info("Tarefa ID {} deletada com sucesso", id);
 
         } catch (SQLException e) {
-            logger.error("Erro ao deletar nota ID {}", id, e);
-            throw new Exception("Erro ao deletar nota: " + e.getMessage(), e);
+            logger.error("Erro ao deletar tarefa ID {}", id, e);
+            throw new Exception("Erro ao deletar tarefa: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Valida dados de uma nota.
+     * Valida dados de uma tarefa.
      *
      * @param etiquetaId ID da etiqueta
      * @param statusId ID do status
-     * @param titulo título da nota
+     * @param titulo título da tarefa
      * @param prazoFinalISO prazo final
      * @throws Exception se alguma validação falhar
      */
-    private void validarDadosNota(Long etiquetaId, Long statusId, String titulo, String prazoFinalISO)
+    private void validarDadosTarefa(Long etiquetaId, Long statusId, String titulo, String prazoFinalISO)
             throws Exception {
 
         if (etiquetaId == null || etiquetaId <= 0) {
@@ -431,25 +431,25 @@ public class NotaService {
     }
 
     /**
-     * Converte uma lista de Notas em NotaDTOs.
+     * Converte uma lista de Tarefas em TarefaDTOs.
      *
-     * @param notas lista de notas
-     * @return List<NotaDTO> lista de DTOs
+     * @param tarefas lista de tarefas
+     * @return List<TarefaDTO> lista de DTOs
      * @throws SQLException se houver erro ao buscar etiquetas/status
      */
-    private List<NotaDTO> converterParaDTOs(List<Nota> notas) throws SQLException {
-        List<NotaDTO> dtos = new ArrayList<>();
+    private List<TarefaDTO> converterParaDTOs(List<Tarefa> tarefas) throws SQLException {
+        List<TarefaDTO> dtos = new ArrayList<>();
 
-        for (Nota nota : notas) {
-            Etiqueta etiqueta = etiquetaRepository.buscarPorId(nota.getEtiquetaId())
+        for (Tarefa tarefa : tarefas) {
+            Etiqueta etiqueta = etiquetaRepository.buscarPorId(tarefa.getEtiquetaId())
                 .orElse(null);
-            StatusNota status = statusNotaRepository.buscarPorId(nota.getStatusId())
+            StatusTarefa status = statusTarefaRepository.buscarPorId(tarefa.getStatusId())
                 .orElse(null);
 
             if (etiqueta != null && status != null) {
-                dtos.add(NotaDTO.from(nota, etiqueta, status));
+                dtos.add(TarefaDTO.from(tarefa, etiqueta, status));
             } else {
-                logger.warn("Nota ID {} tem etiqueta ou status inválido", nota.getId());
+                logger.warn("Tarefa ID {} tem etiqueta ou status inválido", tarefa.getId());
             }
         }
 

@@ -1,7 +1,7 @@
 package com.notisblokk.service;
 
-import com.notisblokk.model.StatusNota;
-import com.notisblokk.repository.StatusNotaRepository;
+import com.notisblokk.model.StatusTarefa;
+import com.notisblokk.repository.StatusTarefaRepository;
 import com.notisblokk.util.SimpleCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,10 +12,10 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * Serviço responsável pela lógica de negócio relacionada a status de notas.
+ * Serviço responsável pela lógica de negócio relacionada a status de tarefas.
  *
  * <p>Coordena operações entre controllers e repositories, implementando
- * regras de negócio e cache para gerenciamento de status de notas.</p>
+ * regras de negócio e cache para gerenciamento de status de tarefas.</p>
  *
  * <p><b>CACHE:</b> Implementa cache em memória com TTL de 5 minutos para
  * otimizar consultas frequentes de status.</p>
@@ -24,22 +24,22 @@ import java.util.regex.Pattern;
  * @version 1.0
  * @since 2025-12-05
  */
-public class StatusNotaService {
+public class StatusTarefaService {
 
-    private static final Logger logger = LoggerFactory.getLogger(StatusNotaService.class);
+    private static final Logger logger = LoggerFactory.getLogger(StatusTarefaService.class);
     private static final int CACHE_TTL_MINUTOS = 5;
     private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("^#([0-9a-fA-F]{6})$");
 
-    private final StatusNotaRepository statusRepository;
-    private final SimpleCache<String, List<StatusNota>> cacheListaCompleta;
-    private final SimpleCache<Long, StatusNota> cachePorId;
-    private final SimpleCache<String, StatusNota> cachePorNome;
+    private final StatusTarefaRepository statusRepository;
+    private final SimpleCache<String, List<StatusTarefa>> cacheListaCompleta;
+    private final SimpleCache<Long, StatusTarefa> cachePorId;
+    private final SimpleCache<String, StatusTarefa> cachePorNome;
 
     /**
      * Construtor padrão com inicialização de cache.
      */
-    public StatusNotaService() {
-        this.statusRepository = new StatusNotaRepository();
+    public StatusTarefaService() {
+        this.statusRepository = new StatusTarefaRepository();
         this.cacheListaCompleta = new SimpleCache<>("StatusLista", CACHE_TTL_MINUTOS);
         this.cachePorId = new SimpleCache<>("StatusPorId", CACHE_TTL_MINUTOS);
         this.cachePorNome = new SimpleCache<>("StatusPorNome", CACHE_TTL_MINUTOS);
@@ -50,7 +50,7 @@ public class StatusNotaService {
      *
      * @param statusRepository repositório de status
      */
-    public StatusNotaService(StatusNotaRepository statusRepository) {
+    public StatusTarefaService(StatusTarefaRepository statusRepository) {
         this.statusRepository = statusRepository;
         this.cacheListaCompleta = new SimpleCache<>("StatusLista", CACHE_TTL_MINUTOS);
         this.cachePorId = new SimpleCache<>("StatusPorId", CACHE_TTL_MINUTOS);
@@ -60,12 +60,12 @@ public class StatusNotaService {
     /**
      * Lista todos os status (com cache).
      *
-     * @return List<StatusNota> lista de todos os status
+     * @return List<StatusTarefa> lista de todos os status
      * @throws Exception se houver erro ao listar
      */
-    public List<StatusNota> listarTodos() throws Exception {
+    public List<StatusTarefa> listarTodos() throws Exception {
         // Tentar buscar do cache primeiro
-        List<StatusNota> cached = cacheListaCompleta.get("all");
+        List<StatusTarefa> cached = cacheListaCompleta.get("all");
         if (cached != null) {
             logger.debug("Retornando {} status do cache", cached.size());
             return cached;
@@ -73,13 +73,13 @@ public class StatusNotaService {
 
         // Cache miss - buscar do banco
         try {
-            List<StatusNota> statusList = statusRepository.buscarTodos();
+            List<StatusTarefa> statusList = statusRepository.buscarTodos();
 
             // Armazenar no cache
             cacheListaCompleta.put("all", statusList);
 
             // Também popular cache individual
-            for (StatusNota status : statusList) {
+            for (StatusTarefa status : statusList) {
                 cachePorId.put(status.getId(), status);
                 cachePorNome.put(status.getNome().toLowerCase(), status);
             }
@@ -97,12 +97,12 @@ public class StatusNotaService {
      * Busca um status por ID (com cache).
      *
      * @param id ID do status
-     * @return Optional<StatusNota> status encontrado ou Optional.empty()
+     * @return Optional<StatusTarefa> status encontrado ou Optional.empty()
      * @throws Exception se houver erro ao buscar
      */
-    public Optional<StatusNota> buscarPorId(Long id) throws Exception {
+    public Optional<StatusTarefa> buscarPorId(Long id) throws Exception {
         // Tentar buscar do cache primeiro
-        StatusNota cached = cachePorId.get(id);
+        StatusTarefa cached = cachePorId.get(id);
         if (cached != null) {
             logger.debug("Status ID {} encontrado no cache", id);
             return Optional.of(cached);
@@ -110,7 +110,7 @@ public class StatusNotaService {
 
         // Cache miss - buscar do banco
         try {
-            Optional<StatusNota> statusOpt = statusRepository.buscarPorId(id);
+            Optional<StatusTarefa> statusOpt = statusRepository.buscarPorId(id);
 
             // Se encontrou, armazenar no cache
             statusOpt.ifPresent(status -> {
@@ -131,14 +131,14 @@ public class StatusNotaService {
      * Busca um status por nome (com cache).
      *
      * @param nome nome do status
-     * @return Optional<StatusNota> status encontrado ou Optional.empty()
+     * @return Optional<StatusTarefa> status encontrado ou Optional.empty()
      * @throws Exception se houver erro ao buscar
      */
-    public Optional<StatusNota> buscarPorNome(String nome) throws Exception {
+    public Optional<StatusTarefa> buscarPorNome(String nome) throws Exception {
         String nomeKey = nome.toLowerCase();
 
         // Tentar buscar do cache primeiro
-        StatusNota cached = cachePorNome.get(nomeKey);
+        StatusTarefa cached = cachePorNome.get(nomeKey);
         if (cached != null) {
             logger.debug("Status '{}' encontrado no cache", nome);
             return Optional.of(cached);
@@ -146,7 +146,7 @@ public class StatusNotaService {
 
         // Cache miss - buscar do banco
         try {
-            Optional<StatusNota> statusOpt = statusRepository.buscarPorNome(nome);
+            Optional<StatusTarefa> statusOpt = statusRepository.buscarPorNome(nome);
 
             // Se encontrou, armazenar no cache
             statusOpt.ifPresent(status -> {
@@ -164,18 +164,18 @@ public class StatusNotaService {
     }
 
     /**
-     * Conta notas por status.
+     * Conta tarefas por status.
      *
      * @param statusId ID do status
-     * @return long quantidade de notas
+     * @return long quantidade de tarefas
      * @throws Exception se houver erro ao contar
      */
-    public long contarNotasPorStatus(Long statusId) throws Exception {
+    public long contarTarefasPorStatus(Long statusId) throws Exception {
         try {
-            return statusRepository.contarNotasPorStatus(statusId);
+            return statusRepository.contarTarefasPorStatus(statusId);
         } catch (SQLException e) {
-            logger.error("Erro ao contar notas do status ID {}", statusId, e);
-            throw new Exception("Erro ao contar notas: " + e.getMessage(), e);
+            logger.error("Erro ao contar tarefas do status ID {}", statusId, e);
+            throw new Exception("Erro ao contar tarefas: " + e.getMessage(), e);
         }
     }
 
@@ -186,10 +186,10 @@ public class StatusNotaService {
      * @param corHex cor em formato hexadecimal (#RRGGBB)
      * @param sessaoId ID da sessão atual
      * @param usuarioId ID do usuário atual
-     * @return StatusNota status criado
+     * @return StatusTarefa status criado
      * @throws Exception se houver erro ao criar
      */
-    public StatusNota criar(String nome, String corHex, Long sessaoId, Long usuarioId) throws Exception {
+    public StatusTarefa criar(String nome, String corHex, Long sessaoId, Long usuarioId) throws Exception {
         // Validações
         if (nome == null || nome.trim().isEmpty()) {
             throw new Exception("Nome do status é obrigatório");
@@ -209,7 +209,7 @@ public class StatusNotaService {
         }
 
         try {
-            StatusNota status = new StatusNota();
+            StatusTarefa status = new StatusTarefa();
             status.setNome(nome.trim());
             status.setCorHex(corHex.toUpperCase());
 
@@ -233,10 +233,10 @@ public class StatusNotaService {
      * @param id ID do status
      * @param nome novo nome
      * @param corHex nova cor
-     * @return StatusNota status atualizado
+     * @return StatusTarefa status atualizado
      * @throws Exception se houver erro ao atualizar
      */
-    public StatusNota atualizar(Long id, String nome, String corHex) throws Exception {
+    public StatusTarefa atualizar(Long id, String nome, String corHex) throws Exception {
         // Validações
         if (nome == null || nome.trim().isEmpty()) {
             throw new Exception("Nome do status é obrigatório");
@@ -252,11 +252,11 @@ public class StatusNotaService {
 
         try {
             // Buscar status existente
-            StatusNota status = statusRepository.buscarPorId(id)
+            StatusTarefa status = statusRepository.buscarPorId(id)
                 .orElseThrow(() -> new Exception("Status não encontrado"));
 
             // Verificar se o novo nome já existe em outro status
-            Optional<StatusNota> existente = buscarPorNome(nome);
+            Optional<StatusTarefa> existente = buscarPorNome(nome);
             if (existente.isPresent() && !existente.get().getId().equals(id)) {
                 throw new Exception("Já existe outro status com este nome");
             }
@@ -280,10 +280,10 @@ public class StatusNotaService {
 
     /**
      * Deleta um status e invalida o cache.
-     * Verifica se há notas vinculadas antes de deletar.
+     * Verifica se há tarefas vinculadas antes de deletar.
      *
      * @param id ID do status
-     * @throws Exception se houver erro ao deletar ou se há notas vinculadas
+     * @throws Exception se houver erro ao deletar ou se há tarefas vinculadas
      */
     public void deletar(Long id) throws Exception {
         logger.warn("Deletando status ID {}", id);
@@ -294,11 +294,11 @@ public class StatusNotaService {
                 throw new Exception("Status não encontrado");
             }
 
-            // Verificar se há notas com esse status
-            long totalNotas = contarNotasPorStatus(id);
-            if (totalNotas > 0) {
+            // Verificar se há tarefas com esse status
+            long totalTarefas = contarTarefasPorStatus(id);
+            if (totalTarefas > 0) {
                 throw new Exception(String.format(
-                    "Não é possível deletar este status pois há %d nota(s) vinculada(s)", totalNotas
+                    "Não é possível deletar este status pois há %d tarefa(s) vinculada(s)", totalTarefas
                 ));
             }
 
